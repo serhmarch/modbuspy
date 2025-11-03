@@ -67,17 +67,16 @@ class ModbusPort(ABC):
         pass
     
     @abstractmethod
-    def open(self) -> bool:
+    def open(self) -> StatusCode:
         """Opens port (create connection) for further operations.
         
         Returns:
-            `True` if the operation was successful, `None` if operation is not yet completed,
-            or `ModbusException` is raised if error occurs.
+            `StatusCode` indicating the result of the operation.
         """
         pass
     
     @abstractmethod
-    def close(self) -> bool:
+    def close(self) -> StatusCode:
         """Closes the port (breaks the connection).
         
         Returns:

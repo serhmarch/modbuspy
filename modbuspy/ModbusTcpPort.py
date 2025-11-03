@@ -7,7 +7,7 @@ Date: November 2025
 
 from ModbusStatusCode import StatusCode
 import ModbusExceptions
-from ModbusGlobal import ProtocolType, Constants, timer, MBF_EXCEPTION
+from ModbusGlobal import *
 from ModbusPort import ModbusPort
 
 import time
@@ -97,7 +97,7 @@ class ModbusTcpPort(ModbusPort):
         """
         return not self._autoIncrement
     
-    def open(self) -> bool:
+    def open(self) -> StatusCode:
         fRepeatAgain = True
         
         while fRepeatAgain:
@@ -123,7 +123,7 @@ class ModbusTcpPort(ModbusPort):
                         self._sock.settimeout(self.timeout() / 1000.0)
                         
                 except Exception as e:
-                    return self.setError(ModbusExceptions.TcpCreateError, 
+                    self._raiseError(ModbusExceptions.TcpCreateError, 
                                         f"TCP. Error while creating socket for '{self._host}:{self._port}'. Error: {str(e)}")
                 
                 # Set timestamp and state
@@ -151,7 +151,7 @@ class ModbusTcpPort(ModbusPort):
                             if current_time - self._timestamp >= self.timeout():
                                 self._sock.close()
                                 self._state = ModbusPort.State.STATE_CLOSED
-                                return self.setError(StatusCode.Status_BadTcpConnect,
+                                self._raiseError(StatusCode.Status_BadTcpConnect,
                                                    f"TCP. Error while connecting to '{self._host}:{self._port}'. Timeout")
                             # Return processing - will try again later
                             return StatusCode.Status_Processing
@@ -165,7 +165,7 @@ class ModbusTcpPort(ModbusPort):
                                     # Connection failed
                                     self._sock.close()
                                     self._state = ModbusPort.State.STATE_CLOSED
-                                    return self.setError(StatusCode.Status_BadTcpConnect,
+                                    self._raiseError(StatusCode.Status_BadTcpConnect,
                                                        f"TCP. Error while connecting to '{self._host}:{self._port}'. Connection failed")
                                 
                                 elif ready_to_write:
@@ -174,7 +174,7 @@ class ModbusTcpPort(ModbusPort):
                                     if error:
                                         self._sock.close()
                                         self._state = ModbusPort.State.STATE_CLOSED
-                                        return self.setError(StatusCode.Status_BadTcpConnect,
+                                        self._raiseError(StatusCode.Status_BadTcpConnect,
                                                            f"TCP. Error while connecting to '{self._host}:{self._port}'. Error code: {error}")
                                     
                                     # Connection successful
@@ -186,26 +186,26 @@ class ModbusTcpPort(ModbusPort):
                                     # Timeout
                                     self._sock.close()
                                     self._state = ModbusPort.State.STATE_CLOSED
-                                    return self.setError(StatusCode.Status_BadTcpConnect,
+                                    self._raiseError(StatusCode.Status_BadTcpConnect,
                                                        f"TCP. Error while connecting to '{self._host}:{self._port}'. Timeout")
                                     
                             except Exception as e:
                                 self._sock.close()
                                 self._state = ModbusPort.State.STATE_CLOSED
-                                return self.setError(StatusCode.Status_BadTcpConnect,
+                                self._raiseError(StatusCode.Status_BadTcpConnect,
                                                    f"TCP. Error while connecting to '{self._host}:{self._port}'. Error: {str(e)}")
                     else:
                         # Immediate connection error
                         self._sock.close()
                         self._state = ModbusPort.State.STATE_CLOSED
-                        return self.setError(StatusCode.Status_BadTcpConnect,
+                        self._raiseError(StatusCode.Status_BadTcpConnect,
                                            f"TCP. Error while connecting to '{self._host}:{self._port}'. Error code: {result}")
                         
                 except Exception as e:
                     if hasattr(self, '_sock') and self._sock:
                         self._sock.close()
                     self._state = ModbusPort.State.STATE_CLOSED
-                    return self.setError(StatusCode.Status_BadTcpConnect,
+                    self._raiseError(StatusCode.Status_BadTcpConnect,
                                        f"TCP. Error while connecting to '{self._host}:{self._port}'. Error: {str(e)}")
             
             else:  # Default case
@@ -219,17 +219,20 @@ class ModbusTcpPort(ModbusPort):
         
         return StatusCode.Status_Processing
 
-    def disconnect(self):
-        sock = self._sock
-        print("Disconnection", sock)
-        try:
-            sock.shutdown(socket.SHUT_RDWR)
-        except OSError:
-            pass
-        sock.close()
-        return True        
+    def close(self) -> StatusCode:
+        if self.isOpen():
+            try:
+                self._sock.shutdown(socket.SHUT_RDWR)
+                self._sock.close()
+            except OSError:
+                pass
+        self._sock = None
+        self._state = ModbusPort.State.STATE_CLOSED
+        return StatusCode.Status_Good
 
-    def isConnected(self):
+    def isOpen(self) -> bool:
+        if self._sock is None:
+            return False
         sock = self._sock
         readable, writeable, errored = select.select([sock], [sock], [], 0)
         return (sock in readable) or (sock in writeable)
@@ -240,66 +243,83 @@ class ModbusTcpPort(ModbusPort):
     def setTimeout(self, timeout):    
         self._timeout = timeout
 
-    def _write(self):
+    def write(self) -> StatusCode:
+        if self._state in (ModbusPort.State.STATE_OPENED,
+                           ModbusPort.State.STATE_PREPARE_TO_WRITE,
+                           ModbusPort.State.STATE_WAIT_FOR_WRITE,
+                           ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL):
+            c = self._sock.send(self._buff)
+            if c >= 0:
+                self._state = ModbusPort.State.STATE_OPENED
+                return StatusCode.Status_Good
+            self.close()
+            self._raiseError(StatusCode.Status_BadTcpWrite, f"TCP. Error while writing to '{self._host}:{self._port}'. Error code: {c}.")
+        return None
+    
+    def read(self) -> StatusCode:
         fRepeatAgain = True
-        sock = self._sock
         while fRepeatAgain:
             fRepeatAgain = False
-            if self._state == ModbusPort.State.STATE_PREPARE_TO_WRITE:
-                self._stop = time.time() + self._timeout
-                self._state = ModbusPort.State.STATE_WAIT_FOR_WRITE
-                fRepeatAgain = True
-            elif self._state == ModbusPort.State.STATE_WAIT_FOR_WRITE:
-                readable, writeable, errored = select.select([], [sock], [sock], 0)
-                if sock in errored:
-                    raise modbus.TCPWriteError("Error while try to write")
-                elif time.time() >= self._stop:
-                    raise modbus.TCPWriteError("Timeout while try to write")
-                elif sock in writeable:
-                    self._state = ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL
-                    fRepeatAgain = True
-                else:
-                    return None
-            elif self._state == ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL:
-                buff = self._buff
-                sent = sock.send(buff)
-                del buff[:sent]
-                if not len(buff):
-                    return True
-                        
-
-    def _read(self):
-        fRepeatAgain = True
-        sock = self._sock
-        while fRepeatAgain:
-            fRepeatAgain = False
-            if self._state == ModbusPort.State.STATE_PREPARE_TO_READ:
-                self._buff.clear()
-                self._stop = time.time() + self._timeout
+            if self._state in (ModbusPort.State.STATE_OPENED,
+                               ModbusPort.State.STATE_PREPARE_TO_READ):
+                self._timestamp = timer()
                 self._state = ModbusPort.State.STATE_WAIT_FOR_READ
                 fRepeatAgain = True
-            elif self._state == ModbusPort.State.STATE_WAIT_FOR_READ:
-                readable, writeable, errored = select.select([sock], [], [sock], 0)
-                if sock in readable:
-                    self._state = ModbusPort.State.STATE_WAIT_FOR_READ_ALL
-                    fRepeatAgain = True
-                elif sock in errored:
-                    raise modbus.TCPReadError("Error while try to read")
-                elif time.time() >= self._stop:
-                    raise modbus.TCPReadError("Timeout while try to read")
-                else:
+                continue
+            elif self._state in (ModbusPort.State.STATE_WAIT_FOR_READ,
+                                ModbusPort.State.STATE_WAIT_FOR_READ_ALL):
+                try:
+                    # Attempt to receive data from socket
+                    data = self._sock.recv(4096)  # Read up to 4KB buffer size
+                    
+                    if len(data) > 0:
+                        # Data received successfully
+                        self._buff = bytearray(data)
+                        self._state = ModbusPort.State.STATE_OPENED
+                        return StatusCode.Status_Good
+                        
+                    else:
+                        # Connection closed by remote end (recv returned 0 bytes)
+                        self.close()
+                        # Note: When connection is remotely closed is not error for server side
+                        if self._modeServer:
+                            return StatusCode.Status_Uncertain
+                        else:
+                            self._raiseError(StatusCode.Status_BadTcpRead, 
+                                           f"TCP. Error while reading from '{self._host}:{self._port}'. Remote connection closed")
+                            
+                except socket.timeout:
+                    # Socket timeout occurred
+                    if self.isNonBlocking() and (timer() - self._timestamp >= self.timeout()):
+                        self.close()
+                        self._raiseError(StatusCode.Status_BadTcpRead, 
+                                       f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
+                    # For non-blocking mode, return None to indicate processing continues
                     return None
-            elif self._state == ModbusPort.State.STATE_WAIT_FOR_READ_ALL:
-                readable, writeable, errored = select.select([sock], [], [sock], 0)
-                if sock in errored:
-                    raise modbus.TCPReadError("Error while try to read")
-                elif sock in readable:
-                    data = bytearray(sock.recv(1024))
-                    if len(data) == 0 and len(self._buff) == 0: # that means remotely closed connection
-                        raise modbus.TCPReadError("Connection was cloes remotely when try to read")
-                    self._buff.extend(data)
-                else:
-                    return True
+                    
+                except socket.error as e:
+                    # Socket error occurred
+                    if e.errno == socket.EWOULDBLOCK or e.errno == socket.EAGAIN:
+                        # Non-blocking socket would block - check timeout
+                        if self.isNonBlocking() and (timer() - self._timestamp >= self.timeout()):
+                            self.close()
+                            self._raiseError(StatusCode.Status_BadTcpRead, 
+                                           f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
+                        # Return None to continue processing later
+                        return None
+                    else:
+                        # Other socket error
+                        self.close()
+                        self._raiseError(StatusCode.Status_BadTcpRead, 
+                                       f"TCP. Error while reading from '{self._host}:{self._port}'. Error code: {e.errno}. {str(e)}")
+                        
+                except Exception as e:
+                    # Unexpected error
+                    self.close()
+                    self._raiseError(StatusCode.Status_BadTcpRead, 
+                                   f"TCP. Error while reading from '{self._host}:{self._port}'. Error: {str(e)}")
+                    
+            return None
                     
 
     def writeBuffer(self, unit: int, func: int, data: bytes):
@@ -313,11 +333,11 @@ class ModbusTcpPort(ModbusPort):
         self._unit = unit
         self._func = func
         # standart TCP message prefix
-        buff.extend(self._transaction.to_bytes(2, 'big')) # transaction id
-        buff.append(0)
-        buff.append(0)
-        buff.append(0)
-        buff.append(len(data)+2); # quantity of next bytes
+        buff.extend(self._transaction.to_bytes(2, 'big')) # transaction id (2 bytes)
+        buff.append(0) # always 0 (2 bytes)
+        buff.append(0) # always 0 (2 bytes)
+        sz = len(data) + 2
+        buff.extend(sz.to_bytes(2, 'big')) # length of the entire message (2 bytes)
         # unit, function, data
         buff.append(unit)
         buff.append(func)
@@ -347,9 +367,5 @@ class ModbusTcpPort(ModbusPort):
 
         unit = buff[6]
         func = buff[7]
-
-        if func & MBF_EXCEPTION: # exception response
-            mexc = func & 0x7F
-            self._raiseError(ModbusExceptions.getException(StatusCode.Status_Bad | mexc, f"Modbus exception 0x{mexc:02X} received from server"))
         return unit, func, buff[8:]
 
