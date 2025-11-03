@@ -7,13 +7,13 @@ Date: November 2025
 
 from typing import Optional, Tuple
 
-from ModbusStatusCode import StatusCode, StatusIsStandardError, StatusIsBad
+from .ModbusStatusCode import StatusCode, StatusIsStandardError, StatusIsBad
 
 import ModbusExceptions
-from ModbusExceptions import ModbusException
-from ModbusGlobal import *
-from ModbusServerPort import ModbusServerPort
-from ModbusPort import ModbusPort
+from .ModbusExceptions import ModbusException
+from .ModbusGlobal import *
+from .ModbusServerPort import ModbusServerPort
+from .ModbusPort import ModbusPort
 
 
 class ModbusServerResource(ModbusServerPort):

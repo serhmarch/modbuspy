@@ -5,8 +5,8 @@ Author: serhmarch
 Date: November 2025
 """
 
-from ModbusConfig import *
-from modbuspy.ModbusExceptions import StatusCode
+from .ModbusConfig import *
+from .ModbusStatusCode import StatusCode
 
 import struct
 import time

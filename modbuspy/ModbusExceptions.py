@@ -5,7 +5,7 @@ Author: serhmarch
 Date: November 2025
 """
 
-from ModbusStatusCode import StatusCode
+from .ModbusStatusCode import StatusCode
 
 # ==============================================
 # Modbus Exception Classes

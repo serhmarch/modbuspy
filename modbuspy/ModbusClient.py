@@ -6,9 +6,9 @@ Date: November 2025
 """
 
 from typing import Optional
-from ModbusStatusCode import StatusCode
-from ModbusObject import ModbusObject
-from ModbusClientPort import ModbusClientPort
+from .ModbusStatusCode import StatusCode
+from .ModbusObject import ModbusObject
+from .ModbusClientPort import ModbusClientPort
 
 class ModbusClient(ModbusObject):
     """Base class for Modbus clients"""

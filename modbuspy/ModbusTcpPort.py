@@ -5,10 +5,10 @@ Author: serhmarch
 Date: November 2025
 """
 
-from ModbusStatusCode import StatusCode
-import ModbusExceptions
-from ModbusGlobal import *
-from ModbusPort import ModbusPort
+from .ModbusStatusCode import StatusCode
+from . import ModbusExceptions
+from .ModbusGlobal import *
+from .ModbusPort import ModbusPort
 
 import time
 import socket
@@ -134,15 +134,13 @@ class ModbusTcpPort(ModbusPort):
             if self._state == ModbusPort.State.STATE_WAIT_FOR_OPEN:
                 try:
                     # Attempt connection
-                    result = self._sock.connect_ex((self._host, self._port))
-                    
+                    result = self._sock.connect_ex((self._host, self._port))                    
                     if result == 0:
                         # Connection successful
                         if self.isBlocking():
                             self._sock.setblocking(True)
                         self._state = ModbusPort.State.STATE_OPENED
-                        return StatusCode.Status_Good
-                        
+                        return StatusCode.Status_Good                        
                     elif result in (socket.EINPROGRESS, socket.EWOULDBLOCK, socket.EALREADY):
                         # Connection in progress
                         if self.isNonBlocking():
@@ -154,7 +152,7 @@ class ModbusTcpPort(ModbusPort):
                                 self._raiseError(StatusCode.Status_BadTcpConnect,
                                                    f"TCP. Error while connecting to '{self._host}:{self._port}'. Timeout")
                             # Return processing - will try again later
-                            return StatusCode.Status_Processing
+                            return None
                         else:
                             # For blocking mode, use select to wait for connection
                             try:
@@ -175,8 +173,7 @@ class ModbusTcpPort(ModbusPort):
                                         self._sock.close()
                                         self._state = ModbusPort.State.STATE_CLOSED
                                         self._raiseError(StatusCode.Status_BadTcpConnect,
-                                                           f"TCP. Error while connecting to '{self._host}:{self._port}'. Error code: {error}")
-                                    
+                                                         f"TCP. Error while connecting to '{self._host}:{self._port}'. Error code: {error}")
                                     # Connection successful
                                     self._sock.setblocking(True)
                                     self._state = ModbusPort.State.STATE_OPENED
@@ -202,8 +199,7 @@ class ModbusTcpPort(ModbusPort):
                                            f"TCP. Error while connecting to '{self._host}:{self._port}'. Error code: {result}")
                         
                 except Exception as e:
-                    if hasattr(self, '_sock') and self._sock:
-                        self._sock.close()
+                    self._sock.close()
                     self._state = ModbusPort.State.STATE_CLOSED
                     self._raiseError(StatusCode.Status_BadTcpConnect,
                                        f"TCP. Error while connecting to '{self._host}:{self._port}'. Error: {str(e)}")
@@ -216,8 +212,7 @@ class ModbusTcpPort(ModbusPort):
                 else:
                     self._state = ModbusPort.State.STATE_OPENED
                     return StatusCode.Status_Good
-        
-        return StatusCode.Status_Processing
+        return None
 
     def close(self) -> StatusCode:
         if self.isOpen():
@@ -267,14 +262,14 @@ class ModbusTcpPort(ModbusPort):
                 fRepeatAgain = True
                 continue
             elif self._state in (ModbusPort.State.STATE_WAIT_FOR_READ,
-                                ModbusPort.State.STATE_WAIT_FOR_READ_ALL):
+                                 ModbusPort.State.STATE_WAIT_FOR_READ_ALL):
                 try:
                     # Attempt to receive data from socket
-                    data = self._sock.recv(4096)  # Read up to 4KB buffer size
-                    
-                    if len(data) > 0:
+                    data = self._sock.recv(1024)  # Read up to 1KB buffer size
+                    c = len(data)
+                    if c > 0:
                         # Data received successfully
-                        self._buff = bytearray(data)
+                        self._buff = data #bytearray(data)
                         self._state = ModbusPort.State.STATE_OPENED
                         return StatusCode.Status_Good
                         
