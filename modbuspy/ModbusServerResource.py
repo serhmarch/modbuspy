@@ -7,7 +7,7 @@ Date: November 2025
 
 from typing import Optional, Tuple
 
-from ModbusStatusCode import StatusCode, StatusIsProcessing, StatusIsStandardError, StatusIsBad
+from ModbusStatusCode import StatusCode, StatusIsStandardError, StatusIsBad
 
 import ModbusExceptions
 from ModbusExceptions import ModbusException
@@ -128,7 +128,7 @@ class ModbusServerResource(ModbusServerPort):
                 except ModbusException as e:
                     # self.signalError(self.objectName(), e.code(), str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
-                    self._setPortError(e)
+                    self._raisePortError(e)
                 # self.signalOpened(self.objectName())
                 self._state = ModbusServerPort.State.STATE_OPENED
                 fRepeatAgain = True
@@ -141,7 +141,7 @@ class ModbusServerResource(ModbusServerPort):
                 except ModbusException as e:
                     # self.signalError(self.objectName(), e.code(), str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
-                    self._setPortError(e)
+                    self._raisePortError(e)
                 # self.signalClosed(self.objectName())
                 self._state = ModbusServerPort.State.STATE_CLOSED
                 return StatusCode.Status_Good
@@ -163,12 +163,12 @@ class ModbusServerResource(ModbusServerPort):
                 except ModbusException as e:
                     # self.signalError(self.objectName(), e.code(), str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
-                    self._setPortError(e)
+                    self._raisePortError(e)
                 if not self._port.isOpen():
                     # self.signalClosed(self.objectName())
                     self._state = ModbusServerPort.State.STATE_CLOSED
                     return StatusCode.Status_Uncertain
-                # signalRxData(self.objectName(), self._port.readBufferData())
+                # signalRx(self.objectName(), self._port.readBufferData())
                 try:
                     self._unit, self._func, buff = self._port.readBuffer()
                     r = self._processInputData(buff)
@@ -180,7 +180,7 @@ class ModbusServerResource(ModbusServerPort):
                         continue
                     else:
                         self._state = ModbusServerPort.State.STATE_BEGIN_READ
-                        self._setPortError(e)
+                        self._raisePortError(e)
                 self._state = ModbusServerPort.State.STATE_PROCESS_DEVICE
                 fRepeatAgain = True
                 continue
@@ -248,7 +248,7 @@ class ModbusServerResource(ModbusServerPort):
                     self._state = ModbusServerPort.State.STATE_CLOSED
                 fRepeatAgain = True
                 continue
-
+        return None
     # Protected processing methods
 
     def _processInputData(self, buff: bytes) -> StatusCode:
