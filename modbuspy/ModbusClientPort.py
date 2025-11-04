@@ -938,7 +938,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             self._buff[1] = fifoadr & 0xFF           # Start register offset - LS BYTE
             status = ModbusClientPort.RequestStatus.Process        
         if status == ModbusClientPort.RequestStatus.Process:
-            buff = self._request(unit, MBF_READ_HOLDING_REGISTERS, self._buff)
+            buff = self._request(unit, MBF_READ_FIFO_QUEUE, self._buff)
             if buff is None:
                 return None
             if self._isBroadcast():

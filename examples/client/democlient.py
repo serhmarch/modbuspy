@@ -21,8 +21,8 @@ from modbuspy.ModbusGlobal import (ProtocolType, MBF_READ_COILS, MBF_READ_DISCRE
                                    MBF_READ_HOLDING_REGISTERS, MBF_READ_INPUT_REGISTERS,
                                    MBF_WRITE_SINGLE_COIL, MBF_WRITE_SINGLE_REGISTER,
                                    MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
-                                   MBF_WRITE_MULTIPLE_REGISTERS, MBF_MASK_WRITE_REGISTER,
-                                   MBF_READ_WRITE_MULTIPLE_REGISTERS)
+                                   MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
+                                   MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
 from modbuspy.ModbusClient import ModbusClient
 from modbuspy.ModbusTcpPort import ModbusTcpPort
 from modbuspy.ModbusClientPort import ModbusClientPort
@@ -64,6 +64,7 @@ class Options:
     """Configuration options for the demo client."""
     
     def __init__(self):
+        self.blocking = True    
         # Protocol settings
         self.type = ProtocolType.TCP
         self.unit = 1
@@ -98,6 +99,8 @@ Examples:
         """
     )
     
+    parser.add_argument('--block', type=int, default=1,
+                       help='Use blocking mode (1) or non-blocking (0) (default: 1)')
     parser.add_argument('-u', '--unit', type=int, default=1,
                        help='Modbus device remote address/unit (default: 1)')
     parser.add_argument('-t', '--type', choices=['TCP', 'RTU', 'ASC'], default='TCP',
@@ -130,8 +133,8 @@ Examples:
     args = parser.parse_args()
     
     options = Options()
-    options.unit = args.unit
-    
+    options.blocking = args.block
+
     # Set protocol type
     if args.type == 'TCP':
         options.type = ProtocolType.TCP
@@ -140,6 +143,9 @@ Examples:
     elif args.type == 'ASC':
         options.type = ProtocolType.ASC
     
+    options.unit = args.unit
+
+    ## TCP settings
     options.host = args.host
     options.port = args.port
     options.timeout = args.tm
@@ -171,7 +177,7 @@ def main():
     options = parse_arguments()
     
     # Create client port based on protocol type
-    blocking = True
+    blocking = bool(options.blocking)
     client_port = None
     
     if options.type == ProtocolType.TCP:
@@ -193,17 +199,19 @@ def main():
     
     # Define test requests
     requests = [
-        #RequestParams(MBF_READ_COILS, options.offset, options.count),
-        #RequestParams(MBF_READ_DISCRETE_INPUTS, options.offset, options.count),
-        #RequestParams(MBF_READ_HOLDING_REGISTERS, options.offset, options.count),
-        #RequestParams(MBF_READ_INPUT_REGISTERS, options.offset, options.count),
-        #RequestParams(MBF_WRITE_SINGLE_COIL, options.offset, 0),
-        #RequestParams(MBF_WRITE_SINGLE_REGISTER, options.offset, 0),
-        #RequestParams(MBF_READ_EXCEPTION_STATUS, options.offset, 0),
-        #RequestParams(MBF_WRITE_MULTIPLE_COILS, options.offset, options.count),
-        #RequestParams(MBF_WRITE_MULTIPLE_REGISTERS, options.offset, options.count),
-        #RequestParams(MBF_MASK_WRITE_REGISTER, options.offset, 0),
+        RequestParams(MBF_READ_COILS, options.offset, options.count),
+        RequestParams(MBF_READ_DISCRETE_INPUTS, options.offset, options.count),
+        RequestParams(MBF_READ_HOLDING_REGISTERS, options.offset, options.count),
+        RequestParams(MBF_READ_INPUT_REGISTERS, options.offset, options.count),
+        RequestParams(MBF_WRITE_SINGLE_COIL, options.offset, 0),
+        RequestParams(MBF_WRITE_SINGLE_REGISTER, options.offset, 0),
+        RequestParams(MBF_READ_EXCEPTION_STATUS, options.offset, 0),
+        RequestParams(MBF_WRITE_MULTIPLE_COILS, options.offset, options.count),
+        RequestParams(MBF_WRITE_MULTIPLE_REGISTERS, options.offset, options.count),
+        RequestParams(MBF_REPORT_SERVER_ID, 0, 0),
+        RequestParams(MBF_MASK_WRITE_REGISTER, options.offset, 0),
         RequestParams(MBF_READ_WRITE_MULTIPLE_REGISTERS, options.offset, options.count),
+        RequestParams(MBF_READ_FIFO_QUEUE, options.offset, 0)
     ]
     
     # Create test data buffer
@@ -221,63 +229,83 @@ def main():
         try:
             if req.func == MBF_READ_COILS:
                 print(f"READ_COILS(offset={req.offset}, count={req.count})")
-                result = client.readCoils(req.offset, req.count)
-                if result is not None:
+                while 1:
+                    result = client.readCoils(req.offset, req.count)
+                    if result is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
                     print_bools(req.count, result)
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                    break
                     
             elif req.func == MBF_READ_DISCRETE_INPUTS:
                 print(f"READ_DISCRETE_INPUTS(offset={req.offset}, count={req.count})")
-                result = client.readDiscreteInputs(req.offset, req.count)
-                if result is not None:
+                while 1:
+                    result = client.readDiscreteInputs(req.offset, req.count)
+                    if result is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
                     print_bools(req.count, result)
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                    break
                     
             elif req.func == MBF_READ_HOLDING_REGISTERS:
                 print(f"READ_HOLDING_REGISTERS(offset={req.offset}, count={req.count})")
-                result = client.readHoldingRegisters(req.offset, req.count)
-                if result is not None:
+                while 1:
+                    result = client.readHoldingRegisters(req.offset, req.count)
+                    if result is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
                     print_regs(req.count, result)
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                    break
                     
             elif req.func == MBF_READ_INPUT_REGISTERS:
                 print(f"READ_INPUT_REGISTERS(offset={req.offset}, count={req.count})")
-                result = client.readInputRegisters(req.offset, req.count)
-                if result is not None:
+                while 1:
+                    result = client.readInputRegisters(req.offset, req.count)
+                    if result is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
                     print_regs(req.count, result)
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
-                    
+                    break
+
             elif req.func == MBF_WRITE_SINGLE_COIL:
                 print(f"WRITE_SINGLE_COIL(offset={req.offset})")
                 test_value = True  # Test value
                 print(f"Writing: {test_value}")
-                status = client.writeSingleCoil(req.offset, test_value)
-                if StatusIsGood(status):
-                    print("Good")
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                while 1:
+                    status = client.writeSingleCoil(req.offset, test_value)
+                    if status is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
+                    if StatusIsGood(status):
+                        print("Good")
+                    else:
+                        print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    break
                     
             elif req.func == MBF_WRITE_SINGLE_REGISTER:
                 print(f"WRITE_SINGLE_REGISTER(offset={req.offset})")
                 test_value = 12345  # Test value
                 print(f"Writing: {test_value}")
-                status = client.writeSingleRegister(req.offset, test_value)
-                if StatusIsGood(status):
-                    print("Good")
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                while 1:
+                    status = client.writeSingleRegister(req.offset, test_value)
+                    if status is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
+                    if StatusIsGood(status):
+                        print("Good")
+                    else:
+                        print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    break
                     
             elif req.func == MBF_READ_EXCEPTION_STATUS:
                 print("READ_EXCEPTION_STATUS")
-                result = client.readExceptionStatus()
-                if result is not None:
+                while 1:
+                    result = client.readExceptionStatus()
+                    if result is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
                     print(f"Exception status: {result[0] if len(result) > 0 else 0}")
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                    break
                     
             elif req.func == MBF_WRITE_MULTIPLE_COILS:
                 print(f"WRITE_MULTIPLE_COILS(offset={req.offset}, count={req.count})")
@@ -286,11 +314,16 @@ def main():
                 for i in range(len(coil_data)):
                     coil_data[i] = 0xAA  # Alternating pattern
                 print_bools(req.count, coil_data)
-                status = client.writeMultipleCoils(req.offset, req.count, coil_data)
-                if StatusIsGood(status):
-                    print("Good")
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                while 1:
+                    status = client.writeMultipleCoils(req.offset, req.count, coil_data)
+                    if status is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
+                    if StatusIsGood(status):
+                        print("Good")
+                    else:
+                        print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    break
                     
             elif req.func == MBF_WRITE_MULTIPLE_REGISTERS:
                 print(f"WRITE_MULTIPLE_REGISTERS(offset={req.offset}, count={req.count})")
@@ -301,22 +334,42 @@ def main():
                     reg_data[i*2] = (val >> 8) & 0xFF
                     reg_data[i*2+1] = val & 0xFF
                 print_regs(req.count, reg_data)
-                status = client.writeMultipleRegisters(req.offset, req.count, reg_data)
-                if StatusIsGood(status):
-                    print("Good")
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                while 1:
+                    status = client.writeMultipleRegisters(req.offset, req.count, reg_data)
+                    if status is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
+                    if StatusIsGood(status):
+                        print("Good")
+                    else:
+                        print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    break
+                    
+            elif req.func == MBF_REPORT_SERVER_ID:
+                print("REPORT_SERVER_ID")
+                while 1:
+                    result = client.reportServerID()
+                    if result is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
+                    print(f"Server ID: {str(result)}")
+                    break
                     
             elif req.func == MBF_MASK_WRITE_REGISTER:
                 print(f"MASK_WRITE_REGISTER(offset={req.offset})")
                 and_mask = 0x00FF  # Test masks
                 or_mask = 0x0F00
                 print(f"AND mask: {and_mask:04X}, OR mask: {or_mask:04X}")
-                status = client.maskWriteRegister(req.offset, and_mask, or_mask)
-                if StatusIsGood(status):
-                    print("Good")
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                while 1:
+                    status = client.maskWriteRegister(req.offset, and_mask, or_mask)
+                    if status is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
+                    if StatusIsGood(status):
+                        print("Good")
+                    else:
+                        print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    break
                     
             elif req.func == MBF_READ_WRITE_MULTIPLE_REGISTERS:
                 print(f"READ_WRITE_MULTIPLE_REGISTERS(offset={req.offset}, count={req.count})")
@@ -328,14 +381,27 @@ def main():
                     write_data[i*2+1] = val & 0xFF
                 print(f"Writing: ", end="")
                 print_regs(req.count, write_data)
-                
-                result = client.readWriteMultipleRegisters(req.offset, req.count, 
-                                                           req.offset, req.count, write_data)
-                if result is not None:
+                while 1:
+                    result = client.readWriteMultipleRegisters(req.offset, req.count, 
+                                                            req.offset, req.count, write_data)
+                    if result is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
                     print(f"Read: ", end="")
                     print_regs(req.count, result)
-                else:
-                    print(f"Error: {client_port.lastErrorText()}")
+                    break
+
+            elif req.func == MBF_READ_FIFO_QUEUE:
+                print(f"READ_FIFO_QUEUE(offset={req.offset})")
+                while 1:
+                    result = client.readFIFOQueue(req.offset)
+                    if result is None: # for non-blocking mode
+                        time.sleep(0.001)
+                        continue
+                    fifo_count = len(result) // 2
+                    print(f"FIFO: ", end="")
+                    print_regs(fifo_count, result)
+                    break
 
         except ModbusException as e:
             print(f"Exception occurred: {e}")
@@ -353,6 +419,7 @@ def main():
         client_port.close()
     
     print("Demo client completed.")
+
 
 if __name__ == "__main__":
     main()
