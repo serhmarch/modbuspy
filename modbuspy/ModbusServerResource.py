@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 
 from .ModbusStatusCode import StatusCode, StatusIsStandardError, StatusIsBad
 
-import ModbusExceptions
+from . import ModbusExceptions
 from .ModbusExceptions import ModbusException
 from .ModbusGlobal import *
 from .ModbusServerPort import ModbusServerPort
@@ -215,7 +215,7 @@ class ModbusServerResource(ModbusServerPort):
                         buff[0] = StatusCode.Status_BadServerDeviceFailure & 0xFF
                 else:
                     buff = self._processOutputData()
-                self._port.writeBufferData(self._unit, func, buff)
+                self._port.writeBuffer(self._unit, func, buff)
                 self._state = ModbusServerPort.State.STATE_WRITE
                 fRepeatAgain = True
                 continue

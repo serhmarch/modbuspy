@@ -320,7 +320,7 @@ class ModbusTcpServer(ModbusServerPort):
                     #c.connect(&ModbusServerPort::signalError, static_cast<ModbusServerPort*>(this), &ModbusTcpServer::signalError);
                     c.setBroadcastEnabled(self.isBroadcastEnabled())
                     c.setUnitMap(self.unitMap())
-                    self.connections.push_back(c)
+                    self._connections.append(c)
                     #signalNewConnection(c.objectName());
                 # process current connections
                 for c in self._connections:
@@ -388,7 +388,7 @@ class ModbusTcpServer(ModbusServerPort):
         Returns:
             New ModbusServerPort instance
         """
-        tcp = ModbusTcpPort(sock, False)
+        tcp = ModbusTcpPort(blocking=False, sock=sock)
         tcp.setTimeout(self.timeout())
         host, port = ModbusTcpServer.getHostService(sock)
         name = f"{host}:{port}"

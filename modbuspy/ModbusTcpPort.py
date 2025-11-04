@@ -25,16 +25,18 @@ DEFAULT_TIMEOUT = 10.0
 class ModbusTcpPort(ModbusPort):
     """modbus master tcp class"""
 
-    def __init__(self, blocking: bool = True):
+    def __init__(self, blocking: bool = True, sock = None):
         super().__init__(blocking)
         self._host = "localhost"
         self._port = Constants.STANDARD_TCP_PORT
         self._autoIncrement = True
         self._transaction = 0
-        self._sock = None
+        self._sock = sock
+        if self.isOpen():
+            self._state = ModbusPort.State.STATE_OPENED
 
     def __del__(self):
-        self.disconnect()
+        self.close()
 
     def handle(self) -> int:
         if self._sock is not None:
