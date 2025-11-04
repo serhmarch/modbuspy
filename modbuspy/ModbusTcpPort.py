@@ -31,11 +31,15 @@ class ModbusTcpPort(ModbusPort):
         self._port = Constants.STANDARD_TCP_PORT
         self._autoIncrement = True
         self._transaction = 0
-        self._buff = bytearray()
         self._sock = None
 
     def __del__(self):
         self.disconnect()
+
+    def handle(self) -> int:
+        if self._sock is not None:
+            return self._sock.fileno()
+        return -1
 
     def type(self) -> ProtocolType:
         """Returns the Modbus protocol type.
@@ -121,6 +125,8 @@ class ModbusTcpPort(ModbusPort):
                     # Set timeout for blocking mode
                     if self.isBlocking():
                         self._sock.settimeout(self.timeout() / 1000.0)
+                    else:
+                        self._sock.setblocking(False)
                         
                 except Exception as e:
                     self._raiseError(ModbusExceptions.TcpCreateError, 
@@ -137,11 +143,17 @@ class ModbusTcpPort(ModbusPort):
                     result = self._sock.connect_ex((self._host, self._port))                    
                     if result == 0:
                         # Connection successful
-                        if self.isBlocking():
-                            self._sock.setblocking(True)
+                        #test_to_del = self._sock.gettimeout()
+                        #test_to_del = test_to_del * 1000
+                        #test_to_del = test_to_del
+                        #if self.isBlocking():
+                        #    self._sock.setblocking(True)
+                        #    test_to_del = self._sock.gettimeout()
+                        #    test_to_del = test_to_del * 1000
+                        #    test_to_del = test_to_del
                         self._state = ModbusPort.State.STATE_OPENED
                         return StatusCode.Status_Good                        
-                    elif result in (socket.EINPROGRESS, socket.EWOULDBLOCK, socket.EALREADY):
+                    elif result == socket.EWOULDBLOCK:
                         # Connection in progress
                         if self.isNonBlocking():
                             # For non-blocking mode, check timeout
@@ -226,9 +238,9 @@ class ModbusTcpPort(ModbusPort):
         return StatusCode.Status_Good
 
     def isOpen(self) -> bool:
-        if self._sock is None:
-            return False
         sock = self._sock
+        if sock is None or sock.fileno() < 0:
+            return False
         readable, writeable, errored = select.select([sock], [sock], [], 0)
         return (sock in readable) or (sock in writeable)
         
@@ -269,7 +281,7 @@ class ModbusTcpPort(ModbusPort):
                     c = len(data)
                     if c > 0:
                         # Data received successfully
-                        self._buff = data #bytearray(data)
+                        self._buff = bytearray(data)
                         self._state = ModbusPort.State.STATE_OPENED
                         return StatusCode.Status_Good
                         
@@ -285,16 +297,15 @@ class ModbusTcpPort(ModbusPort):
                             
                 except socket.timeout:
                     # Socket timeout occurred
-                    if self.isNonBlocking() and (timer() - self._timestamp >= self.timeout()):
-                        self.close()
-                        self._raiseError(StatusCode.Status_BadTcpRead, 
-                                       f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
-                    # For non-blocking mode, return None to indicate processing continues
-                    return None
+                    if self.isNonBlocking() and (timer() - self._timestamp < self.timeout()):
+                        return None
+                    self.close()
+                    self._raiseError(StatusCode.Status_BadTcpRead, 
+                                    f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
                     
                 except socket.error as e:
                     # Socket error occurred
-                    if e.errno == socket.EWOULDBLOCK or e.errno == socket.EAGAIN:
+                    if e.errno == socket.EWOULDBLOCK:
                         # Non-blocking socket would block - check timeout
                         if self.isNonBlocking() and (timer() - self._timestamp >= self.timeout()):
                             self.close()
@@ -324,7 +335,6 @@ class ModbusTcpPort(ModbusPort):
         buff = self._buff
         buff.clear()
         # save request data for future compare
-        self._transaction = self._transaction % 65536 + 1
         self._unit = unit
         self._func = func
         # standart TCP message prefix

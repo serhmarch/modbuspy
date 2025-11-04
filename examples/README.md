@@ -4,14 +4,14 @@ This directory contains example applications for the ModbusPy library.
 
 ## Client Examples
 
-### simple_democlient.py
+### democlient.py
 
 A working simple demo client that demonstrates basic Modbus TCP functionality. This version uses a standalone implementation without complex module dependencies.
 
 **Usage:**
 ```bash
 cd examples/client
-python simple_democlient.py [options]
+python democlient.py [options]
 ```
 
 **Options:**
@@ -25,16 +25,16 @@ python simple_democlient.py [options]
 **Examples:**
 ```bash
 # Connect to TCP server on localhost:502
-python simple_democlient.py
+python democlient.py
 
 # Connect to specific host and port
-python simple_democlient.py --host 192.168.1.100 -p 502
+python democlient.py --host 192.168.1.100 -p 502
 
 # Use different unit ID and data range
-python simple_democlient.py -u 2 -o 100 -c 10
+python democlient.py -u 2 -o 100 -c 10
 
 # Set custom timeout
-python simple_democlient.py --timeout 5.0
+python democlient.py --timeout 5.0
 ```
 
 **Functions Tested:**

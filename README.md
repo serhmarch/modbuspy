@@ -25,7 +25,7 @@ Library implements such Modbus functions as:
 
 ## Using Library
 
-### Common usage (C++)
+### Common usage
 
 ### Client
 

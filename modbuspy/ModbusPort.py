@@ -43,6 +43,7 @@ class ModbusPort(ABC):
         self._errorStatus = StatusCode.Status_Good
         self._errorText = ""
         self._timeout = 1000
+        self._buff = bytearray()
     
     # Abstract methods that must be implemented by subclasses
     
@@ -62,7 +63,7 @@ class ModbusPort(ABC):
         For TCP it is socket handle, for serial port - file handle.
         
         Returns:
-            Native handle value.
+            Native handle value as integer.
         """
         pass
     
@@ -237,41 +238,37 @@ class ModbusPort(ABC):
     
     # Abstract buffer access methods
     
-    @abstractmethod
-    def readBufferData(self) -> Optional[bytes]:
+    def readBufferData(self) -> bytes:
         """Returns data of read buffer.
         
         Returns:
             Read buffer data or None if empty.
         """
-        pass
+        return self._buff
     
-    @abstractmethod
     def readBufferSize(self) -> int:
         """Returns size of data of read buffer.
         
         Returns:
-            Size of read buffer data.
+            Size of read buffer data.`
         """
-        pass
+        return len(self._buff)
     
-    @abstractmethod
-    def writeBufferData(self) -> Optional[bytes]:
+    def writeBufferData(self) -> bytes:
         """Returns data of write buffer.
         
         Returns:
             Write buffer data or None if empty.
         """
-        pass
+        return self._buff
     
-    @abstractmethod
     def writeBufferSize(self) -> int:
         """Returns size of data of write buffer.
         
         Returns:
             Size of write buffer data.
         """
-        pass
+        return len(self._buff)
     
     # Protected method for error handling
     
@@ -285,7 +282,7 @@ class ModbusPort(ABC):
         if isinstance(exc, ModbusException):
             self._errorStatus = exc.code
             self._errorText = exc.message
-        elif issubclass(exc, ModbusException):
+        elif isinstance(exc, type) and issubclass(exc, ModbusException):
             self._errorStatus = exc.code
             self._errorText = text
         else: # `exc` must be integer or instance of StatusCode
@@ -303,7 +300,7 @@ class ModbusPort(ABC):
         rexc = None
         if isinstance(exc, ModbusException):
             rexc = exc
-        elif issubclass(exc, ModbusException):
+        elif isinstance(exc, type) and issubclass(exc, ModbusException):
             rexc = exc(text)
         else: # `exc` must be integer or instance of StatusCode
             rexc = getException(exc, text)

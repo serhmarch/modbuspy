@@ -26,6 +26,7 @@ from modbuspy.ModbusGlobal import (ProtocolType, MBF_READ_COILS, MBF_READ_DISCRE
 from modbuspy.ModbusClient import ModbusClient
 from modbuspy.ModbusTcpPort import ModbusTcpPort
 from modbuspy.ModbusClientPort import ModbusClientPort
+from modbuspy.ModbusExceptions import ModbusException
 
 # Constants
 STANDARD_TCP_PORT = 502
@@ -33,8 +34,7 @@ STANDARD_TCP_PORT = 502
 def print_regs(count: int, buff: bytes) -> None:
     """Print register values from buffer."""
     for i in range(count):
-        # Convert bytes to 16-bit values (big endian)
-        val = (buff[i*2] << 8) | buff[i*2+1] if i*2+1 < len(buff) else 0
+        val = (buff[i*2+1] << 8) | buff[i*2]
         print(val, end=' ')
     print()
 
@@ -102,7 +102,7 @@ Examples:
                        help='Modbus device remote address/unit (default: 1)')
     parser.add_argument('-t', '--type', choices=['TCP', 'RTU', 'ASC'], default='TCP',
                        help='Protocol type (default: TCP)')
-    parser.add_argument('--host', default='localhost',
+    parser.add_argument('-r', '--host', '--remote', default='localhost',
                        help='DNS name or IP address for TCP (default: localhost)')
     parser.add_argument('-p', '--port', type=int, default=STANDARD_TCP_PORT,
                        help=f'Remote TCP port (default: {STANDARD_TCP_PORT})')
@@ -193,16 +193,16 @@ def main():
     
     # Define test requests
     requests = [
-        RequestParams(MBF_READ_COILS, options.offset, options.count),
-        RequestParams(MBF_READ_DISCRETE_INPUTS, options.offset, options.count),
-        RequestParams(MBF_READ_HOLDING_REGISTERS, options.offset, options.count),
-        RequestParams(MBF_READ_INPUT_REGISTERS, options.offset, options.count),
-        RequestParams(MBF_WRITE_SINGLE_COIL, options.offset, 0),
-        RequestParams(MBF_WRITE_SINGLE_REGISTER, options.offset, 0),
-        RequestParams(MBF_READ_EXCEPTION_STATUS, options.offset, 0),
-        RequestParams(MBF_WRITE_MULTIPLE_COILS, options.offset, options.count),
-        RequestParams(MBF_WRITE_MULTIPLE_REGISTERS, options.offset, options.count),
-        RequestParams(MBF_MASK_WRITE_REGISTER, options.offset, 0),
+        #RequestParams(MBF_READ_COILS, options.offset, options.count),
+        #RequestParams(MBF_READ_DISCRETE_INPUTS, options.offset, options.count),
+        #RequestParams(MBF_READ_HOLDING_REGISTERS, options.offset, options.count),
+        #RequestParams(MBF_READ_INPUT_REGISTERS, options.offset, options.count),
+        #RequestParams(MBF_WRITE_SINGLE_COIL, options.offset, 0),
+        #RequestParams(MBF_WRITE_SINGLE_REGISTER, options.offset, 0),
+        #RequestParams(MBF_READ_EXCEPTION_STATUS, options.offset, 0),
+        #RequestParams(MBF_WRITE_MULTIPLE_COILS, options.offset, options.count),
+        #RequestParams(MBF_WRITE_MULTIPLE_REGISTERS, options.offset, options.count),
+        #RequestParams(MBF_MASK_WRITE_REGISTER, options.offset, 0),
         RequestParams(MBF_READ_WRITE_MULTIPLE_REGISTERS, options.offset, options.count),
     ]
     
@@ -212,7 +212,7 @@ def main():
         buff[i] = i % 256  # Fill with test pattern
     
     # Create client
-    client = ModbusClient(client_port)
+    client = ModbusClient(options.unit, client_port)
     
     # Execute test requests
     for req in requests:
@@ -221,7 +221,7 @@ def main():
         try:
             if req.func == MBF_READ_COILS:
                 print(f"READ_COILS(offset={req.offset}, count={req.count})")
-                result = client.readCoils(options.unit, req.offset, req.count)
+                result = client.readCoils(req.offset, req.count)
                 if result is not None:
                     print_bools(req.count, result)
                 else:
@@ -229,7 +229,7 @@ def main():
                     
             elif req.func == MBF_READ_DISCRETE_INPUTS:
                 print(f"READ_DISCRETE_INPUTS(offset={req.offset}, count={req.count})")
-                result = client.readDiscreteInputs(options.unit, req.offset, req.count)
+                result = client.readDiscreteInputs(req.offset, req.count)
                 if result is not None:
                     print_bools(req.count, result)
                 else:
@@ -237,7 +237,7 @@ def main():
                     
             elif req.func == MBF_READ_HOLDING_REGISTERS:
                 print(f"READ_HOLDING_REGISTERS(offset={req.offset}, count={req.count})")
-                result = client.readHoldingRegisters(options.unit, req.offset, req.count)
+                result = client.readHoldingRegisters(req.offset, req.count)
                 if result is not None:
                     print_regs(req.count, result)
                 else:
@@ -245,7 +245,7 @@ def main():
                     
             elif req.func == MBF_READ_INPUT_REGISTERS:
                 print(f"READ_INPUT_REGISTERS(offset={req.offset}, count={req.count})")
-                result = client.readInputRegisters(options.unit, req.offset, req.count)
+                result = client.readInputRegisters(req.offset, req.count)
                 if result is not None:
                     print_regs(req.count, result)
                 else:
@@ -255,7 +255,7 @@ def main():
                 print(f"WRITE_SINGLE_COIL(offset={req.offset})")
                 test_value = True  # Test value
                 print(f"Writing: {test_value}")
-                status = client.writeSingleCoil(options.unit, req.offset, test_value)
+                status = client.writeSingleCoil(req.offset, test_value)
                 if StatusIsGood(status):
                     print("Good")
                 else:
@@ -265,7 +265,7 @@ def main():
                 print(f"WRITE_SINGLE_REGISTER(offset={req.offset})")
                 test_value = 12345  # Test value
                 print(f"Writing: {test_value}")
-                status = client.writeSingleRegister(options.unit, req.offset, test_value)
+                status = client.writeSingleRegister(req.offset, test_value)
                 if StatusIsGood(status):
                     print("Good")
                 else:
@@ -273,7 +273,7 @@ def main():
                     
             elif req.func == MBF_READ_EXCEPTION_STATUS:
                 print("READ_EXCEPTION_STATUS")
-                result = client.readExceptionStatus(options.unit)
+                result = client.readExceptionStatus()
                 if result is not None:
                     print(f"Exception status: {result[0] if len(result) > 0 else 0}")
                 else:
@@ -286,7 +286,7 @@ def main():
                 for i in range(len(coil_data)):
                     coil_data[i] = 0xAA  # Alternating pattern
                 print_bools(req.count, coil_data)
-                status = client.writeMultipleCoils(options.unit, req.offset, req.count, coil_data)
+                status = client.writeMultipleCoils(req.offset, req.count, coil_data)
                 if StatusIsGood(status):
                     print("Good")
                 else:
@@ -301,7 +301,7 @@ def main():
                     reg_data[i*2] = (val >> 8) & 0xFF
                     reg_data[i*2+1] = val & 0xFF
                 print_regs(req.count, reg_data)
-                status = client.writeMultipleRegisters(options.unit, req.offset, req.count, reg_data)
+                status = client.writeMultipleRegisters(req.offset, req.count, reg_data)
                 if StatusIsGood(status):
                     print("Good")
                 else:
@@ -312,7 +312,7 @@ def main():
                 and_mask = 0x00FF  # Test masks
                 or_mask = 0x0F00
                 print(f"AND mask: {and_mask:04X}, OR mask: {or_mask:04X}")
-                status = client.maskWriteRegister(options.unit, req.offset, and_mask, or_mask)
+                status = client.maskWriteRegister(req.offset, and_mask, or_mask)
                 if StatusIsGood(status):
                     print("Good")
                 else:
@@ -329,17 +329,15 @@ def main():
                 print(f"Writing: ", end="")
                 print_regs(req.count, write_data)
                 
-                result = client.readWriteMultipleRegisters(
-                    options.unit, req.offset, req.count, 
-                    req.offset, req.count, write_data
-                )
+                result = client.readWriteMultipleRegisters(req.offset, req.count, 
+                                                           req.offset, req.count, write_data)
                 if result is not None:
                     print(f"Read: ", end="")
                     print_regs(req.count, result)
                 else:
                     print(f"Error: {client_port.lastErrorText()}")
-                    
-        except Exception as e:
+
+        except ModbusException as e:
             print(f"Exception occurred: {e}")
         
         # Timing control - wait at least 1 second between requests

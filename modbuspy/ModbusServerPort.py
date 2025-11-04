@@ -159,7 +159,7 @@ class ModbusServerPort(ModbusObject):
         if isinstance(exc, ModbusException):
             self._errorStatus = exc.code
             self._errorText = exc.message
-        elif issubclass(exc, ModbusException):
+        elif isinstance(exc, type) and issubclass(exc, ModbusException):
             self._errorStatus = exc.code
             self._errorText = text
         else: # `exc` must be integer or instance of StatusCode
@@ -177,7 +177,7 @@ class ModbusServerPort(ModbusObject):
         rexc = None
         if isinstance(exc, ModbusException):
             rexc = exc
-        elif issubclass(exc, ModbusException):
+        elif isinstance(exc, type) and issubclass(exc, ModbusException):
             rexc = exc(text)
         else: # `exc` must be integer or instance of StatusCode
             rexc = getException(exc, text)

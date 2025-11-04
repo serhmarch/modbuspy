@@ -44,6 +44,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         self._func = 0
         self._offset = 0
         self._count = 0
+        self._value = 0
         self._orMask = 0
         self._buff = bytearray()
         self._block = False
@@ -59,6 +60,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         self._lastStatusTimestamp = 0
         self._settings_tries = 1
         self._settings_broadcastEnabled = True
+        self._state = ModbusClientPort.State.STATE_UNKNOWN
         port.setServerMode(False)
 
     def type(self) -> ProtocolType:
@@ -132,54 +134,54 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         self._settings_broadcastEnabled = enable
 
     def readCoils(self, unit: int, offset: int, count: int) -> bytes:
-        return self._port._readCoils(self, unit, offset, count)
+        return self._readCoils(self, unit, offset, count)
     
     def readDiscreteInputs(self, unit: int, offset: int, count: int) -> bytes:
-        return self._port._readDiscreteInputs(self, unit, offset, count)
+        return self._readDiscreteInputs(self, unit, offset, count)
 
     def readHoldingRegisters(self, unit: int, offset: int, count: int) -> bytes:
-        return self._port._readHoldingRegisters(self, unit, offset, count)
+        return self._readHoldingRegisters(self, unit, offset, count)
 
     def readInputRegisters(self, unit: int, offset: int, count: int) -> bytes:
-        return self._port._readInputRegisters(self, unit, offset, count)
+        return self._readInputRegisters(self, unit, offset, count)
 
     def writeSingleCoil(self, unit: int, offset: int, value: bool) -> StatusCode:
-        return self._port._writeSingleCoil(self, unit, offset, value)
+        return self._writeSingleCoil(self, unit, offset, value)
 
     def writeSingleRegister(self, unit: int, offset: int, value: int) -> StatusCode:
-        return self._port._writeSingleRegister(self, unit, offset, value)
+        return self._writeSingleRegister(self, unit, offset, value)
 
     def readExceptionStatus(self, unit: int) -> bytes:
-        return self._port._readExceptionStatus(self, unit)
+        return self._readExceptionStatus(self, unit)
 
     def diagnostics(self, unit: int, subfunc: int, indata: Optional[bytes] = None) -> bytes:
-        return self._port._diagnostics(self, unit, subfunc, indata)
+        return self._diagnostics(self, unit, subfunc, indata)
         
     def getCommEventCounter(self, unit: int) -> bytes:
-        return self._port._getCommEventCounter(self, unit)
+        return self._getCommEventCounter(self, unit)
 
     def getCommEventLog(self, unit: int) -> bytes:
-        return self._port._getCommEventLog(self, unit)
+        return self._getCommEventLog(self, unit)
         
     def writeMultipleCoils(self, unit: int, offset: int, count: int, values: bytes) -> StatusCode:
-        return self._port._writeMultipleCoils(self, unit, offset, count, values)
+        return self._writeMultipleCoils(self, unit, offset, count, values)
         
     def writeMultipleRegisters(self, unit: int, offset: int, count: int, values: bytes) -> StatusCode:
-        return self._port._writeMultipleRegisters(self, unit, offset, count, values)
+        return self._writeMultipleRegisters(self, unit, offset, count, values)
         
     def reportServerID(self, unit: int) -> bytes:
-        return self._port._reportServerID(self, unit)
+        return self._reportServerID(self, unit)
         
     def maskWriteRegister(self, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode:
-        return self._port._maskWriteRegister(self, unit, offset, andMask, orMask)
+        return self._maskWriteRegister(self, unit, offset, andMask, orMask)
 
     def readWriteMultipleRegisters(self, unit: int, readOffset: int, readCount: int,
                                    writeOffset: int, writeCount: int, writeValues: bytes) -> bytes:
-        return self._port._readWriteMultipleRegisters(self, unit, readOffset, readCount,
+        return self._readWriteMultipleRegisters(self, unit, readOffset, readCount,
                                                       writeOffset, writeCount, writeValues)
 
     def readFIFOQueue(self, unit: int, fifoadr: int) -> bytes:
-        return self._port._readFIFOQueue(self, unit, fifoadr)
+        return self._readFIFOQueue(self, unit, fifoadr)
 
     # Status methods
     
@@ -521,6 +523,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             self._buff[2] = (value >> 8) & 0xFF  # Value - MS BYTE
             self._buff[3] = value & 0xFF         # Value - LS BYTE
             self._offset = offset
+            self._value = value
             status = ModbusClientPort.RequestStatus.Process        
         if status == ModbusClientPort.RequestStatus.Process:
             buff = self._request(unit, MBF_WRITE_SINGLE_REGISTER, self._buff)
@@ -887,8 +890,8 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             self._buff[7] = writeCount & 0xFF         # quantity to write - LS BYTE
             self._buff[8] = byteCount                 # quantity of next bytes
             for i in range(writeCount):
-                self._buff[5+i*2] = writeValues[i*2+1] # Register value - LS BYTE
-                self._buff[6+i*2] = writeValues[i*2  ] # Register value - MS BYTE
+                self._buff[ 9+i*2] = writeValues[i*2+1] # Register value - LS BYTE
+                self._buff[10+i*2] = writeValues[i*2  ] # Register value - MS BYTE
             self._count = readCount
             status = ModbusClientPort.RequestStatus.Process
         if status == ModbusClientPort.RequestStatus.Process:
@@ -902,7 +905,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             fcBytes = buff[0]  # count of bytes received
             if fcBytes != len(buff) - 1:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
-            fcRegs = fcBytes / 2  # count values received
+            fcRegs = fcBytes // 2  # count values received
             if fcRegs != self._count:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Count registers to read is not match received one")
             # Extract input register values from response
@@ -971,43 +974,50 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         Returns:
             Status code of the operation.
         """
-        if not self._isWriteBufferBlocked():
-            self._unit = unit
-            self._func = func
-            self._lastTries = 0
-            self._port.writeBuffer(unit, func, buff)
-            self._blockWriteBuffer()
-        r = StatusCode.Status_Good
-        try:
-            r = self._process()
-            if r is None:
-                return None
-        except ModbusException as e:
-            self._setPortError(e)
-            if self._repeats < self._settings_tries:
-                self._port.setNextRequestRepeated(True)
-                return None
-            raise e
-        finally:
-            if r is not None:
-                self._freeWriteBuffer()
-                self._repeats = 0
-                self._lastTries = self._repeats
-                self._currentClient = None
-        if not self._isBroadcast():
-            unit, func, buff = self._port.readBuffer()
-            if unit != self._unit:
-                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct response. Requested unit (unit) is not equal to responsed")
-            if func & MBF_EXCEPTION:
-                if func & 0x7f != self._func:
-                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct exception response. Requested function is not equal to responsed")
-                if len(buff) < 1:
-                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct exception response. Exception status missed")
-                self._raiseError(StatusCode.Status_Bad | buff[0], f"Modbus exception 0x{buff[0]:02X} received from server")
-            if func != self._func:
-                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct response. Requested function is not equal to responsed")
-            return buff
-        self._setStatus(StatusCode.Status_Good)
+        fRepeatAgain = True
+        while fRepeatAgain:
+            fRepeatAgain = False
+            if not self._isWriteBufferBlocked():
+                self._unit = unit
+                self._func = func
+                self._lastTries = 0
+                self._port.writeBuffer(unit, func, buff)
+                self._blockWriteBuffer()
+            r = StatusCode.Status_Good
+            try:
+                r = self._process()
+                if r is None:
+                    return None
+            except ModbusException as e:
+                self._repeats += 1
+                self._setPortError(e)
+                if self._repeats < self._settings_tries:
+                    self._port.setNextRequestRepeated(True)
+                    if self._port.isNonBlocking():
+                        return None
+                    fRepeatAgain = True
+                    continue
+                raise e
+            finally:
+                if r is not None:
+                    self._freeWriteBuffer()
+                    self._repeats = 0
+                    self._lastTries = self._repeats
+                    self._currentClient = None
+            if not self._isBroadcast():
+                unit, func, buff = self._port.readBuffer()
+                if unit != self._unit:
+                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct response. Requested unit (unit) is not equal to responsed")
+                if func & MBF_EXCEPTION:
+                    if func & 0x7f != self._func:
+                        self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct exception response. Requested function is not equal to responsed")
+                    if len(buff) < 1:
+                        self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct exception response. Exception status missed")
+                    self._raiseError(StatusCode.Status_Bad | buff[0], f"Modbus exception 0x{buff[0]:02X} received from server")
+                if func != self._func:
+                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct response. Requested function is not equal to responsed")
+                return buff
+            self._setStatus(StatusCode.Status_Good)
         return bytes()
 
     def _process(self) -> StatusCode:
@@ -1026,7 +1036,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             elif self._state in (ModbusClientPort.State.STATE_CLOSED,
                                  ModbusClientPort.State.STATE_BEGIN_OPEN):
                 self._timestampRefresh()
-                self._state == ModbusClientPort.State.STATE_WAIT_FOR_OPEN
+                self._state = ModbusClientPort.State.STATE_WAIT_FOR_OPEN
                 fRepeatAgain = True
                 continue
             elif self._state == ModbusClientPort.State.STATE_WAIT_FOR_OPEN:
@@ -1080,7 +1090,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                 else:
                     #self.signalTx(self.objectName(), self._port.writeBufferData(), self._port.writeBufferSize())
                     self._state = ModbusClientPort.State.STATE_BEGIN_READ
-                self._setPortStatus(StatusCode.Status_Good)
+                self._setStatus(StatusCode.Status_Good)
                 if (self._isBroadcast()):
                     self._state = ModbusClientPort.State.STATE_OPENED
                     return StatusCode.Status_Good
@@ -1184,6 +1194,16 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         self._isLastPortError = True
         self._setErrorBase(exc, text)
 
+    def _raisePortError(self, exc, text: str = ""):
+        """Sets the error parameters of the last operation performed and raises the exception.
+        
+        Args:
+            exc: Type of the ModbusException to raise.
+            text: Text description of the error (optional).
+        """
+        self._isLastPortError = True
+        self._raiseErrorBase(exc, text)
+
     def _setErrorBase(self, exc, text: str = ""):
         """Sets the error parameters of the last operation performed.
         
@@ -1194,7 +1214,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         if isinstance(exc, ModbusException):
             self._lastErrorStatus = exc.code
             self._lastErrorText = exc.message
-        elif issubclass(exc, ModbusException):
+        elif isinstance(exc, type) and issubclass(exc, ModbusException):
             self._lastErrorStatus = exc.code
             self._lastErrorText = text
         else: # `exc` must be integer or instance of StatusCode
@@ -1213,7 +1233,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         rexc = None
         if isinstance(exc, ModbusException):
             rexc = exc
-        elif issubclass(exc, ModbusException):
+        elif isinstance(exc, type) and issubclass(exc, ModbusException):
             rexc = exc(text)
         else: # `exc` must be integer or instance of StatusCode
             rexc = getException(exc, text)
