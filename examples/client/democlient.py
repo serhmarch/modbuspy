@@ -17,7 +17,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import modbuspy modules
 from modbuspy.ModbusStatusCode import StatusCode, StatusIsGood
-from modbuspy.ModbusGlobal import (ProtocolType, MBF_READ_COILS, MBF_READ_DISCRETE_INPUTS, 
+from modbuspy.ModbusGlobal import (ProtocolType, Constants,
+                                   MBF_READ_COILS, MBF_READ_DISCRETE_INPUTS, 
                                    MBF_READ_HOLDING_REGISTERS, MBF_READ_INPUT_REGISTERS,
                                    MBF_WRITE_SINGLE_COIL, MBF_WRITE_SINGLE_REGISTER,
                                    MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
@@ -27,9 +28,6 @@ from modbuspy.ModbusClient import ModbusClient
 from modbuspy.ModbusTcpPort import ModbusTcpPort
 from modbuspy.ModbusClientPort import ModbusClientPort
 from modbuspy.ModbusExceptions import ModbusException
-
-# Constants
-STANDARD_TCP_PORT = 502
 
 def print_regs(count: int, buff: bytes) -> None:
     """Print register values from buffer."""
@@ -71,7 +69,7 @@ class Options:
         
         # TCP settings
         self.host = "localhost"
-        self.port = STANDARD_TCP_PORT
+        self.port = Constants.STANDARD_TCP_PORT
         self.timeout = 3000  # milliseconds
         
         # Serial settings (not implemented in current modbuspy)
@@ -94,7 +92,7 @@ def parse_arguments() -> Options:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  democlient.py -t TCP -h 192.168.1.100 -p 502
+  democlient.py -t TCP -r 192.168.1.100 -p 502
   democlient.py -u 2 -o 100 -c 10
         """
     )
@@ -107,8 +105,8 @@ Examples:
                        help='Protocol type (default: TCP)')
     parser.add_argument('-r', '--host', '--remote', default='localhost',
                        help='DNS name or IP address for TCP (default: localhost)')
-    parser.add_argument('-p', '--port', type=int, default=STANDARD_TCP_PORT,
-                       help=f'Remote TCP port (default: {STANDARD_TCP_PORT})')
+    parser.add_argument('-p', '--port', type=int, default=Constants.STANDARD_TCP_PORT,
+                       help=f'Remote TCP port (default: {Constants.STANDARD_TCP_PORT})')
     parser.add_argument('--tm', type=int, default=3000,
                        help='Timeout for TCP in milliseconds (default: 3000)')
     parser.add_argument('--serial', '--sl',
