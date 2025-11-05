@@ -54,7 +54,7 @@ class ModbusSerialPort(ModbusPort):
         """Convert Modbus StopBits enum to pySerial stop bits value."""
         if stopBits == StopBits.OneStop:
             return serial.STOPBITS_ONE
-        elif stopBits == StopBits.OnePointFiveStop:
+        elif stopBits == StopBits.OneAndHalfStop:
             return serial.STOPBITS_ONE_POINT_FIVE
         elif stopBits == StopBits.TwoStop:
             return serial.STOPBITS_TWO

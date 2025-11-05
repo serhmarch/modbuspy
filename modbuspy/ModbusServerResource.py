@@ -108,17 +108,17 @@ class ModbusServerResource(ModbusServerPort):
             if self._state == ModbusServerPort.State.STATE_CLOSED:
                 if self._cmdClose:
                     break
-                self._state == ModbusServerPort.State.STATE_BEGIN_OPEN
+                self._state = ModbusServerPort.State.STATE_BEGIN_OPEN
                 fRepeatAgain = True
                 continue
             elif self._state == ModbusServerPort.State.STATE_BEGIN_OPEN:
                 self._timestampRefresh()
-                self._state == ModbusServerPort.State.STATE_WAIT_FOR_OPEN
+                self._state = ModbusServerPort.State.STATE_WAIT_FOR_OPEN
                 fRepeatAgain = True
                 continue
             elif self._state == ModbusServerPort.State.STATE_WAIT_FOR_OPEN:
                 if self._cmdClose:
-                    self._state == ModbusServerPort.State.STATE_WAIT_FOR_CLOSE
+                    self._state = ModbusServerPort.State.STATE_WAIT_FOR_CLOSE
                     fRepeatAgain = True
                     continue
                 try:
@@ -153,7 +153,7 @@ class ModbusServerResource(ModbusServerPort):
                 continue
             elif self._state == ModbusServerPort.State.STATE_READ:
                 if self._cmdClose:
-                    self._state == ModbusServerPort.State.STATE_WAIT_FOR_CLOSE
+                    self._state = ModbusServerPort.State.STATE_WAIT_FOR_CLOSE
                     fRepeatAgain = True
                     continue
                 try:
