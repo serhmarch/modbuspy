@@ -26,6 +26,8 @@ from modbuspy.ModbusGlobal import (ProtocolType, Constants,
                                    MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
 from modbuspy.ModbusClient import ModbusClient
 from modbuspy.ModbusTcpPort import ModbusTcpPort
+from modbuspy.ModbusRtuPort import ModbusRtuPort
+from modbuspy.ModbusAscPort import ModbusAscPort
 from modbuspy.ModbusClientPort import ModbusClientPort
 from modbuspy.ModbusExceptions import ModbusException
 
@@ -68,19 +70,19 @@ class Options:
         self.unit = 1
         
         # TCP settings
-        self.host = "localhost"
-        self.port = Constants.STANDARD_TCP_PORT
-        self.timeout = 3000  # milliseconds
+        self.host    = ModbusTcpPort.Defaults.host
+        self.port    = ModbusTcpPort.Defaults.port
+        self.timeout = ModbusTcpPort.Defaults.timeout
         
         # Serial settings (not implemented in current modbuspy)
-        self.serial_port = ""
-        self.baud_rate = 9600
-        self.data_bits = 8
-        self.parity = 'N'
-        self.stop_bits = 1
-        self.timeout_first_byte = 3000
-        self.timeout_inter_byte = 5
-        
+        self.serial_port = ModbusRtuPort.Defaults.portName
+        self.baud_rate = ModbusRtuPort.Defaults.baudRate
+        self.data_bits = ModbusRtuPort.Defaults.dataBits
+        self.parity = ModbusRtuPort.Defaults.parity
+        self.stop_bits = ModbusRtuPort.Defaults.stopBits
+        self.timeout_first_byte = ModbusRtuPort.Defaults.timeoutFirstByte
+        self.timeout_inter_byte = ModbusRtuPort.Defaults.timeoutInterByte
+
         # Function parameters
         self.offset = 0
         self.count = 16
@@ -109,7 +111,7 @@ Examples:
                        help=f'Remote TCP port (default: {Constants.STANDARD_TCP_PORT})')
     parser.add_argument('--tm', type=int, default=3000,
                        help='Timeout for TCP in milliseconds (default: 3000)')
-    parser.add_argument('--serial', '--sl',
+    parser.add_argument('--serial', '-sl',
                        help='Serial port name for RTU and ASC')
     parser.add_argument('-b', '--baud', type=int, default=9600,
                        help='Baud rate for RTU and ASC (default: 9600)')
@@ -140,6 +142,8 @@ Examples:
         options.type = ProtocolType.RTU
     elif args.type == 'ASC':
         options.type = ProtocolType.ASC
+    else:
+        options.type = ProtocolType.TCP  # Fallback to TCP
     
     options.unit = args.unit
 
@@ -153,10 +157,10 @@ Examples:
         options.serial_port = args.serial
     options.baud_rate = args.baud
     options.data_bits = args.data
-    options.parity = args.parity
-    options.stop_bits = float(args.stop)
-    options.timeout_first_byte = args.tfb
-    options.timeout_inter_byte = args.tib
+    #options.parity = args.parity
+    #options.stop_bits = float(args.stop)
+    #options.timeout_first_byte = args.tfb
+    #options.timeout_inter_byte = args.tib
     
     options.offset = args.offset
     options.count = args.count
@@ -184,13 +188,26 @@ def main():
         tcp_port.setPort(options.port)
         tcp_port.setTimeout(options.timeout)
         client_port = ModbusClientPort(tcp_port)
-        
-        # Note: Signal connections for Tx/Rx monitoring would be implemented here
-        # if the Python version supported signal/slot mechanism
-        
-    elif options.type in (ProtocolType.RTU, ProtocolType.ASC):
-        print("Serial protocols (RTU/ASC) are not implemented in current modbuspy version")
-        sys.exit(1)
+    elif options.type == ProtocolType.RTU:
+        rtu_port = ModbusRtuPort(blocking)
+        rtu_port.setPortName(options.serial_port)
+        rtu_port.setBaudRate(options.baud_rate)
+        rtu_port.setDataBits(options.data_bits)
+        rtu_port.setParity(options.parity)
+        rtu_port.setStopBits(options.stop_bits)
+        rtu_port.setTimeoutFirstByte(options.timeout_first_byte)
+        rtu_port.setTimeoutInterByte(options.timeout_inter_byte)
+        client_port = ModbusClientPort(rtu_port)
+    elif options.type == ProtocolType.ASC:
+        asc_port = ModbusAscPort(blocking)
+        asc_port.setPortName(options.serial_port)
+        asc_port.setBaudRate(options.baud_rate)
+        asc_port.setDataBits(options.data_bits)
+        asc_port.setParity(options.parity)
+        asc_port.setStopBits(options.stop_bits)
+        asc_port.setTimeoutFirstByte(options.timeout_first_byte)
+        asc_port.setTimeoutInterByte(options.timeout_inter_byte)
+        client_port = ModbusClientPort(asc_port)
     else:
         print(f"Unsupported protocol type: {options.type}")
         sys.exit(1)

@@ -395,7 +395,7 @@ class ModbusSerialPort(ModbusPort):
                         return None
                 except serial.SerialException as e:
                     self._state = ModbusPort.State.STATE_OPENED
-                    self._raiseError(ModbusExceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Error: {str(e)}    ")
+                    self._raiseError(ModbusExceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Error: {str(e)}")
                 self._timestampRefresh()
                 self._state = ModbusPort.State.STATE_WAIT_FOR_READ_ALL
                 fRepeatAgain = True
@@ -415,7 +415,7 @@ class ModbusSerialPort(ModbusPort):
                         return None
                 except serial.SerialException as e:
                     self._state = ModbusPort.State.STATE_OPENED
-                    self._raiseError(ModbusExceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Error: {str(e)}    ")
+                    self._raiseError(ModbusExceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Error: {str(e)}")
                 return None
             else:
                 if self.isOpen():
