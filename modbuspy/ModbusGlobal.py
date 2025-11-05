@@ -352,7 +352,7 @@ def write_mem_bits(offset: int, count: int, values: Union[bytes, bytearray],
     
     return StatusCode.Status_Good, actual_count
 
-def bytes_to_ascii(bytes_buff: Union[bytes, bytearray]) -> bytes:
+def bytesToAscii(bytes_buff: Union[bytes, bytearray]) -> bytes:
     """Function converts byte array to ASCII repr of byte array.
     Every byte of bytes_buff are repr as two bytes in output,
     where most signified tetrabits represented as leading byte in hex digit in ASCII encoding (upper) and
@@ -362,7 +362,7 @@ def bytes_to_ascii(bytes_buff: Union[bytes, bytearray]) -> bytes:
     """
     return bytes_buff.hex().upper().encode('ascii')
 
-def ascii_to_bytes(ascii_buff: Union[bytes, bytearray]) -> bytes:
+def asciiToBytes(ascii_buff: Union[bytes, bytearray]) -> bytes:
     """Function converts ASCII repr to binary byte array.
     Every byte of output are repr as two bytes in `ascii_buff`,
     where most signified tetrabits represented as leading byte in hex digit in ASCII encoding (upper) and

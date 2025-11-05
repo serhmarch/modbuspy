@@ -111,11 +111,9 @@ class SerialOpenError(SerialError):
     """Serial open Modbus exception"""
     code = StatusCode.Status_BadSerialOpen
 
-
 class SerialWriteError(SerialError):
     """Serial write Modbus exception"""
     code = StatusCode.Status_BadSerialWrite
-
 
 class SerialReadError(SerialError):
     """Serial read Modbus exception"""

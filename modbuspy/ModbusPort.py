@@ -42,7 +42,7 @@ class ModbusPort(ABC):
         self._modeBlocking = blocking
         self._errorStatus = StatusCode.Status_Good
         self._errorText = ""
-        self._timeout = 1000
+        self._timeout = 0
         self._buff = bytearray()
     
     # Abstract methods that must be implemented by subclasses
@@ -64,34 +64,6 @@ class ModbusPort(ABC):
         
         Returns:
             Native handle value as integer.
-        """
-        pass
-    
-    @abstractmethod
-    def open(self) -> StatusCode:
-        """Opens port (create connection) for further operations.
-        
-        Returns:
-            `StatusCode` indicating the result of the operation.
-        """
-        pass
-    
-    @abstractmethod
-    def close(self) -> StatusCode:
-        """Closes the port (breaks the connection).
-        
-        Returns:
-            `True` if the operation was successful, `None` if operation is not yet completed,
-            or `ModbusException` is raised if error occurs.
-        """
-        pass
-    
-    @abstractmethod
-    def isOpen(self) -> bool:
-        """Returns True if the port is open/communication with the remote device is established.
-        
-        Returns:
-            True if port is open, False otherwise.
         """
         pass
     
@@ -190,6 +162,52 @@ class ModbusPort(ABC):
     # Abstract buffer and I/O methods
     
     @abstractmethod
+    def isOpen(self) -> bool:
+        """Returns True if the port is open/communication with the remote device is established.
+        
+        Returns:
+            True if port is open, False otherwise.
+        """
+        pass
+    
+    @abstractmethod
+    def open(self) -> StatusCode:
+        """Opens port (create connection) for further operations.
+        
+        Returns:
+            `StatusCode` indicating the result of the operation.
+        """
+        pass
+    
+    @abstractmethod
+    def close(self) -> StatusCode:
+        """Closes the port (breaks the connection).
+        
+        Returns:
+            `True` if the operation was successful, `None` if operation is not yet completed,
+            or `ModbusException` is raised if error occurs.
+        """
+        pass
+    
+    @abstractmethod
+    def write(self) -> StatusCode:
+        """Implements the algorithm for writing to the port.
+        
+        Returns:
+            Status code of the operation.
+        """
+        pass
+    
+    @abstractmethod
+    def read(self) -> StatusCode:
+        """Implements the algorithm for reading from the port.
+        
+        Returns:
+            Status code of the operation.
+        """
+        pass
+    
+    @abstractmethod
     def writeBuffer(self, unit: int, func: int, data: bytes, szInBuff: int) -> StatusCode:
         """The function directly generates a packet and places it in the buffer for further sending.
         
@@ -218,25 +236,7 @@ class ModbusPort(ABC):
         """
         pass
     
-    @abstractmethod
-    def write(self) -> StatusCode:
-        """Implements the algorithm for writing to the port.
-        
-        Returns:
-            Status code of the operation.
-        """
-        pass
-    
-    @abstractmethod
-    def read(self) -> StatusCode:
-        """Implements the algorithm for reading from the port.
-        
-        Returns:
-            Status code of the operation.
-        """
-        pass
-    
-    # Abstract buffer access methods
+    # Buffer access methods
     
     def readBufferData(self) -> bytes:
         """Returns data of read buffer.

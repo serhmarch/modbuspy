@@ -47,6 +47,9 @@ class StatusCode(IntEnum):
     Status_BadSerialRead         = Status_Bad | 0x203 # Error. Reading the serial port (timeout)
     Status_BadSerialReadTimeout  = Status_Bad | 0x204 # Error. Reading the serial port (timeout)
     Status_BadSerialWriteTimeout = Status_Bad | 0x205 # Error. Writing the serial port (timeout)
+    Status_BadPortNotOpen        = Status_Bad | 0x206 # Error. Serial port is not open
+    Status_BadPortWrite          = Status_Bad | 0x207 # Error. Cannot write to serial port
+    Status_BadPortRead           = Status_Bad | 0x208 # Error. Cannot read from serial port
     # ---_ Modbus serial specified errors end ---
                                                           
     # ---- Modbus ASC specified errors begin ----         
