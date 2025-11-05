@@ -17,7 +17,6 @@ import os
 import argparse
 import time
 import struct
-import threading
 from typing import Optional, List
 
 # Add the modbuspy library path
@@ -30,6 +29,9 @@ from modbuspy.ModbusGlobal import (ProtocolType, timer,
                                    MB_REGE_SZ_BITES)
 
 from modbuspy.ModbusTcpServer import ModbusTcpServer
+from modbuspy.ModbusServerResource import ModbusServerResource
+from modbuspy.ModbusRtuPort import ModbusRtuPort
+from modbuspy.ModbusAscPort import ModbusAscPort
 from modbuspy.ModbusExceptions import (ModbusException,
                                        IllegalDataAddressError,
                                        GatewayPathUnavailableError)
@@ -362,20 +364,41 @@ def main():
     print(f"Protocol: {['TCP', 'RTU', 'ASC'][options.type]}")
     print(f"Unit: {options.unit}, Memory size: {options.count} registers")
     
-    if options.type != ProtocolType.TCP:
-        print("Serial protocols (RTU/ASC) are not implemented in current version")
-        sys.exit(1)
-    
-    print(f"Listening on port {options.port}")
-    print("-" * 50)    
     # Create device with simulated memory
-    device = Device(options.unit, options.count)    
+    device = Device(options.unit, options.count)
+    server = None
+    if options.type == ProtocolType.TCP:
+        server = ModbusTcpServer(device)
+        server.setPort(options.port)
+        server.setTimeout(options.timeout)
+        server.setMaxConnections(options.max_connections)
+        print(f"Listening on port {options.port}")
+    elif options.type == ProtocolType.RTU:
+        rtu_port = ModbusRtuPort(blocking=False)
+        rtu_port.setPortName(options.serial_port)
+        rtu_port.setBaudRate(options.baud_rate)
+        rtu_port.setDataBits(options.data_bits)
+        rtu_port.setParity(options.parity)
+        rtu_port.setStopBits(options.stop_bits)
+        rtu_port.setTimeoutFirstByte(options.timeout_first_byte)
+        rtu_port.setTimeoutInterByte(options.timeout_inter_byte)
+        server = ModbusServerResource(rtu_port, device)
+    elif options.type == ProtocolType.ASC:
+        asc_port = ModbusAscPort(blocking=False)
+        asc_port.setPortName(options.serial_port)
+        asc_port.setBaudRate(options.baud_rate)
+        asc_port.setDataBits(options.data_bits)
+        asc_port.setParity(options.parity)
+        asc_port.setStopBits(options.stop_bits)
+        asc_port.setTimeoutFirstByte(options.timeout_first_byte)
+        asc_port.setTimeoutInterByte(options.timeout_inter_byte)
+        server = ModbusServerResource(asc_port, device)
+    else:
+        print(f"Unsupported protocol type: {options.type}")
+        sys.exit(1)
+
     # Create and start server
-    server = ModbusTcpServer(device)
-    server.setPort(options.port)
-    server.setTimeout(options.timeout)
-    server.setMaxConnections(options.max_connections)
-    
+    print("-" * 50)     
     try:
         print("demoserver starts ...")
         tmr = timer()
