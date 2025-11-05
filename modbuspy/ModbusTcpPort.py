@@ -1,5 +1,5 @@
 """
-ModbusPort.py - Contains TCP port definitions of the Modbus library for Python.
+ModbusTcpPort.py - Contains TCP port definitions of the Modbus library for Python.
 
 Author: serhmarch
 Date: November 2025
@@ -10,25 +10,24 @@ from . import ModbusExceptions
 from .ModbusGlobal import *
 from .ModbusPort import ModbusPort
 
-import time
 import socket
 import select
-import traceback
-
-# ==============================================
-# MODBUS TCP MASTER
-# ==============================================
-
-STANDARD_TCP_PORT = 502
-DEFAULT_TIMEOUT = 10.0
 
 class ModbusTcpPort(ModbusPort):
     """modbus master tcp class"""
 
+    class Defaults:
+        """Default serial port settings."""
+        host    = "localhost"                 # Default setting 'TCP host name (DNS or IP address)'
+        port    = Constants.STANDARD_TCP_PORT # Default setting 'TCP port number' for the listening server
+        timeout = 1000                        # Default setting 'TCP timeout' in milliseconds
+
     def __init__(self, blocking: bool = True, sock = None):
+        d = ModbusTcpPort.Defaults
         super().__init__(blocking)
-        self._host = "localhost"
-        self._port = Constants.STANDARD_TCP_PORT
+        self._host    = d.host
+        self._port    = d.port
+        self._timeout = d.timeout
         self._autoIncrement = True
         self._transaction = 0
         self._sock = sock
@@ -104,20 +103,20 @@ class ModbusTcpPort(ModbusPort):
         return not self._autoIncrement
     
     def open(self) -> StatusCode:
-        fRepeatAgain = True
-        
+        fRepeatAgain = True        
         while fRepeatAgain:
             fRepeatAgain = False
             
             if self._state in (ModbusPort.State.STATE_UNKNOWN, 
                                ModbusPort.State.STATE_CLOSED):
+                if self.isOpen():
+                    if self.isChanged():
+                        self.close()
+                    else:
+                        self._state = ModbusPort.State.STATE_OPENED
+                        return StatusCode.Status_Good                
                 # Clear changed flag
                 self._changed = False
-                
-                # Check if already open
-                if self.isOpen():
-                    self._state = ModbusPort.State.STATE_OPENED
-                    return True
                 
                 # Create socket if needed
                 try:
@@ -176,13 +175,13 @@ class ModbusTcpPort(ModbusPort):
                     self._raiseError(StatusCode.Status_BadTcpConnect,
                                         f"TCP. Error while connecting to '{self._host}:{self._port}'. Error: {str(e)}")
             else:  # Default case
-                if not self.isOpen():
+                if self.isOpen() and not self.isChanged():
+                    self._state = ModbusPort.State.STATE_OPENED
+                    return StatusCode.Status_Good
+                else:
                     self._state = ModbusPort.State.STATE_CLOSED
                     fRepeatAgain = True
                     continue
-                else:
-                    self._state = ModbusPort.State.STATE_OPENED
-                    return StatusCode.Status_Good
         return None
 
     def close(self) -> StatusCode:
@@ -313,21 +312,21 @@ class ModbusTcpPort(ModbusPort):
         buff = self._buff
         sz = len(buff)
         if sz < 8:
-            self._setError(ModbusExceptions.TcpReadError, "Not correct response. Responsed data length to small")
+            self._raiseError(ModbusExceptions.NotCorrectResponseError, "Not correct response. Responsed data length to small")
 
         transaction = buff[1] | (buff[0] << 8)
         if not ((buff[2] == 0) and (buff[3] == 0)):
-            self._setError(ModbusExceptions.TcpReadError, "Not correct response. Requested transaction id is not equal to responded")
+            self._raiseError(ModbusExceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
 
         cBytes = buff[5] | (buff[4] << 8)
         if cBytes != (sz-6):
-            return self._setError(ModbusExceptions.NotCorrectResponseError, "TCP. Not correct read-buffer's TCP-prefix. Size defined in TCP-prefix is not equal to actual response-size")
-        
+            return self._raiseError(ModbusExceptions.NotCorrectResponseError, "TCP. Not correct read-buffer's TCP-prefix. Size defined in TCP-prefix is not equal to actual response-size")
+
         if (self._modeServer):
             self._transaction = transaction
         else:
             if self._transaction != transaction:
-                self._setError(ModbusExceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
+                self._raiseError(ModbusExceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
 
         unit = buff[6]
         func = buff[7]
