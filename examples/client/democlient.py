@@ -50,14 +50,26 @@ def print_bools(count: int, buff: bytes) -> None:
             print(False, end=' ')
     print()
 
-def print_tx(source: str, buff: bytes, size: int) -> None:
+def print_opened(source: str) -> None:
+    """Print opened port message."""
+    print(f"{source} opened.")
+
+def print_closed(source: str) -> None:
+    """Print closed port message."""
+    print(f"{source} closed.")
+
+def print_error(source: str, code: int, text: str) -> None:
+    """Print error message."""
+    print(f"{source} Error {code}: {text}")
+
+def print_tx(source: str, buff: bytes) -> None:
     """Print transmitted data."""
-    hex_str = ' '.join(f'{b:02X}' for b in buff[:size])
+    hex_str = ' '.join(f'{b:02X}' for b in buff)
     print(f"{source} Tx: {hex_str}")
 
-def print_rx(source: str, buff: bytes, size: int) -> None:
+def print_rx(source: str, buff: bytes) -> None:
     """Print received data."""
-    hex_str = ' '.join(f'{b:02X}' for b in buff[:size])
+    hex_str = ' '.join(f'{b:02X}' for b in buff)
     print(f"{source} Rx: {hex_str}")
 
 class Options:
@@ -188,6 +200,7 @@ def main():
         tcp_port.setPort(options.port)
         tcp_port.setTimeout(options.timeout)
         client_port = ModbusClientPort(tcp_port)
+        client_port.setObjectName("TCP")
     elif options.type == ProtocolType.RTU:
         rtu_port = ModbusRtuPort(blocking)
         rtu_port.setPortName(options.serial_port)
@@ -198,6 +211,7 @@ def main():
         rtu_port.setTimeoutFirstByte(options.timeout_first_byte)
         rtu_port.setTimeoutInterByte(options.timeout_inter_byte)
         client_port = ModbusClientPort(rtu_port)
+        client_port.setObjectName("RTU")
     elif options.type == ProtocolType.ASC:
         asc_port = ModbusAscPort(blocking)
         asc_port.setPortName(options.serial_port)
@@ -208,10 +222,16 @@ def main():
         asc_port.setTimeoutFirstByte(options.timeout_first_byte)
         asc_port.setTimeoutInterByte(options.timeout_inter_byte)
         client_port = ModbusClientPort(asc_port)
+        client_port.setObjectName("ASC")
     else:
         print(f"Unsupported protocol type: {options.type}")
         sys.exit(1)
-    
+    client_port.signalOpened.connect(print_opened)
+    client_port.signalClosed.connect(print_closed)
+    client_port.signalError.connect(print_error)
+    client_port.signalTx.connect(print_tx)
+    client_port.signalRx.connect(print_rx)
+
     # Define test requests
     requests = [
         RequestParams(MBF_READ_COILS, options.offset, options.count),
@@ -236,7 +256,8 @@ def main():
     
     # Create client
     client = ModbusClient(options.unit, client_port)
-    
+    client.setObjectName(f"democlient({client.unit()})")
+
     # Execute test requests
     for req in requests:
         start_time = time.time()
@@ -419,7 +440,8 @@ def main():
                     break
 
         except ModbusException as e:
-            print(f"Exception occurred: {e}")
+            #print(f"Exception occurred: {e}")
+            pass
         
         # Timing control - wait at least 1 second between requests
         exec_time = time.time() - start_time

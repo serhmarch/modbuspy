@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from .ModbusGlobal import ModbusInterface, ProtocolType, StatusCode, Constants, timer
 from .ModbusExceptions import *
 from .ModbusTcpPort import ModbusTcpPort
+from .ModbusObject import ModbusObject
 from .ModbusServerPort import ModbusServerPort
 from .ModbusServerResource import ModbusServerResource
 
@@ -58,6 +59,9 @@ class ModbusTcpServer(ModbusServerPort):
         self._connections: List['ModbusServerPort'] = []
         # vars
         self._socket = None
+        # Signals
+        self.signalNewConnection = ModbusObject.Signal()
+        self.signalCloseConnection = ModbusObject.Signal()
 
 
     def __del__(self):
@@ -113,6 +117,8 @@ class ModbusTcpServer(ModbusServerPort):
             timeout: Timeout value in milliseconds.
         """
         self._timeout = timeout
+        for c in self._connections:
+            c.setTimeout(timeout)
 
     def maxConnections(self) -> int:
         """Returns setting for the maximum number of simultaneous connections to the server.
@@ -154,26 +160,6 @@ class ModbusTcpServer(ModbusServerPort):
         super().setUnitMap(unitmap)
         for c in self._connections:
             c.setUnitMap(unitmap)
-
-    # Signal methods
-
-    def signalNewConnection(self, callback: Callable[[str], None]) -> None:
-        """Set callback for when new TCP connection was accepted.
-        
-        Args:
-            callback: Function called with source name of the connection.
-        """
-        self._on_new_connection = callback
-
-    def signalCloseConnection(self, callback: Callable[[str], None]) -> None:
-        """Set callback for when TCP connection was closed.
-        
-        Args:
-            callback: Function called with source name of the connection.
-        """
-        self._on_close_connection = callback
-
-    # Protected methods
 
     def open(self) -> bool:
         """Try to listen for incoming connections on TCP port that was previously set.
@@ -280,11 +266,11 @@ class ModbusTcpServer(ModbusServerPort):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    #signalError(self.objectName(), self._errorStatus, self._errorText);
+                    self.signalError.emit(self.objectName(), e.code, str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
                     raise
                 self._state = ModbusServerPort.State.STATE_OPENED
-                #signalOpened(self.getName())
+                self.signalOpened.emit(self.objectName())
                 fRepeatAgain = True
                 continue
             elif self._state == ModbusServerPort.State.STATE_WAIT_FOR_CLOSE:
@@ -294,10 +280,10 @@ class ModbusTcpServer(ModbusServerPort):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    #signalError(self.objectName(), self._errorStatus, self._errorText);
+                    self.signalError.emit(self.objectName(), e.code, str(e))
                     raise
                 self._state = ModbusServerPort.State.STATE_CLOSED
-                #signalClosed(self.getName())
+                self.signalClosed.emit(self.objectName())
                 self._clearConnections()
                 #setMessage("Finalized")
                 break
@@ -315,18 +301,20 @@ class ModbusTcpServer(ModbusServerPort):
                 s = self._nextPendingConnection()
                 if s:
                     c = self._createTcpPort(s)
-                    #c.connect(&ModbusServerPort::signalTx   , static_cast<ModbusServerPort*>(this), &ModbusTcpServer::signalTx   );
-                    #c.connect(&ModbusServerPort::signalRx   , static_cast<ModbusServerPort*>(this), &ModbusTcpServer::signalRx   );
-                    #c.connect(&ModbusServerPort::signalError, static_cast<ModbusServerPort*>(this), &ModbusTcpServer::signalError);
+                    # Connect signals of the new connection to the server signals
+                    c.signalTx   .connect(self.signalTx   .emit)
+                    c.signalRx   .connect(self.signalRx   .emit)
+                    c.signalError.connect(self.signalError.emit)
+
                     c.setBroadcastEnabled(self.isBroadcastEnabled())
                     c.setUnitMap(self.unitMap())
                     self._connections.append(c)
-                    #signalNewConnection(c.objectName());
+                    self.signalNewConnection.emit(c.objectName())
                 # process current connections
                 for c in self._connections:
                     c.process()
                     if not c.isOpen():
-                        #self.signalCloseConnection(c.objectName())
+                        self.signalCloseConnection.emit(c.objectName())
                         self._connections.remove(c)
                         self._deleteTcpPort(c)
             elif self._state == ModbusServerPort.State.STATE_TIMEOUT:
@@ -346,6 +334,8 @@ class ModbusTcpServer(ModbusServerPort):
                 continue
         return None
 
+    # Protected methods
+
     def _nextPendingConnection(self) -> socket.socket:
         """Checks for incoming connections and returns socket if new connection established.
         
@@ -356,7 +346,7 @@ class ModbusTcpServer(ModbusServerPort):
             return None
         try:
             # Check if there are pending connections
-            ready, _, _ = select.select([self._socket], [], [], 0)
+            ready, _, _ = select.select([self._socket], [], [], 0.0)
             if self._socket in ready:
                 client_socket, _ = self._socket.accept()
                 if len(self._connections) >= self._maxconn:
@@ -371,7 +361,7 @@ class ModbusTcpServer(ModbusServerPort):
     def _clearConnections(self) -> None:
         """Clear all allocated memory for previously established connections."""
         for c in self._connections:
-            # self.signalCloseConnection(c)
+            self.signalCloseConnection.emit(c.objectName())
             self._deleteTcpPort(c)
         self._connections.clear()
 

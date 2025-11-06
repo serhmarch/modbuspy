@@ -42,6 +42,13 @@ class ModbusServerPort(ModbusObject):
         self._settings_unitmap = None
         self._errorStatus = StatusCode.Status_Uncertain
         self._errorText = ""
+        # Signals
+        self.signalOpened = ModbusObject.Signal()
+        self.signalClosed = ModbusObject.Signal()
+        self.signalError = ModbusObject.Signal()
+        self.signalTx = ModbusObject.Signal()
+        self.signalRx = ModbusObject.Signal()
+
 
     def type(self) -> ProtocolType:
         """Returns the Modbus protocol type.
@@ -52,13 +59,21 @@ class ModbusServerPort(ModbusObject):
         raise NotImplementedError("Subclasses must implement this method.")
     
     def device(self) -> ModbusInterface:
-        """Returns pointer to `ModbusInterface` object/device that was previously passed in constructor.
+        """Returns reference to `ModbusInterface` object/device that was previously passed in constructor.
 
         This device must process every input Modbus function request for this server port."""
         return self._device
 
+    def timeout(self) -> int:
+        """Returns the timeout value in milliseconds."""
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    def setTimeout(self, timeout: int) -> None:
+        """Sets the timeout value in milliseconds."""
+        raise NotImplementedError("Subclasses must implement this method.")
+
     def setDevice(self, device: ModbusInterface):
-        """Set pointer to `ModbusInterface` object/device to transfer all request ot it.
+        """Set reference to `ModbusInterface` object/device to transfer all request ot it.
 
         This device must process every input Modbus function request for this server port."""
         self._device = device

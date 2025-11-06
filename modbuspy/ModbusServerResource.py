@@ -70,6 +70,12 @@ class ModbusServerResource(ModbusServerPort):
         """
         return self._port.type()
 
+    def timeout(self) -> int:
+        return self._port.timeout()
+
+    def setTimeout(self, timeout: int) -> None:
+        self._port.setTimeout(timeout)
+
     def open(self) -> StatusCode:
         """Opens the underlying port for server operations.
         
@@ -126,10 +132,10 @@ class ModbusServerResource(ModbusServerPort):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    # self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.objectName(), e.code, str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
-                # self.signalOpened(self.objectName())
+                self.signalOpened.emit(self.objectName())
                 self._state = ModbusServerPort.State.STATE_OPENED
                 fRepeatAgain = True
                 continue
@@ -139,10 +145,10 @@ class ModbusServerResource(ModbusServerPort):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    # self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.objectName(), e.code, str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
-                # self.signalClosed(self.objectName())
+                self.signalClosed.emit(self.objectName())
                 self._state = ModbusServerPort.State.STATE_CLOSED
                 return StatusCode.Status_Good
             elif self._state in (ModbusServerPort.State.STATE_OPENED,
@@ -161,20 +167,20 @@ class ModbusServerResource(ModbusServerPort):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    # self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.objectName(), e.code, str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
                 if not self._port.isOpen():
-                    # self.signalClosed(self.objectName())
+                    self.signalClosed.emit(self.objectName())
                     self._state = ModbusServerPort.State.STATE_CLOSED
                     return StatusCode.Status_Uncertain
-                # signalRx(self.objectName(), self._port.readBufferData())
+                self.signalRx.emit(self.objectName(), self._port.readBufferData())
                 try:
                     self._unit, self._func, buff = self._port.readBuffer()
                     r = self._processInputData(buff)
                 except ModbusException as e:
-                    # self.signalError(self.objectName(), e.code(), str(e))
-                    if StatusIsStandardError(e.code()):
+                    self.signalError.emit(self.objectName(), e.code, str(e))
+                    if StatusIsStandardError(e.code):
                         self._state = ModbusServerPort.State.STATE_BEGIN_WRITE
                         fRepeatAgain = True
                         continue
@@ -206,7 +212,7 @@ class ModbusServerResource(ModbusServerPort):
                 self._timestampRefresh()
                 func = self._func
                 if StatusIsBad(r):
-                    # self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.objectName(), e.code, str(e))
                     func |= MBF_EXCEPTION
                     buff = bytearray(1)
                     if StatusIsStandardError(r):
@@ -225,11 +231,11 @@ class ModbusServerResource(ModbusServerPort):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    #self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.objectName(), e.code, str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
                 else:
-                    #self.signalTx(self.objectName(), self._port.writeBufferData(), self._port.writeBufferSize())
+                    self.signalTx.emit(self.objectName(), self._port.writeBufferData())
                     self._state = ModbusServerPort.State.STATE_BEGIN_READ
                 return StatusCode.Status_Good
             elif self._state == ModbusServerPort.State.STATE_TIMEOUT:

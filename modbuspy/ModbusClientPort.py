@@ -62,6 +62,12 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         self._settings_broadcastEnabled = True
         self._state = ModbusClientPort.State.STATE_UNKNOWN
         port.setServerMode(False)
+        # Signals
+        self.signalOpened = ModbusObject.Signal()
+        self.signalClosed = ModbusObject.Signal()
+        self.signalError = ModbusObject.Signal()
+        self.signalTx = ModbusObject.Signal()
+        self.signalRx = ModbusObject.Signal()
 
     def type(self) -> ProtocolType:
         """Returns the Modbus protocol type.
@@ -264,6 +270,12 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         else:
             return ModbusClientPort.RequestStatus.Disable
 
+    def getName(self) -> str:
+        """Returns the name of the port."""
+        if self._currentClient is None:
+            return self.objectName()
+        return self._currentClient.objectName()
+    
     def cancelRequest(self, client: ModbusObject) -> None:
         """Cancels the previous request specified by the client.
         
@@ -1045,10 +1057,10 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    # self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.getName(), e.code, str(e))
                     self._state = ModbusClientPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
-                # self.signalOpened(self.objectName())
+                self.signalOpened.emit(self.objectName())
                 self._state = ModbusClientPort.State.STATE_OPENED
                 fRepeatAgain = True
                 continue
@@ -1058,9 +1070,9 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    # self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.getName(), e.code, str(e))
                     self._raisePortError(e)
-                # self.signalClosed(self.objectName())
+                self.signalClosed.emit(self.objectName())
                 self._state = ModbusClientPort.State.STATE_CLOSED
                 return StatusCode.Status_Good
             elif self._state == ModbusClientPort.State.STATE_OPENED:
@@ -1084,11 +1096,11 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    #self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.getName(), e.code, str(e))
                     self._state = ModbusClientPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
                 else:
-                    #self.signalTx(self.objectName(), self._port.writeBufferData(), self._port.writeBufferSize())
+                    self.signalTx.emit(self.getName(), self._port.writeBufferData())
                     self._state = ModbusClientPort.State.STATE_BEGIN_READ
                 self._setStatus(StatusCode.Status_Good)
                 if (self._isBroadcast()):
@@ -1108,21 +1120,21 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    # self.signalError(self.objectName(), e.code(), str(e))
+                    self.signalError.emit(self.getName(), e.code, str(e))
                     self._state = ModbusClientPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
                 if not self._port.isOpen():
-                    # self.signalClosed(self.objectName())
+                    self.signalClosed.emit(self.objectName())
                     self._state = ModbusClientPort.State.STATE_CLOSED
                     return StatusCode.Status_Uncertain
-                # signalRx(self.objectName(), self._port.readBufferData())
+                self.signalRx.emit(self.getName(), self._port.readBufferData())
                 self._state = ModbusClientPort.State.STATE_OPENED
                 return StatusCode.Status_Good
             elif self._state == ModbusClientPort.State.STATE_TIMEOUT:
                 t = timer() - self._timestamp
                 if t < self._port.timeout():
                     if (self._port.isBlocking()):
-                        sleep(self._port.timeout() - t)  # Sleep for remaining timeout
+                        sleep((self._port.timeout() - t) / 1000.0)  # Sleep for remaining timeout
                     else:
                         return None
                 self._state = ModbusClientPort.State.STATE_UNKNOWN

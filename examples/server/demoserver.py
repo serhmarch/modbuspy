@@ -17,7 +17,6 @@ import os
 import argparse
 import time
 import struct
-from typing import Optional, List
 
 # Add the modbuspy library path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -36,31 +35,19 @@ from modbuspy.ModbusExceptions import (ModbusException,
                                        IllegalDataAddressError,
                                        GatewayPathUnavailableError)
 
-def print_tx(source: str, buff: bytes, size: int) -> None:
+def print_tx(source: str, buff: bytes) -> None:
     """Print transmitted data."""
-    hex_str = ' '.join(f'{b:02X}' for b in buff[:size])
+    hex_str = ' '.join(f'{b:02X}' for b in buff)
     print(f"{source} Tx: {hex_str}")
 
-def print_rx(source: str, buff: bytes, size: int) -> None:
+def print_rx(source: str, buff: bytes) -> None:
     """Print received data."""
-    hex_str = ' '.join(f'{b:02X}' for b in buff[:size])
+    hex_str = ' '.join(f'{b:02X}' for b in buff)
     print(f"{source} Rx: {hex_str}")
 
-def print_tx_asc(source: str, buff: bytes, size: int) -> None:
-    """Print transmitted ASCII data."""
-    try:
-        ascii_str = buff[:size].decode('ascii', errors='replace')
-        print(f"{source} Tx: {ascii_str}")
-    except:
-        print_tx(source, buff, size)
-
-def print_rx_asc(source: str, buff: bytes, size: int) -> None:
-    """Print received ASCII data."""
-    try:
-        ascii_str = buff[:size].decode('ascii', errors='replace')
-        print(f"{source} Rx: {ascii_str}")
-    except:
-        print_rx(source, buff, size)
+def print_error(source: str, code: int, text: str) -> None:
+    """Print error message."""
+    print(f"{source} Error {code}: {text}")
 
 def print_new_connection(source: str) -> None:
     """Print new connection message."""
@@ -372,6 +359,8 @@ def main():
         server.setPort(options.port)
         server.setTimeout(options.timeout)
         server.setMaxConnections(options.max_connections)
+        server.signalNewConnection.connect(print_new_connection)
+        server.signalCloseConnection.connect(print_close_connection)
         print(f"Listening on port {options.port}")
     elif options.type == ProtocolType.RTU:
         rtu_port = ModbusRtuPort(blocking=False)
@@ -397,23 +386,24 @@ def main():
         print(f"Unsupported protocol type: {options.type}")
         sys.exit(1)
 
+    server.signalTx.connect(print_tx)
+    server.signalRx.connect(print_rx)
+    server.signalError.connect(print_error)
+
     # Create and start server
     print("-" * 50)     
     try:
         print("demoserver starts ...")
         tmr = timer()
-        counter = 0
         while True:
             try:
                 server.process()
             except ModbusException as e:
                 print(f"Modbus Exception: {e}")
-            # Increment first register every second (for demonstration)
-            counter =  (counter + 1) % 65536
+            # Increment first register in every cycle (for demonstration)
+            device.increment()
             if timer() - tmr >= 1000:
-                device.increment()
                 tmr = timer()
-                device.memory[0] = counter
                 print(f"Register[0] value: {device.memory[0]}")
             
             time.sleep(0.001)  # Small delay to prevent 100% CPU usage
