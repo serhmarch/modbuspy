@@ -141,6 +141,22 @@ class ModbusPort(ABC):
             self._timeout = timeout
             self._changed = True
     
+    def settings(self) -> dict:
+        """Returns the current port settings as a dictionary.
+        
+        Returns:
+            Dictionary containing current port settings.
+        """
+        raise NotImplementedError("Subclasses must implement settings() method.") 
+    
+    def setSettings(self, settings: dict):
+        """Sets the current port settings from a dictionary.
+        
+        Args:
+            settings: Dictionary containing port settings.
+        """
+        raise NotImplementedError("Subclasses must implement settings() method.") 
+    
     # Error handling methods
     
     def lastErrorStatus(self) -> StatusCode:

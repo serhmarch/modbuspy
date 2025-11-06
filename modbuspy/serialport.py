@@ -22,6 +22,18 @@ class ModbusSerialPort(ModbusPort):
     including configuration for port settings like baud rate, data bits, etc.
     """
 
+    class Strings:
+        """String keys for serial port settings."""
+        portName         = "portName"         # String key of setting 'Serial port name'
+        baudRate         = "baudRate"         # String key of setting 'Serial port baud rate'
+        dataBits         = "dataBits"         # String key of setting 'Serial port data bits'
+        parity           = "parity"           # String key of setting 'Serial port parity'
+        stopBits         = "stopBits"         # String key of setting 'Serial port stop bits'
+        flowControl      = "flowControl"      # String key of setting 'Serial port flow control'
+        timeoutFirstByte = "timeoutFirstByte" # String key of setting 'Serial port timeout waiting first byte of packet'
+        timeoutInterByte = "timeoutInterByte" # String key of setting 'Serial port timeout waiting next byte of packet'
+        timeout          = "timeout"          # String key of setting 'Serial port timeout waiting first byte of packet'
+
     class Defaults:
         """Default serial port settings."""
         portName         = "COM1" if os.name == 'nt' else "/dev/ttyS0"  # Default value for the serial port name
@@ -31,7 +43,7 @@ class ModbusSerialPort(ModbusPort):
         stopBits         = StopBits.OneStop                             # Default value for the serial port's stop bits
         flowControl      = FlowControl.NoFlowControl                    # Default value for the serial port's flow control
         timeoutFirstByte = 3000                                         # Default value for the serial port's timeout waiting first byte of packet
-        timeoutInterByte = 50                                            # Default value for the serial port's timeout waiting next byte of packet
+        timeoutInterByte = 50                                           # Default value for the serial port's timeout waiting next byte of packet
 
     @staticmethod
     def toSerialParity(parity:Parity) -> str:
@@ -210,13 +222,11 @@ class ModbusSerialPort(ModbusPort):
 
     def timeoutFirstByte(self) -> int:
         """Get the timeout for the first byte."""
-        return self._timeout
+        return self.timeout()
 
     def setTimeoutFirstByte(self, value: int):
         """Set the timeout for the first byte."""
-        if self._timeout != value:
-            self._timeout = value
-            self._changed = True
+        self.setTimeout(value)
 
     @property
     def TimeoutFirstByte(self) -> int:
@@ -247,6 +257,50 @@ class ModbusSerialPort(ModbusPort):
     def TimeoutInterByte(self, value: int) -> None:
         """Property. Set the timeout for the inter-byte delay."""
         return self.setTimeoutInterByte(value)
+
+    def settings(self) -> dict:
+        s = ModbusSerialPort.Strings
+        return {
+            s.portName         : self._portName         ,
+            s.baudRate         : self._baudRate         ,
+            s.dataBits         : self._dataBits         ,
+            s.parity           : self._parity           ,
+            s.stopBits         : self._stopBits         ,
+            s.flowControl      : self._flowControl      ,
+           #s.timeoutFirstByte : self._timeoutFirstByte ,
+            s.timeoutInterByte : self._timeoutInterByte ,
+            s.timeout          : self._timeout
+        }
+
+    def setSettings(self, settings: dict):
+        s = ModbusSerialPort.Strings
+        v = settings.get(s.portName, None)
+        if v is not None:
+            self.setPortName(v)
+        v = settings.get(s.baudRate, None)
+        if v is not None:
+            self.setBaudRate(v)
+        v = settings.get(s.dataBits, None)
+        if v is not None:
+            self.setDataBits(v)
+        v = settings.get(s.parity, None)
+        if v is not None:
+            self.setParity(v)
+        v = settings.get(s.stopBits, None)
+        if v is not None:
+            self.setStopBits(v)
+        v = settings.get(s.flowControl, None)
+        if v is not None:
+            self.setFlowControl(v)
+        v = settings.get(s.timeoutFirstByte, None)
+        if v is not None:
+            self.setTimeoutFirstByte(v)
+        v = settings.get(s.timeoutInterByte, None)
+        if v is not None:
+            self.setTimeoutInterByte(v)
+        v = settings.get(s.timeout, None)
+        if v is not None:
+            self.setTimeout(v)
 
     def isOpen(self) -> bool:
         """Check if the serial port is open."""

@@ -16,14 +16,22 @@ This module provides the core functionality for the ModbusPy library including:
 @version 1.0.0
 """
 
-from .mbconfig import *
-from .statuscode import StatusCode
-
 import time
 from enum import IntEnum, Enum
 from typing import Optional, Union, List, Tuple
 from dataclasses import dataclass
 
+from .mbconfig import *
+from .statuscode import StatusCode
+
+from .port import ModbusPort
+from .tcpport import ModbusTcpPort
+from .rtuport import ModbusRtuPort
+from .ascport import ModbusAscPort
+from .clientport import ModbusClientPort
+from .serverport import ModbusServerPort
+from .serverresource import ModbusServerResource
+from .tcpserver import ModbusTcpServer
 
 # --------------------------------------------------------------------------------------------------------
 # ------------------------------------------- Helper functions -------------------------------------------
@@ -188,28 +196,6 @@ class FlowControl(IntEnum):
     NoFlowControl = 0   # No flow control.
     HardwareControl = 1 # Hardware flow control (RTS/CTS).
     SoftwareControl = 2 # Software flow control (XON/XOFF).
-
-# Data structures
-
-@dataclass
-class SerialSettings:
-    """Struct to define settings for Serial Port."""
-    portName: str = ""                                   # Value for the serial port name
-    baudRate: int = 9600                                 # Value for the serial port's baud rate
-    dataBits: int = 8                                    # Value for the serial port's data bits
-    parity: Parity = Parity.NoParity                     # Value for the serial port's parity
-    stopBits: StopBits = StopBits.OneStop                # Value for the serial port's stop bits
-    flowControl: FlowControl = FlowControl.NoFlowControl # Value for the serial port's flow control
-    timeoutFirstByte: int = 1000                         # Value for the serial port's timeout waiting first byte of packet
-    timeoutInterByte: int = 100                          # Value for the serial port's timeout waiting next byte of packet
-
-@dataclass
-class TcpSettings:
-    """Struct to define settings for TCP connection."""
-    host: str = "localhost"                 # Value for the IP address or DNS name of the remote device
-    port: int = Constants.STANDARD_TCP_PORT # Value for the TCP port number of the remote device
-    timeout: int = 1000                     # Value for connection timeout (milliseconds)
-    maxconn: int = 10                       # Maximum number of simultaneous connections to the server (for server side only)
 
 def crc16(byte_arr: Union[bytes, bytearray]) -> int:
     """CRC16 checksum hash function (for Modbus RTU).
@@ -1028,4 +1014,50 @@ class ModbusInterface:
             Default implementation returns Status_BadIllegalFunction.
         """
         return StatusCode.Status_BadIllegalFunction, None
+
+def createPort(protocolType: ProtocolType, blocking: bool, **settings) -> ModbusPort:
+    """Factory function to create ModbusPort instance based on specified protocol type and port name.
     
+    Args:
+        port_type: Protocol type (ProtocolType enum).
+        port_name: Port name (e.g. "COM1", "/dev/ttyS0", "
+    """
+    if protocolType == ProtocolType.TCP:
+        p = ModbusTcpPort(blocking=blocking)
+        p.setSettings(**settings)
+        return p
+    elif protocolType == ProtocolType.RTU:
+        p = ModbusRtuPort(blocking=blocking)
+        p.setSettings(**settings)
+        return p
+    elif protocolType == ProtocolType.ASC:
+        p = ModbusAscPort(blocking=blocking)
+        p.setSettings(**settings)
+        return p
+    else:
+        raise ValueError(f"Unsupported protocol type: {protocolType}")
+    
+def createClientPort(protocolType :ProtocolType, blocking: bool, **settings) -> ModbusClientPort:
+    """Factory function to create ModbusClientPort instance based on specified protocol type and port name.
+
+    Args:
+        protocolType: Protocol type (ProtocolType enum).
+        blocking: Blocking mode (True/False).
+        **settings: Additional settings for the client port.
+
+    Returns:
+        An instance of ModbusClientPort.
+    """
+    port = createPort(protocolType, blocking, **settings)
+    return ModbusClientPort(port)
+
+def createServerPort(device: ModbusInterface, protocolType: ProtocolType, blocking: bool, **settings) -> ModbusServerPort:
+    serv = None
+    if protocolType == ProtocolType.TCP:
+        tcp = ModbusTcpServer(device)
+        tcp.setSettings(**settings)
+        serv = tcp
+    else:
+        port = createPort(protocolType, blocking, **settings)
+        serv = ModbusServerResource(port, device)
+    return serv

@@ -23,8 +23,16 @@ class ModbusTcpServer(ModbusServerPort):
     Modbus requests from multiple clients concurrently.
     """
 
+    class Strings:
+        """String keys for TCP server port settings."""
+        host    = "host"    # String key of setting 'TCP host name (DNS or IP address)'
+        port    = "port"    # String key of setting 'TCP port number' for the listening server
+        timeout = "timeout" # String key of setting 'TCP timeout' in milliseconds
+        maxconn = "maxconn" # String key of setting 'Maximum number of simultaneous connections'
+
     class Defaults:
         """Defaults class contains default settings values for ModbusTcpServer."""
+        host   : str = "0.0.0.0"                   # Default setting 'TCP host name (DNS or IP address)'
         port   : int = Constants.STANDARD_TCP_PORT # Default setting 'TCP port number' for the listening server
         timeout: int = 30000                       # Default setting for the read timeout of every single connection (ms)
         maxconn: int = 10                          # Default setting for the maximum number of simultaneous connections
@@ -49,11 +57,12 @@ class ModbusTcpServer(ModbusServerPort):
             device: Object which processes incoming requests for read/write memory.
         """
         super().__init__(device)
-        defaults = self.Defaults
+        d = self.Defaults
         # TCP server settings
-        self._tcpPort = defaults.port
-        self._timeout = defaults.timeout
-        self._maxconn = defaults.maxconn
+        self._host    = d.host
+        self._tcpPort = d.port
+        self._timeout = d.timeout
+        self._maxconn = d.maxconn
         # Connections
         self._connections: List['ModbusServerPort'] = []
         # vars
@@ -84,6 +93,24 @@ class ModbusTcpServer(ModbusServerPort):
         return True
 
     # Property getters and setters
+
+    def host(self) -> str:
+        """Returns the setting for the TCP host name (DNS or IP address) of the server.
+        
+        Returns:
+            TCP host name (DNS or IP address) for the listening server.
+        """
+        return self._host
+
+    def setHost(self, host: str) -> None:
+        """Sets the settings for the TCP host name (DNS or IP address) of the server.
+        
+        Args:
+            host: TCP host name (DNS or IP address) for the listening server.
+        """
+        self._host = host
+
+        return self._tcpPort
 
     def port(self) -> int:
         """Returns the setting for the TCP port number of the server.
@@ -137,6 +164,19 @@ class ModbusTcpServer(ModbusServerPort):
             self._maxconn = maxconn
         else:
             self._maxconn = 1
+
+    def setSettings(self, settings: dict):
+        s = ModbusTcpPort.Strings
+        v = settings.get(s.host, None)
+        if v is not None:
+            self.setHost(v)
+        v = settings.get(s.port, None)
+        if v is not None:
+            self.setPort(v)
+        v = settings.get(s.timeout, None)
+        if v is not None:
+            self.setTimeout(v)
+
 
     # Server port interface implementations
 

@@ -16,8 +16,14 @@ import select
 class ModbusTcpPort(ModbusPort):
     """modbus master tcp class"""
 
+    class Strings:
+        """String keys for TCP port settings."""
+        host    = "host"    # String key of setting 'TCP host name (DNS or IP address)'
+        port    = "port"    # String key of setting 'TCP port number' for the listening server
+        timeout = "timeout" # String key of setting 'TCP timeout' in milliseconds
+
     class Defaults:
-        """Default serial port settings."""
+        """Default tcp port settings."""
         host    = "localhost"                 # Default setting 'TCP host name (DNS or IP address)'
         port    = Constants.STANDARD_TCP_PORT # Default setting 'TCP port number' for the listening server
         timeout = 1000                        # Default setting 'TCP timeout' in milliseconds
@@ -85,6 +91,30 @@ class ModbusTcpPort(ModbusPort):
         if self._port != port:
             self._port = port
             self._changed = True
+
+    def settings(self) -> dict:
+        s = ModbusTcpServer.Strings
+        return {
+            s.host   : self._host   ,
+            s.port   : self._port   ,
+            s.timeout: self._timeout,
+            s.maxconn: self._maxconn
+        }
+
+    def setSettings(self, settings: dict):
+        s = ModbusTcpServer.Strings
+        v = settings.get(s.host, None)
+        if v is not None:
+            self.setHost(v)
+        v = settings.get(s.port, None)
+        if v is not None:
+            self.setPort(v)
+        v = settings.get(s.timeout, None)
+        if v is not None:
+            self.setTimeout(v)
+        v = settings.get(s.maxconn, None)
+        if v is not None:
+            self.setMaxConnections(v)
 
     def setNextRequestRepeated(self, v: bool) -> None:
         """Repeat next request parameters (for Modbus TCP transaction Id).
