@@ -5,10 +5,10 @@ Author: serhmarch
 Date: November 2025
 """
 
-from .ModbusStatusCode import StatusCode
-from . import ModbusExceptions
-from .ModbusGlobal import *
-from .ModbusPort import ModbusPort
+from .statuscode import StatusCode
+from . import exceptions
+from .mbglobal import *
+from .port import ModbusPort
 
 import socket
 import select
@@ -122,7 +122,7 @@ class ModbusTcpPort(ModbusPort):
                 try:
                     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                        
                 except Exception as e:
-                    self._raiseError(ModbusExceptions.TcpCreateError, 
+                    self._raiseError(exceptions.TcpCreateError, 
                                         f"TCP. Error while creating socket for '{self._host}:{self._port}'. Error: {str(e)}")
                     
                 # Set timeout for blocking mode
@@ -312,21 +312,21 @@ class ModbusTcpPort(ModbusPort):
         buff = self._buff
         sz = len(buff)
         if sz < 8:
-            self._raiseError(ModbusExceptions.NotCorrectResponseError, "Not correct response. Responsed data length to small")
+            self._raiseError(exceptions.NotCorrectResponseError, "Not correct response. Responsed data length to small")
 
         transaction = buff[1] | (buff[0] << 8)
         if not ((buff[2] == 0) and (buff[3] == 0)):
-            self._raiseError(ModbusExceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
+            self._raiseError(exceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
 
         cBytes = buff[5] | (buff[4] << 8)
         if cBytes != (sz-6):
-            return self._raiseError(ModbusExceptions.NotCorrectResponseError, "TCP. Not correct read-buffer's TCP-prefix. Size defined in TCP-prefix is not equal to actual response-size")
+            return self._raiseError(exceptions.NotCorrectResponseError, "TCP. Not correct read-buffer's TCP-prefix. Size defined in TCP-prefix is not equal to actual response-size")
 
         if (self._modeServer):
             self._transaction = transaction
         else:
             if self._transaction != transaction:
-                self._raiseError(ModbusExceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
+                self._raiseError(exceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
 
         unit = buff[6]
         func = buff[7]

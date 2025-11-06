@@ -16,13 +16,10 @@ This module provides the core functionality for the ModbusPy library including:
 @version 1.0.0
 """
 
-from .ModbusConfig import *
-from .ModbusStatusCode import StatusCode
+from .mbconfig import *
+from .statuscode import StatusCode
 
-import struct
 import time
-import ctypes
-import binascii
 from enum import IntEnum, Enum
 from typing import Optional, Union, List, Tuple
 from dataclasses import dataclass

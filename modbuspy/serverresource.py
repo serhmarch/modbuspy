@@ -7,13 +7,13 @@ Date: November 2025
 
 from typing import Optional, Tuple
 
-from .ModbusStatusCode import StatusCode, StatusIsStandardError, StatusIsBad
+from .statuscode import StatusCode, StatusIsStandardError, StatusIsBad
 
-from . import ModbusExceptions
-from .ModbusExceptions import ModbusException
-from .ModbusGlobal import *
-from .ModbusServerPort import ModbusServerPort
-from .ModbusPort import ModbusPort
+from . import exceptions
+from .exceptions import ModbusException
+from .mbglobal import *
+from .serverport import ModbusServerPort
+from .port import ModbusPort
 
 
 class ModbusServerResource(ModbusServerPort):
@@ -266,108 +266,108 @@ class ModbusServerResource(ModbusServerPort):
         if self._func in (MBF_READ_COILS,
                           MBF_READ_DISCRETE_INPUTS):
             if len(buff) != 4: # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset = buff[1] | (buff[0] << 8)
             self._count  = buff[3] | (buff[2] << 8)
             if (self._count > MB_MAX_DISCRETS): # prevent valueBuff overflow
-                return self._raiseError(ModbusExceptions.IllegalDataValueError, "Incorrect data value")
+                return self._raiseError(exceptions.IllegalDataValueError, "Incorrect data value")
         elif self._func in (MBF_READ_HOLDING_REGISTERS,
                             MBF_READ_INPUT_REGISTERS):
             if len(buff) != 4: # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset = buff[1] | (buff[0] << 8)
             self._count  = buff[3] | (buff[2] << 8)
             if (self._count > MB_MAX_REGISTERS): # prevent valueBuff overflow
-                return self._raiseError(ModbusExceptions.IllegalDataValueError, "Incorrect data value")
+                return self._raiseError(exceptions.IllegalDataValueError, "Incorrect data value")
         elif self._func == MBF_WRITE_SINGLE_COIL:
             if len(buff) != 4: # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             if not (buff[2] == 0x00 or buff[2] == 0xFF) or (buff[3] != 0):  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect data value")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect data value")
             self._offset = buff[1] | (buff[0]<<8)
             self._valueBuff = bytearray(1)
             self._valueBuff[0] = buff[2]
         elif self._func == MBF_WRITE_SINGLE_REGISTER:
             if len(buff) != 4: # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset = buff[1] | (buff[0]<<8)
             self._valueBuff = bytearray(2)
             self._valueBuff[0] = buff[3]
             self._valueBuff[1] = buff[2]
         elif self._func == MBF_READ_EXCEPTION_STATUS:
             if len(buff) > 0:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
         elif self._func == MBF_DIAGNOSTICS:
             if len(buff) < 2:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._subfunc = buff[1] | (buff[0]<<8)
             self._count = len(buff) - 2
             self._valueBuff = buff[2:]
         elif self._func == MBF_GET_COMM_EVENT_COUNTER:
             if len(buff) > 0:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
         elif self._func == MBF_GET_COMM_EVENT_LOG:
             if len(buff) > 0:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
         elif self._func == MBF_WRITE_MULTIPLE_COILS:
             if len(buff) < 5:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             if len(buff) != buff[4]+5:  # don't match readed bytes and number of data bytes to follow
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset = buff[1] | (buff[0]<<8)
             self._count  = buff[3] | (buff[2]<<8)
             if (self._count+7)//8 != buff[4]:  # don't match count bites and bytes
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             if (self._count > MB_MAX_DISCRETS):  # prevent valueBuff overflow
-                return self._raiseError(ModbusExceptions.IllegalDataValueError, "Incorrect data value")
+                return self._raiseError(exceptions.IllegalDataValueError, "Incorrect data value")
             self._valueBuff = buff[5:(5 + (self._count + 7) // 8)]
         elif self._func == MBF_WRITE_MULTIPLE_REGISTERS:
             if len(buff) < 5:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             if len(buff) != buff[4]+5:  # don't match readed bytes and number of data bytes to follow
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset = buff[1] | (buff[0]<<8)
             self._count = buff[3] | (buff[2]<<8)
             if (self._count*2 != buff[4]):  # don't match count values and bytes
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             if (self._count > MB_MAX_REGISTERS):  # prevent valueBuff overflow
-                return self._raiseError(ModbusExceptions.IllegalDataValueError, "Incorrect data value")
+                return self._raiseError(exceptions.IllegalDataValueError, "Incorrect data value")
             self._valueBuff = bytearray(self._count*2)
             for i in range(self._count):
                 self._valueBuff[i*2]   = buff[6+i*2]
                 self._valueBuff[i*2+1] = buff[5+i*2]
         elif self._func == MBF_REPORT_SERVER_ID:
             if len(buff) > 0:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
         elif self._func == MBF_MASK_WRITE_REGISTER:
             if len(buff) != 6:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset  = buff[1] | (buff[0]<<8)
             self._andMask = buff[3] | (buff[2]<<8)
             self._orMask  = buff[5] | (buff[4]<<8)
         elif self._func == MBF_READ_WRITE_MULTIPLE_REGISTERS:
             if len(buff) < 9:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             if len(buff) != buff[8]+9:  # don't match readed bytes and number of data bytes to follow
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset      = buff[1] | (buff[0]<<8)
             self._count       = buff[3] | (buff[2]<<8)
             self._writeOffset = buff[5] | (buff[4]<<8)
             self._writeCount  = buff[7] | (buff[6]<<8)
             if (self._writeCount*2 != buff[8]):  # don't match count values and bytes
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             if ((self._count > MB_MAX_REGISTERS) or (self._writeCount > MB_MAX_REGISTERS)):  # prevent valueBuff overflow
-                return self._raiseError(ModbusExceptions.IllegalDataValueError, "Incorrect data value")
+                return self._raiseError(exceptions.IllegalDataValueError, "Incorrect data value")
             self._valueBuff = bytearray(self._count*2)
             for i in range(self._count):
                 self._valueBuff[i*2  ] = buff[10+i*2]
                 self._valueBuff[i*2+1] = buff[ 9+i*2]
         elif self._func == MBF_READ_FIFO_QUEUE:
             if len(buff) < 2:  # Incorrect request from client - don't respond
-                return self._raiseError(ModbusExceptions.NotCorrectRequestError, "Incorrect received data size")
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset  = buff[1] | (buff[0]<<8)
         else:
-            return self._raiseError(ModbusExceptions.IllegalFunctionError, "Unsupported function")
+            return self._raiseError(exceptions.IllegalFunctionError, "Unsupported function")
 
 
     # Protected processing methods
@@ -422,7 +422,7 @@ class ModbusServerResource(ModbusServerPort):
             self._valueBuff = self._device.readFIFOQueue(self._unit, self._offset, self._count, self._valueBuff)
             return StatusCode.Status_Good
         else:
-            return self._raiseError(ModbusExceptions.IllegalFunctionError, "Unsupported function")
+            return self._raiseError(exceptions.IllegalFunctionError, "Unsupported function")
 
     def _processOutputData(self) -> bytearray:
         """Process output data buff with size and returns status of the operation.

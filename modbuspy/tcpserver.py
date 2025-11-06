@@ -8,14 +8,13 @@ Date: November 2025 (Converted to Python November 2025)
 import socket
 import select
 from typing import List, Optional, Callable, Tuple
-from dataclasses import dataclass
 
-from .ModbusGlobal import ModbusInterface, ProtocolType, StatusCode, Constants, timer
-from .ModbusExceptions import *
-from .ModbusTcpPort import ModbusTcpPort
-from .ModbusObject import ModbusObject
-from .ModbusServerPort import ModbusServerPort
-from .ModbusServerResource import ModbusServerResource
+from .mbglobal import ModbusInterface, ProtocolType, StatusCode, Constants, timer
+from .exceptions import *
+from .tcpport import ModbusTcpPort
+from .mbobject import ModbusObject
+from .serverport import ModbusServerPort
+from .serverresource import ModbusServerResource
 
 class ModbusTcpServer(ModbusServerPort):
     """The ModbusTcpServer class implements TCP server part of the Modbus protocol.

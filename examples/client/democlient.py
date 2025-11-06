@@ -16,20 +16,20 @@ from typing import List, Optional
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import modbuspy modules
-from modbuspy.ModbusStatusCode import StatusCode, StatusIsGood
-from modbuspy.ModbusGlobal import (ProtocolType, Constants,
+from modbuspy.statuscode import StatusCode, StatusIsGood
+from modbuspy.mbglobal import (ProtocolType, Constants,
                                    MBF_READ_COILS, MBF_READ_DISCRETE_INPUTS, 
                                    MBF_READ_HOLDING_REGISTERS, MBF_READ_INPUT_REGISTERS,
                                    MBF_WRITE_SINGLE_COIL, MBF_WRITE_SINGLE_REGISTER,
                                    MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
                                    MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
                                    MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
-from modbuspy.ModbusClient import ModbusClient
-from modbuspy.ModbusTcpPort import ModbusTcpPort
-from modbuspy.ModbusRtuPort import ModbusRtuPort
-from modbuspy.ModbusAscPort import ModbusAscPort
-from modbuspy.ModbusClientPort import ModbusClientPort
-from modbuspy.ModbusExceptions import ModbusException
+from modbuspy.client import ModbusClient
+from modbuspy.tcpport import ModbusTcpPort
+from modbuspy.rtuport import ModbusRtuPort
+from modbuspy.ascport import ModbusAscPort
+from modbuspy.clientport import ModbusClientPort
+from modbuspy.exceptions import ModbusException
 
 def print_regs(count: int, buff: bytes) -> None:
     """Print register values from buffer."""
@@ -79,13 +79,11 @@ class Options:
         self.blocking = True    
         # Protocol settings
         self.type = ProtocolType.TCP
-        self.unit = 1
-        
+        self.unit = 1        
         # TCP settings
         self.host    = ModbusTcpPort.Defaults.host
         self.port    = ModbusTcpPort.Defaults.port
-        self.timeout = ModbusTcpPort.Defaults.timeout
-        
+        self.timeout = ModbusTcpPort.Defaults.timeout        
         # Serial settings (not implemented in current modbuspy)
         self.serial_port = ModbusRtuPort.Defaults.portName
         self.baud_rate = ModbusRtuPort.Defaults.baudRate
@@ -94,7 +92,6 @@ class Options:
         self.stop_bits = ModbusRtuPort.Defaults.stopBits
         self.timeout_first_byte = ModbusRtuPort.Defaults.timeoutFirstByte
         self.timeout_inter_byte = ModbusRtuPort.Defaults.timeoutInterByte
-
         # Function parameters
         self.offset = 0
         self.count = 16

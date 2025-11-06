@@ -22,18 +22,18 @@ import struct
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import modbuspy modules
-from modbuspy.ModbusStatusCode import StatusCode
-from modbuspy.ModbusGlobal import (ProtocolType, timer,
+from modbuspy.statuscode import StatusCode
+from modbuspy.mbglobal import (ProtocolType, timer,
                                    Constants,
                                    MB_REGE_SZ_BITES)
 
-from modbuspy.ModbusTcpServer import ModbusTcpServer
-from modbuspy.ModbusServerResource import ModbusServerResource
-from modbuspy.ModbusRtuPort import ModbusRtuPort
-from modbuspy.ModbusAscPort import ModbusAscPort
-from modbuspy.ModbusExceptions import (ModbusException,
-                                       IllegalDataAddressError,
-                                       GatewayPathUnavailableError)
+from modbuspy.tcpserver import ModbusTcpServer
+from modbuspy.serverresource import ModbusServerResource
+from modbuspy.rtuport import ModbusRtuPort
+from modbuspy.ascport import ModbusAscPort
+from modbuspy.exceptions import (ModbusException,
+                                 IllegalDataAddressError,
+                                 GatewayPathUnavailableError)
 
 def print_tx(source: str, buff: bytes) -> None:
     """Print transmitted data."""

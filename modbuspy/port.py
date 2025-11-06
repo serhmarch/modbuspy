@@ -9,9 +9,9 @@ from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Union
 from enum import IntEnum
 
-from .ModbusGlobal import ProtocolType
-from .ModbusStatusCode import StatusCode
-from .ModbusExceptions import ModbusException, getException
+from .mbglobal import ProtocolType
+from .statuscode import StatusCode
+from .exceptions import ModbusException, getException
 
 class ModbusPort(ABC):
     """Abstract base class for Modbus port communication.

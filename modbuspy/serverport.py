@@ -8,10 +8,10 @@ Date: November 2025
 from enum import IntEnum
 from typing import Optional
 
-from .ModbusStatusCode import StatusCode
-from .ModbusExceptions import ModbusException, getException
-from .ModbusGlobal import ModbusInterface, ProtocolType, timer
-from .ModbusObject import ModbusObject
+from .statuscode import StatusCode
+from .exceptions import ModbusException, getException
+from .mbglobal import ModbusInterface, ProtocolType, timer
+from .mbobject import ModbusObject
 
 class ModbusServerPort(ModbusObject):
     """Base class for Modbus server ports."""

@@ -9,11 +9,11 @@ from enum import IntEnum
 from typing import Optional
 from time import sleep
 
-from .ModbusStatusCode import StatusCode
-from .ModbusExceptions import ModbusException, getException
-from .ModbusGlobal import *
-from .ModbusObject import ModbusObject
-from .ModbusPort import ModbusPort
+from .statuscode import StatusCode
+from .exceptions import ModbusException, getException
+from .mbglobal import *
+from .mbobject import ModbusObject
+from .port import ModbusPort
 
 class ModbusClientPort(ModbusObject, ModbusInterface):
     """Base class for Modbus client ports."""

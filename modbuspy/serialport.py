@@ -8,10 +8,10 @@ Date: November 2025
 import os
 import serial
 
-from .ModbusPort import ModbusPort
-from .ModbusGlobal import (ProtocolType, StatusCode, timer,
-                           Parity, StopBits, FlowControl)
-from . import ModbusExceptions
+from .port import ModbusPort
+from .mbglobal import (ProtocolType, StatusCode, timer,
+                       Parity, StopBits, FlowControl)
+from . import exceptions
 
 
 class ModbusSerialPort(ModbusPort):
@@ -296,7 +296,7 @@ class ModbusSerialPort(ModbusPort):
                 try:
                     self._serial.open()                        
                 except serial.SerialException as e:
-                    self._raiseError(ModbusExceptions.SerialOpenError, 
+                    self._raiseError(exceptions.SerialOpenError, 
                                     f"Failed to open '{self._portName}' serial port. Error: {str(e)}")
                 return StatusCode.Status_Good
             else:  # Default case
@@ -358,13 +358,13 @@ class ModbusSerialPort(ModbusPort):
                     self._state = ModbusPort.State.STATE_OPENED
                     return StatusCode.Status_Good
                 except serial.SerialException as e:
-                    self._raiseError(ModbusExceptions.SerialWriteError, f"Error while writing '{self._portName}' serial port. Error: {str(e)}")
+                    self._raiseError(exceptions.SerialWriteError, f"Error while writing '{self._portName}' serial port. Error: {str(e)}")
             else:
                 if self.isOpen():
                     self._state = ModbusPort.State.STATE_OPENED
                     fRepeatAgain = True
                 else:
-                    self._raiseError(ModbusExceptions.SerialWriteError, "Internal error")
+                    self._raiseError(exceptions.SerialWriteError, "Internal error")
         return None
 
     def  _nonBlockingRead(self) -> StatusCode:
@@ -390,12 +390,12 @@ class ModbusSerialPort(ModbusPort):
                             return StatusCode.Status_Good
                     elif timer() - self._timestamp >= self._timeout:  # waiting timeout read first byte elapsed
                         self._state = ModbusPort.State.STATE_OPENED
-                        self._raiseError(ModbusExceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Timeout")
+                        self._raiseError(exceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Timeout")
                     else:
                         return None
                 except serial.SerialException as e:
                     self._state = ModbusPort.State.STATE_OPENED
-                    self._raiseError(ModbusExceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Error: {str(e)}")
+                    self._raiseError(exceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Error: {str(e)}")
                 self._timestampRefresh()
                 self._state = ModbusPort.State.STATE_WAIT_FOR_READ_ALL
                 fRepeatAgain = True
@@ -415,7 +415,7 @@ class ModbusSerialPort(ModbusPort):
                         return None
                 except serial.SerialException as e:
                     self._state = ModbusPort.State.STATE_OPENED
-                    self._raiseError(ModbusExceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Error: {str(e)}")
+                    self._raiseError(exceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Error: {str(e)}")
                 return None
             else:
                 if self.isOpen():
@@ -423,7 +423,7 @@ class ModbusSerialPort(ModbusPort):
                     fRepeatAgain = True
                     continue
                 else:
-                    self._raiseError(ModbusExceptions.SerialReadTimeoutError, "Internal error")
+                    self._raiseError(exceptions.SerialReadTimeoutError, "Internal error")
                 break
         return None
     

@@ -5,9 +5,9 @@ Author: serhmarch
 Date: November 2025
 """
 
-from .ModbusSerialPort import ModbusSerialPort
-from .ModbusGlobal import ProtocolType, crc16
-from . import ModbusExceptions
+from .serialport import ModbusSerialPort
+from .mbglobal import ProtocolType, crc16
+from . import exceptions
 
 
 class ModbusRtuPort(ModbusSerialPort):
@@ -49,11 +49,11 @@ class ModbusRtuPort(ModbusSerialPort):
         sz = len(buff)
         # Check minimum size (unit + function + CRC16)
         if sz < 4:
-            self._raiseError(ModbusExceptions.NotCorrectResponseError, "RTU. Not correct input. Input data length is too small")
+            self._raiseError(exceptions.NotCorrectResponseError, "RTU. Not correct input. Input data length is too small")
         # Check CRC16
         crc = buff[sz-2] | (buff[sz-1] << 8)
         if crc16(buff[:sz-2]) != crc:
-            return self._raiseError(ModbusExceptions.NotCorrectResponseError, "RTU. Wrong CRC")
+            return self._raiseError(exceptions.NotCorrectResponseError, "RTU. Wrong CRC")
         # Prepare output data
         unit = buff[0]
         func = buff[1]
