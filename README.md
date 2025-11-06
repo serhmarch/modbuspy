@@ -4,6 +4,7 @@
 
 modbuspy is a free, open-source Modbus library written in Python.
 It implements client and server functions for TCP, RTU and ASCII versions of Modbus Protocol.
+It is a Python implementation of the [ModbusLib](https://github.com/serhmarch/ModbusLib) C++ library.
 
 Library implements such Modbus functions as:
 * `1`  (`0x01`) - `READ_COILS`
@@ -27,6 +28,214 @@ Library implements such Modbus functions as:
 
 ### Common usage
 
+Library was written in Python and uses modern Python features like type hints and context managers.
+To start using this library you must import `ModbusClientPort` (`ModbusClient`) or
+`ModbusServerPort` modules (of course after install the package).
+These modules directly or indirectly import `ModbusGlobal` main module.
+`ModbusGlobal` module contains declarations of main data types, functions and class interfaces
+to work with the library.
+
 ### Client
 
+`ModbusClientPort` implements Modbus interface directly and can be used very simple:
+```python
+from modbuspy import ModbusClientPort, TcpSettings, ProtocolType, StatusIsGood
+#...
+def main():
+    settings = TcpSettings()
+    settings.host = "someadr.plc"
+    settings.port = 502  # STANDARD_TCP_PORT
+    settings.timeout = 3000
+    port = ModbusClientPort.create(ProtocolType.TCP, settings, True)
+    unit = 1
+    offset = 0
+    count = 10
+    status, values = port.readHoldingRegisters(unit, offset, count)
+    if StatusIsGood(status):
+        # process values list...
+        print(f"Values: {values}")
+    else:
+        print(f"Error: {port.lastErrorText()}")
+    port.close()
+#...
+```
+
+User doesn't need to create any connection or open any port manually,
+library makes it automatically.
+
+User can use `ModbusClient` class to simplify Modbus function's interface (don't need to use `unit` parameter):
+```python
+from modbuspy import ModbusClientPort, ModbusClient, TcpSettings, ProtocolType
+#...
+def main():
+    #...
+    settings = TcpSettings()
+    settings.host = "someadr.plc"
+    settings.port = 502
+    settings.timeout = 3000
+    port = ModbusClientPort.create(ProtocolType.TCP, settings, True)
+    c1 = ModbusClient(1, port)
+    c2 = ModbusClient(2, port)
+    c3 = ModbusClient(3, port)
+    while True:
+        s1, values1 = c1.readHoldingRegisters(0, 10)
+        s2, values2 = c2.readHoldingRegisters(0, 10)
+        s3, values3 = c3.readHoldingRegisters(0, 10)
+        # process results...
+        time.sleep(0.001)
+    #...
+#...
+```
+In this example 3 clients with unit address 1, 2, 3 are used.
+User doesn't need to manage their common resource `port`. Library makes it automatically.
+First `c1` client owns `port`, then when finished resource transferred to `c2` and so on.
+
 ### Server
+
+Unlike client the server does not implement `ModbusInterface` directly.
+It accepts pointer to `ModbusInterface` in its constructor as parameter and transfers all requests
+to this interface. So user can define by itself how incoming Modbus-request will be processed:
+```python
+from modbuspy import ModbusServerPort, ModbusInterface, TcpSettings, ProtocolType, StatusCode
+#...
+class MyModbusDevice(ModbusInterface):
+    MEM_SIZE = 16
+    
+    def __init__(self):
+        super().__init__()
+        self.mem4x = [0] * self.MEM_SIZE
+    
+    def getValue(self, offset):
+        return self.mem4x[offset]
+    
+    def setValue(self, offset, value):
+        self.mem4x[offset] = value
+    
+    def readHoldingRegisters(self, unit, offset, count):
+        if unit != 1:
+            return StatusCode.Status_BadGatewayPathUnavailable, None
+        if (offset + count) <= self.MEM_SIZE:
+            # Convert register values to bytes
+            result = bytearray()
+            for i in range(count):
+                reg_value = self.mem4x[offset + i]
+                result.extend(reg_value.to_bytes(2, 'big'))
+            return StatusCode.Status_Good, bytes(result)
+        return StatusCode.Status_BadIllegalDataAddress, None
+
+def main():
+    device = MyModbusDevice()
+    settings = TcpSettings()
+    settings.port = 502  # STANDARD_TCP_PORT
+    settings.timeout = 3000
+    settings.maxconn = 10
+    port = ModbusServerPort.create(device, ProtocolType.TCP, settings, False)
+    c = 0
+    while True:
+        port.process()
+        time.sleep(0.001)
+        if c % 1000 == 0:
+            device.setValue(0, device.getValue(0) + 1)
+        c += 1
+#...
+```
+
+In this example `MyModbusDevice` ModbusInterface class was created.
+It implements only single function: `readHoldingRegisters` (`0x03`).
+All other functions will return `StatusCode.Status_BadIllegalFunction` by default.
+
+This example creates Modbus TCP server that processes connections and increments
+first 4x register by 1 every second. This example uses non-blocking mode.
+
+### Signal/slot mechanism
+
+Library has simplified Qt-like signal/slot mechanism that can use callbacks when some signal is occurred.
+User can connect function(s) or class method(s) to the predefined signal.
+Callbacks will be called in the order in which they were connected.
+
+For example `ModbusClientPort` signal/slot mechanism:
+```python
+from modbuspy import ModbusClientPort, TcpSettings, ProtocolType
+
+class Printable:
+    def printTx(self, source, buff):
+        print(f"{source} Tx: {buff.hex()}")
+
+def printRx(source, buff):
+    print(f"{source} Rx: {buff.hex()}")
+
+def main():
+    #...
+    settings = TcpSettings()
+    settings.host = "someadr.plc"
+    settings.port = 502
+    settings.timeout = 3000
+    port = ModbusClientPort.create(ProtocolType.TCP, settings, False)
+    printer = Printable()
+    port.signalTx.connect(printer.printTx)
+    port.signalRx.connect(printRx)
+    #...
+```
+
+## Installation and Setup
+
+### Requirements
+
+- Python 3.7 or higher
+- `pyserial` library (for serial communication)
+
+### Install dependencies
+
+```console
+$ pip install pyserial
+```
+
+### Install from source
+
+1. **Clone repository:**
+   ```console
+   $ git clone https://github.com/your-repo/modbuspy.git
+   $ cd modbuspy
+   ```
+
+2. **Install in development mode:**
+   ```console
+   $ pip install -e .
+   ```
+
+3. **Run examples:**
+   ```console
+   # TCP Client
+   $ cd examples/client
+   $ python democlient.py --host 192.168.1.100 --port 502 --unit 1
+   
+   # TCP Server
+   $ cd examples/server
+   $ python demoserver.py --port 502   
+   ```
+
+### Using in your project
+
+After installation, you can import and use modbuspy in your Python projects:
+
+```python
+from modbuspy import ModbusClient, ModbusTcpPort, StatusCode
+
+# Create TCP port
+port = ModbusTcpPort()
+port.setHost("192.168.1.100")
+port.setPort(502)
+
+# Create client
+client = ModbusClient(port)
+client.setUnit(1)
+
+# Use the client
+if client.open():
+    try:
+        status, data = client.readHoldingRegisters(0, 10)
+        if status == StatusCode.Status_Good:
+            print(f"Read successful: {data}")
+    finally:
+        client.close()
+```

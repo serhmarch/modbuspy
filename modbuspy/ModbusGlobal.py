@@ -1,8 +1,19 @@
 """
-ModbusGlobal.py - Contains general definitions of the Modbus library for Python.
+@file ModbusGlobal.py
+@brief Contains general definitions of the Modbus library for Python.
 
-Author: serhmarch
-Date: November 2025
+This module provides the core functionality for the ModbusPy library including:
+- Status codes and error handling
+- Protocol type definitions (TCP, RTU, ASCII)
+- Memory type definitions (coils, discrete inputs, holding registers, input registers)
+- Configuration structures for TCP and serial communications
+- Utility functions for CRC16/LRC checksums and data conversion
+- Base ModbusInterface class defining the Modbus protocol methods
+- Address class for Modbus address representation and conversion
+
+@author serhmarch
+@date November 2025
+@version 1.0.0
 """
 
 from .ModbusConfig import *
