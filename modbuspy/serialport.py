@@ -346,7 +346,8 @@ class ModbusSerialPort(ModbusPort):
                 else:
                     self._serial.timeout            = 0.0
                     self._serial.inter_byte_timeout = 0.0
-                # Create socket if needed
+                self._serial.write_timeout = 0.0  # Blocking write
+                # try to open serial port
                 try:
                     self._serial.open()                        
                 except serial.SerialException as e:
@@ -377,7 +378,7 @@ class ModbusSerialPort(ModbusPort):
     def _blockingWrite(self) -> StatusCode:    
         self._state = ModbusPort.State.STATE_OPENED
         try:
-            self._serial.flush()
+            self._serial.reset_input_buffer()
             self._serial.write(self._buff)
         except serial.SerialException as e:
             self._raiseError(StatusCode.Status_BadSerialWrite, f"Error while writing '{self._portName}' serial port. Error: {str(e)}")
@@ -388,6 +389,9 @@ class ModbusSerialPort(ModbusPort):
         self._buff.clear()
         try:
             buff = self._serial.read(1024) # Read up to 1K bytes
+            if len(buff) == 0:
+                self._state = ModbusPort.State.STATE_OPENED
+                self._raiseError(exceptions.SerialReadTimeoutError, f"Error while reading '{self._portName}' serial port. Timeout")
             self._buff.extend(buff)
         except serial.SerialException as e:
             self._raiseError(StatusCode.Status_BadSerialRead, f"Error while reading '{self._portName}' serial port. Error: {str(e)}")
@@ -407,7 +411,7 @@ class ModbusSerialPort(ModbusPort):
                                  ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL):
                 # Note: clean read buffer from garbage before write
                 try:
-                    self._serial.flush()
+                    self._serial.reset_input_buffer()
                     self._serial.write(self._buff)
                     self._state = ModbusPort.State.STATE_OPENED
                     return StatusCode.Status_Good
