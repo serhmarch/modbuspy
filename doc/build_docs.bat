@@ -1,7 +1,7 @@
 @echo off
-REM Build script for ModbusPy documentation (Windows)
+REM Build script for modbuspy documentation (Windows)
 
-echo Building ModbusPy documentation...
+echo Building modbuspy documentation...
 
 REM Check if doxygen is installed
 where doxygen >nul 2>nul

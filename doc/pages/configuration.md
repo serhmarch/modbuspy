@@ -4,7 +4,7 @@
 
 ## Overview
 
-ModbusPy provides comprehensive configuration options for different communication protocols. This guide covers all available settings for TCP, RTU, and ASCII protocols.
+modbuspy provides comprehensive configuration options for different communication protocols. This guide covers all available settings for TCP, RTU, and ASCII protocols.
 
 ## TCP Configuration {#tcp_config}
 

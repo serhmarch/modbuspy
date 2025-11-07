@@ -1,6 +1,6 @@
-# ModbusPy Documentation
+# modbuspy Documentation
 
-This directory contains the Doxygen documentation setup for the ModbusPy project.
+This directory contains the Doxygen documentation setup for the modbuspy project.
 
 ## Structure
 

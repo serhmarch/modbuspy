@@ -565,7 +565,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             unit: Modbus unit/slave address.
 
         Returns:
-            Bytes array with single byte that containing the exception status.
+            `bytes` array with single byte that containing the exception status.
         """
         
         status = self.getRequestStatus(client)        
@@ -632,7 +632,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             unit: Modbus unit/slave address.
 
         Returns:
-            Bytes containing the communication event counter values,
+            Bytes containing the communication status and event counter values,
             where first two bytes are status and next two bytes are event count.
         """
         
@@ -963,7 +963,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' doesn't match with received data size")
             FIFOCount = buff[3] | (buff[2] << 8)
             if bytesCount != (FIFOCount + 1) * 2:
-                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' doesn't match with 'FIFOCount'")
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'FIFOCount' doesn't relate to the 'ByteCount'")
             if FIFOCount > MB_READ_FIFO_QUEUE_MAX:
                 self._raiseError(StatusCode.Status_BadIllegalDataValue, "'FIFOCount' is bigger than 31")
             values = bytearray(FIFOCount * 2)

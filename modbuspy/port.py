@@ -141,6 +141,16 @@ class ModbusPort(ABC):
             self._timeout = timeout
             self._changed = True
     
+    @property
+    def Timeout(self) -> int:
+        """Property. Get the timeout value in milliseconds."""
+        return self.timeout()
+    
+    @Timeout.setter
+    def Timeout(self, timeout: int) -> None:
+        """Property. Set the timeout value in milliseconds."""
+        self.setTimeout(timeout)
+        
     def settings(self) -> dict:
         """Returns the current port settings as a dictionary.
         

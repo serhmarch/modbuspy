@@ -1,9 +1,45 @@
 """
-ModbusPy - Python Modbus library
+modbuspy - Python Modbus library
 
 A comprehensive Modbus library for Python supporting TCP, RTU, and ASCII protocols.
 Translated from the original C++ ModbusLib by serhmarch.
 """
 
-__version__ = "1.0.0"
-__author__ = "serhmarch (translated from C++)"
+__all__ = [
+    "MBPY_VERSION_MAJOR",
+    "MBPY_VERSION_MINOR",
+    "MBPY_VERSION_PATCH",
+    "MBPY_VERSION_INT",
+    "MBPY_VERSION_STR",
+    "ProtocolType",
+    "StatusCode",
+    "ModbusException",
+    "ModbusInterface",
+    "createPort",
+    "createClientPort",
+    "createServerPort"
+]
+
+from .mbglobal import (MBPY_VERSION_MAJOR, 
+                       MBPY_VERSION_MINOR,
+                       MBPY_VERSION_PATCH,
+                       MBPY_VERSION_INT  ,
+                       MBPY_VERSION_STR  ,
+                       ProtocolType      ,
+                       StatusCode        ,
+                       ModbusInterface   )
+
+from .exceptions import ModbusException
+from .utils import createPort, createClientPort, createServerPort
+from .client import ModbusClient
+from .clientport import ModbusClientPort
+from .serverport import ModbusServerPort
+from .serverresource import ModbusServerResource
+from .tcpserver import ModbusTcpServer
+from .tcpport import ModbusTcpPort
+from .serialport import ModbusSerialPort
+from .rtuport import ModbusRtuPort
+from .ascport import ModbusAscPort
+
+__version__ = MBPY_VERSION_STR
+__author__ = "serhmarch"

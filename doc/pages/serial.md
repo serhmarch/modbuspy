@@ -4,7 +4,7 @@
 
 ## Overview
 
-ModbusPy supports both RTU and ASCII versions of Modbus serial communication protocols. These protocols are designed for communication over serial interfaces such as RS-232, RS-485, and RS-422.
+modbuspy supports both RTU and ASCII versions of Modbus serial communication protocols. These protocols are designed for communication over serial interfaces such as RS-232, RS-485, and RS-422.
 
 ## RTU Protocol {#rtu}
 

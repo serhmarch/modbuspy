@@ -2,7 +2,7 @@
 @file mbglobal.py
 @brief Contains general definitions of the Modbus library for Python.
 
-This module provides the core functionality for the ModbusPy library including:
+This module provides the core functionality for the modbuspy library including:
 - Status codes and error handling
 - Protocol type definitions (TCP, RTU, ASCII)
 - Memory type definitions (coils, discrete inputs, holding registers, input registers)
@@ -19,10 +19,10 @@ This module provides the core functionality for the ModbusPy library including:
 import time
 from enum import IntEnum
 from typing import Optional, Union, List, Tuple
-from dataclasses import dataclass
 
 from .mbconfig import *
 from .statuscode import StatusCode
+from . import exceptions
 
 # --------------------------------------------------------------------------------------------------------
 # ------------------------------------------- Helper functions -------------------------------------------
@@ -491,7 +491,7 @@ class Address:
 
         @details Can have next forms:
         * `Address()`  - creates invalid address class
-        * `Address(Memory_4x, 0)`  - creates address for holding registers with `offset=0`
+        * `Address(MemoryType.Memory_4x, 0)`  - creates address for holding registers with `offset=0`
         * `Address("%MW0")`  - creates address for holding registers with `offset=0`
         * `Address("%Q0000h")`  - creates address for coils with `offset=0`
         * `Address("100001")`  - creates address for input discretes with `offset=0`
@@ -641,9 +641,9 @@ class Address:
     def tostr(self, notation: int = Notation_Default) -> str:
         """
         @details Returns string repr of Modbus Data Address with specified notation:
-        * `Notation_Modbus`      - `Address(Memory_4x, 0)` will be converted to `"400001"`.
-        * `Notation_IEC61131`    - `Address(Memory_4x, 0)` will be converted to `"%MW0"`.
-        * `Notation_IEC61131Hex` - `Address(Memory_4x, 0)` will be converted to `"%MW0000h"`.
+        * `Notation_Modbus`      - `Address(MemoryType.Memory_4x, 0)` will be converted to `"400001"`.
+        * `Notation_IEC61131`    - `Address(MemoryType.Memory_4x, 0)` will be converted to `"%MW0"`.
+        * `Notation_IEC61131Hex` - `Address(MemoryType.Memory_4x, 0)` will be converted to `"%MW0000h"`.
         """
         def to_dec_string(n, width=0):
             return str(n).rjust(width, '0') if width else str(n)
@@ -751,16 +751,17 @@ class Address:
 class ModbusInterface:
     """Main interface of Modbus communication protocol.
     
-    `ModbusInterface` contains list of functions that modbuspy is supported.
+    `ModbusInterface` contains list of functions that is supported by modbuspy library.
+
     There are such functions as:
-    * 1  (0x01) - `READ_COILS`
-    * 2  (0x02) - `READ_DISCRETE_INPUTS`  
-    * 3  (0x03) - `READ_HOLDING_REGISTERS`
-    * 4  (0x04) - `READ_INPUT_REGISTERS`
-    * 5  (0x05) - `WRITE_SINGLE_COIL`
-    * 6  (0x06) - `WRITE_SINGLE_REGISTER`
-    * 7  (0x07) - `READ_EXCEPTION_STATUS`
-    * 8  (0x08) - `DIAGNOSTICS`
+    *  1 (0x01) - `READ_COILS`
+    *  2 (0x02) - `READ_DISCRETE_INPUTS`  
+    *  3 (0x03) - `READ_HOLDING_REGISTERS`
+    *  4 (0x04) - `READ_INPUT_REGISTERS`
+    *  5 (0x05) - `WRITE_SINGLE_COIL`
+    *  6 (0x06) - `WRITE_SINGLE_REGISTER`
+    *  7 (0x07) - `READ_EXCEPTION_STATUS`
+    *  8 (0x08) - `DIAGNOSTICS`
     * 11 (0x0B) - `GET_COMM_EVENT_COUNTER`
     * 12 (0x0C) - `GET_COMM_EVENT_LOG`
     * 15 (0x0F) - `WRITE_MULTIPLE_COILS`
@@ -770,8 +771,8 @@ class ModbusInterface:
     * 23 (0x17) - `READ_WRITE_MULTIPLE_REGISTERS`
     * 24 (0x18) - `READ_FIFO_QUEUE`
     
-    Each method returns `Modbus::StatusCode` for result. Default implementations
-    return `Status_BadIllegalFunction`.
+    Each method returns `StatusCode` for result.
+    Default implementations raises `exceptions.IllegalFunctionError`.
     """
     
     def readCoils(self, unit: int, offset: int, count: int) -> bytes:
@@ -783,10 +784,13 @@ class ModbusInterface:
             count: Count of coils (bits).
             
         Returns:
-            Tuple of (StatusCode, values) where values is a bit array with read values.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` object that is a bit array for read values.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
+        raise exceptions.IllegalFunctionError("Function not supported")
     
     def readDiscreteInputs(self, unit: int, offset: int, count: int) -> bytes:
         """Function for read digital inputs (1x bits).
@@ -797,10 +801,13 @@ class ModbusInterface:
             count: Count of inputs (bits).
             
         Returns:
-            Tuple of (StatusCode, values) where values is a bit array with read values.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` object that is a bit array for read values.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
+        raise exceptions.IllegalFunctionError("Function not supported")
         
     def readHoldingRegisters(self, unit: int, offset: int, count: int) -> bytes:
         """Function for read holding (output) 16-bit registers (4x regs).
@@ -811,10 +818,13 @@ class ModbusInterface:
             count: Count of registers.
             
         Returns:
-            Tuple of (StatusCode, values) where values is a list of 16-bit integers.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` object that is uint16 (little-endian) array for read values.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
+        raise exceptions.IllegalFunctionError("Function not supported")
         
     def readInputRegisters(self, unit: int, offset: int, count: int) -> bytes:
         """Function for read input 16-bit registers (3x regs).
@@ -825,12 +835,15 @@ class ModbusInterface:
             count: Count of registers.
             
         Returns:
-            Tuple of (StatusCode, values) where values is a list of 16-bit integers.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` object that is uint16 (little-endian) array for read values.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
+        raise exceptions.IllegalFunctionError("Function not supported")
         
-    def writeSingleCoil(self, unit: int, offset: int, value: bool) -> bool:
+    def writeSingleCoil(self, unit: int, offset: int, value: bool) -> StatusCode:
         """Function for write one separate discrete output (0x coil).
         
         Args:
@@ -839,12 +852,15 @@ class ModbusInterface:
             value: Boolean value to be set.
             
         Returns:
-            The result StatusCode of the operation.
-            Default implementation returns Status_BadIllegalFunction.
+            * The result StatusCode of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction
+        raise exceptions.IllegalFunctionError("Function not supported")
         
-    def writeSingleRegister(self, unit: int, offset: int, value: int) -> bool:
+    def writeSingleRegister(self, unit: int, offset: int, value: int) -> StatusCode:
         """Function for write one separate 16-bit holding register (4x).
         
         Args:
@@ -853,24 +869,30 @@ class ModbusInterface:
             value: 16-bit unsigned integer value to be set.
             
         Returns:
-            The result StatusCode of the operation.
-            Default implementation returns Status_BadIllegalFunction.
+            * The result StatusCode of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction
+        raise exceptions.IllegalFunctionError("Function not supported")
         
-    def readExceptionStatus(self, unit: int) -> int:
+    def readExceptionStatus(self, unit: int) -> bytes:
         """Function to read ExceptionStatus.
         
         Args:
             unit: Address of the remote Modbus device.
             
         Returns:
-            Tuple of (StatusCode, status) where status is a byte with exception status.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` array with single byte that containing the exception status.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
+        raise exceptions.IllegalFunctionError("Function not supported")
         
-    def diagnostics(self, unit: int, subfunc: int, indata: Optional[bytes] = None) -> bytes:
+    def diagnostics(self, unit: int, subfunc: int, indata: bytes) -> bytes:
         """Function provides a series of tests for checking the communication system
         between a client device and a server, or for checking various internal error
         conditions within a server.
@@ -881,12 +903,15 @@ class ModbusInterface:
             indata: Input data buffer for the diagnostic function.
             
         Returns:
-            Tuple of (StatusCode, outdata) where outdata is the output data buffer.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` array containing the response data.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
+        raise exceptions.IllegalFunctionError("Function not supported")
         
-    def getCommEventCounter(self, unit: int) -> int:
+    def getCommEventCounter(self, unit: int) -> bytes:
         """Function is used to get a status word and an event count from the
         remote device's communication event counter.
         
@@ -894,10 +919,15 @@ class ModbusInterface:
             unit: Address of the remote Modbus device.
             
         Returns:
-            Tuple of (StatusCode, status, eventCount).
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` array containing 2 uint16 (little-endian) values:
+               * status word
+               * event counter
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None, None
+        raise exceptions.IllegalFunctionError("Function not supported")
         
     def getCommEventLog(self, unit: int) -> bytes:
         """Function is used to get a status word, event count, message count and event log
@@ -907,12 +937,19 @@ class ModbusInterface:
             unit: Address of the remote Modbus device.
             
         Returns:
-            Tuple of (StatusCode, status, eventCount, messageCount, eventBuff).
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` array containing values:
+               * status word (uint16, little-endian)
+               * event counter (uint16, little-endian)
+               * message count (uint16, little-endian)
+               * event log (each event is one byte)
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None, None, None, None
+        raise exceptions.IllegalFunctionError("Function not supported")
         
-    def writeMultipleCoils(self, unit: int, offset: int, count: int, values: bytes) -> bool:
+    def writeMultipleCoils(self, unit: int, offset: int, count: int, values: bytes) -> StatusCode:
         """Function for write coils (discrete outputs, 1-bit values) (0x data).
         
         Args:
@@ -922,12 +959,15 @@ class ModbusInterface:
             values: Input buffer (bit array) which values must be written.
             
         Returns:
-            The result StatusCode of the operation.
-            Default implementation returns Status_BadIllegalFunction.
+            * The result StatusCode of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction
+        raise exceptions.IllegalFunctionError("Function not supported")
         
-    def writeMultipleRegisters(self, unit: int, offset: int, count: int, values: bytes) -> bool:
+    def writeMultipleRegisters(self, unit: int, offset: int, count: int, values: bytes) -> StatusCode:
         """Function for write holding (output) 16-bit registers (4x regs).
         
         Args:
@@ -937,10 +977,13 @@ class ModbusInterface:
             values: Input buffer which values must be written.
             
         Returns:
-            The result StatusCode of the operation.
-            Default implementation returns Status_BadIllegalFunction.
+            * The result StatusCode of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction
+        raise exceptions.IllegalFunctionError("Function not supported")
         
     def reportServerID(self, unit: int) -> bytes:
         """Function to read the description of the type, the current status,
@@ -950,12 +993,15 @@ class ModbusInterface:
             unit: Address of the remote Modbus device.
             
         Returns:
-            Tuple of (StatusCode, data) where data contains server identification.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` array that represents the server ID.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
+        raise exceptions.IllegalFunctionError("Function not supported")
         
-    def maskWriteRegister(self, unit: int, offset: int, andMask: int, orMask: int) -> bool:
+    def maskWriteRegister(self, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode:
         """Function is used to modify the contents of a specified holding register
         using a combination of an AND mask, an OR mask, and the register's current contents.
         The function's algorithm is:
@@ -964,17 +1010,20 @@ class ModbusInterface:
         Args:
             unit: Address of the remote Modbus device.
             offset: Starting offset (0-based).
-            and_mask: 16-bit unsigned integer value AND mask.
-            or_mask: 16-bit unsigned integer value OR mask.
-            
+            andMask: 16-bit unsigned integer value AND mask.
+            orMask: 16-bit unsigned integer value OR mask.
+
         Returns:
-            The result StatusCode of the operation.
-            Default implementation returns Status_BadIllegalFunction.
+            * The result StatusCode of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction
-        
-    def readWritMultipleRegisters(self, unit: int, readOffset: int, readCount: int,
-                                  writeOffset: int, writeCount: int, writeValues: bytes) -> bytes:
+        raise exceptions.IllegalFunctionError("Function not supported")
+
+    def readWriteMultipleRegisters(self, unit: int, readOffset: int, readCount: int,
+                                    writeOffset: int, writeCount: int, writeValues: bytes) -> bytes:
         """This function code performs a combination of one read operation and one
         write operation in a single MODBUS transaction.
         
@@ -987,22 +1036,28 @@ class ModbusInterface:
             write_values: Input buffer which values must be written.
             
         Returns:
-            Tuple of (StatusCode, read_values) where read_values contains the read registers.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` object that is uint16 (little-endian) array for read values.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
-        
+        raise exceptions.IllegalFunctionError("Function not supported")
+
     def readFIFOQueue(self, unit: int, fifoadr: int) -> bytes:
         """Function for read the contents of a First-In-First-Out (FIFO) queue
         of register in a remote device.
         
         Args:
             unit: Address of the remote Modbus device.
-            fifo_addr: Address of FIFO (0-based).
+            fifoadr: Address of FIFO (0-based).
             
         Returns:
-            Tuple of (StatusCode, values) where values contains the FIFO queue contents.
-            Default implementation returns Status_BadIllegalFunction.
+            * `bytes` object that is uint16 (little-endian) array for FIFO values.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `modbuspy.ModbusException` on error.
         """
-        return StatusCode.Status_BadIllegalFunction, None
+        raise exceptions.IllegalFunctionError("Function not supported")
 

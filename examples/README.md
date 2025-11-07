@@ -1,6 +1,6 @@
-# ModbusPy Examples
+# modbuspy Examples
 
-This directory contains example applications for the ModbusPy library.
+This directory contains example applications for the modbuspy library.
 
 ## Client Examples
 

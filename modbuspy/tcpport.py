@@ -74,6 +74,16 @@ class ModbusTcpPort(ModbusPort):
             self._host = host
             self._changed = True
 
+    @property
+    def Host(self) -> str:
+        """Property. Get the host IP address or DNS name."""
+        return self.host()
+    
+    @Host.setter
+    def Host(self, host: str) -> None:
+        """Property. Set the host IP address or DNS name."""
+        return self.setHost(host)
+    
     def port(self) -> int:
         """Returns the setting for the TCP port number of the remote device.
         
@@ -92,17 +102,26 @@ class ModbusTcpPort(ModbusPort):
             self._port = port
             self._changed = True
 
+    @property
+    def Port(self) -> int:
+        """Property. Get the TCP port number."""
+        return self.port()
+    
+    @Port.setter
+    def Port(self, port: int) -> None:
+        """Property. Set the TCP port number."""
+        return self.setPort(port)   
+    
     def settings(self) -> dict:
-        s = ModbusTcpServer.Strings
+        s = ModbusTcpPort.Strings
         return {
             s.host   : self._host   ,
             s.port   : self._port   ,
-            s.timeout: self._timeout,
-            s.maxconn: self._maxconn
+            s.timeout: self._timeout
         }
 
     def setSettings(self, settings: dict):
-        s = ModbusTcpServer.Strings
+        s = ModbusTcpPort.Strings
         v = settings.get(s.host, None)
         if v is not None:
             self.setHost(v)
@@ -112,9 +131,6 @@ class ModbusTcpPort(ModbusPort):
         v = settings.get(s.timeout, None)
         if v is not None:
             self.setTimeout(v)
-        v = settings.get(s.maxconn, None)
-        if v is not None:
-            self.setMaxConnections(v)
 
     def setNextRequestRepeated(self, v: bool) -> None:
         """Repeat next request parameters (for Modbus TCP transaction Id).

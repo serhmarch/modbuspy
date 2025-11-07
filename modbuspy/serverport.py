@@ -7,6 +7,7 @@ Date: November 2025
 
 from enum import IntEnum
 from typing import Optional
+from time import sleep
 
 from .statuscode import StatusCode
 from .exceptions import ModbusException, getException
@@ -163,6 +164,15 @@ class ModbusServerPort(ModbusObject):
             True if processing was successful, False otherwise.
         """
         raise NotImplementedError("Subclasses must implement this method.")
+
+    def forever(self) -> None:
+        """Runs the server port processing in an infinite loop."""
+        while 1:
+            try:
+                self.process()
+            except ModbusException:
+                pass
+            sleep(0.001)  # Sleep for 1 millisecond to prevent CPU overuse
 
     def _setError(self, exc, text: str = ""):
         """Sets the error parameters of the last operation performed.

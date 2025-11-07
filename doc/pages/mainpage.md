@@ -1,10 +1,10 @@
-# ModbusPy {#mainpage}
+# modbuspy {#mainpage}
 
 @tableofcontents
 
 ## Overview
 
-ModbusPy is a free, open-source Modbus library written in Python. 
+modbuspy is a free, open-source Modbus library written in Python. 
 It implements client and server functions for TCP, RTU and ASCII versions of Modbus Protocol.
 Library can work in both blocking and non-blocking mode.
 
@@ -249,7 +249,7 @@ first 4x register by 1 every second. This example uses non blocking mode.
 
 ### TCP Protocol
 
-ModbusPy supports Modbus TCP protocol with the following features:
+modbuspy supports Modbus TCP protocol with the following features:
 - Client and server implementations
 - Multiple simultaneous connections
 - Automatic connection management
@@ -257,7 +257,7 @@ ModbusPy supports Modbus TCP protocol with the following features:
 
 ### RTU Protocol
 
-ModbusPy supports Modbus RTU protocol with the following features:
+modbuspy supports Modbus RTU protocol with the following features:
 - Binary frame format
 - CRC16 checksum validation
 - Timing-based frame detection
@@ -265,7 +265,7 @@ ModbusPy supports Modbus RTU protocol with the following features:
 
 ### ASCII Protocol
 
-ModbusPy supports Modbus ASCII protocol with the following features:
+modbuspy supports Modbus ASCII protocol with the following features:
 - Hexadecimal frame format with colon start and CRLF end
 - LRC checksum validation
 - Character-based frame detection

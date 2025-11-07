@@ -8,7 +8,7 @@
 #---------------------------------------------------------------------------
 
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = ModbusPy
+PROJECT_NAME           = modbuspy
 PROJECT_NUMBER         = 1.0.0
 PROJECT_BRIEF          = "Python implementation of Modbus TCP, RTU and ASCII protocols"
 PROJECT_LOGO           =

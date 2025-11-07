@@ -39,24 +39,24 @@ to work with the library.
 
 `ModbusClientPort` implements Modbus interface directly and can be used very simple:
 ```python
-from modbuspy import ModbusClientPort, TcpSettings, ProtocolType, StatusIsGood
+from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
 #...
 def main():
-    settings = TcpSettings()
-    settings.host = "someadr.plc"
-    settings.port = 502  # STANDARD_TCP_PORT
-    settings.timeout = 3000
-    port = ModbusClientPort.create(ProtocolType.TCP, settings, True)
+    tcp = ModbusTcpPort(blocking=True)
+    tcp.Host = "someadr.plc"
+    tcp.Port = 502  # STANDARD_TCP_PORT
+    tcp.Timeout = 3000
+    port = ModbusClientPort(tcp)
     unit = 1
     offset = 0
     count = 10
-    status, values = port.readHoldingRegisters(unit, offset, count)
-    if StatusIsGood(status):
-        # process values list...
-        print(f"Values: {values}")
-    else:
-        print(f"Error: {port.lastErrorText()}")
-    port.close()
+    try:
+        # `buff` is `bytes` object that contains uint16 (little-endian) array of read values
+        buff = port.readHoldingRegisters(unit, offset, count)
+        # process `buff` e.g. using `struct` module
+        # ...
+    except ModbusException as ex:
+        print(f"Modbus error: {ex}")
 #...
 ```
 
@@ -65,24 +65,27 @@ library makes it automatically.
 
 User can use `ModbusClient` class to simplify Modbus function's interface (don't need to use `unit` parameter):
 ```python
-from modbuspy import ModbusClientPort, ModbusClient, TcpSettings, ProtocolType
+from modbuspy import ModbusClient, ModbusClientPort, ModbusTcpPort, ModbusException
 #...
 def main():
     #...
-    settings = TcpSettings()
-    settings.host = "someadr.plc"
-    settings.port = 502
-    settings.timeout = 3000
-    port = ModbusClientPort.create(ProtocolType.TCP, settings, True)
+    tcp = ModbusTcpPort(blocking=True)
+    tcp.Host = "someadr.plc"
+    tcp.Port = 502  # STANDARD_TCP_PORT
+    tcp.Timeout = 3000
+    port = ModbusClientPort(tcp)
     c1 = ModbusClient(1, port)
     c2 = ModbusClient(2, port)
     c3 = ModbusClient(3, port)
     while True:
-        s1, values1 = c1.readHoldingRegisters(0, 10)
-        s2, values2 = c2.readHoldingRegisters(0, 10)
-        s3, values3 = c3.readHoldingRegisters(0, 10)
-        # process results...
-        time.sleep(0.001)
+        try:
+            buff1 = c1.readHoldingRegisters(0, 10)
+            buff2 = c2.readHoldingRegisters(0, 10)
+            buff3 = c3.readHoldingRegisters(0, 10)
+            # process results...
+            time.sleep(0.001)
+        except ModbusException as ex:
+            print(f"Modbus error: {ex}")
     #...
 #...
 ```

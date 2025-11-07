@@ -10,7 +10,7 @@ import select
 from typing import List, Optional, Callable, Tuple
 
 from .mbglobal import ModbusInterface, ProtocolType, StatusCode, Constants, timer
-from .exceptions import *
+from . import exceptions
 from .tcpport import ModbusTcpPort
 from .mbobject import ModbusObject
 from .serverport import ModbusServerPort
@@ -165,8 +165,17 @@ class ModbusTcpServer(ModbusServerPort):
         else:
             self._maxconn = 1
 
-    def setSettings(self, settings: dict):
+    def settings(self) -> dict:
         s = ModbusTcpPort.Strings
+        return {
+            s.host   : self._host   ,
+            s.port   : self._port   ,
+            s.timeout: self._timeout,
+            s.maxconn: self._maxconn
+        }
+
+    def setSettings(self, settings: dict):
+        s = ModbusTcpServer.Strings
         v = settings.get(s.host, None)
         if v is not None:
             self.setHost(v)
@@ -176,6 +185,9 @@ class ModbusTcpServer(ModbusServerPort):
         v = settings.get(s.timeout, None)
         if v is not None:
             self.setTimeout(v)
+        v = settings.get(s.maxconn, None)
+        if v is not None:
+            self.setMaxConnections(v)
 
 
     # Server port interface implementations
@@ -223,19 +235,19 @@ class ModbusTcpServer(ModbusServerPort):
                     self._socket.setblocking(False)
                 except socket.error as e:
                     self._socket = None
-                    self._raiseError(TcpCreateError, f"TCP. Socket creation error for port '{self._tcpPort}': {str(e)}")
+                    self._raiseError(exceptions.TcpCreateError, f"TCP. Socket creation error for port '{self._tcpPort}': {str(e)}")
                 # Bind to port
                 try:
                     self._socket.bind(('', self._tcpPort))
                 except socket.error as e:
                     self._socket = None
-                    self._raiseError(TcpBindError, f"TCP. Bind error for port '{self._tcpPort}': {str(e)}")
+                    self._raiseError(exceptions.TcpBindError, f"TCP. Bind error for port '{self._tcpPort}': {str(e)}")
                 # Start listening
                 try:
                     self._socket.listen(self._maxconn)
                 except socket.error as e:
                     self._socket = None
-                    self._raiseError(TcpListenError, f"TCP. Listen error for port '{self._tcpPort}': {str(e)}")
+                    self._raiseError(exceptions.TcpListenError, f"TCP. Listen error for port '{self._tcpPort}': {str(e)}")
                 return True
             else:
                 if not self.isOpen():
@@ -304,7 +316,7 @@ class ModbusTcpServer(ModbusServerPort):
                     # None - open is in process
                     if r is None:
                         return None
-                except ModbusException as e:
+                except exceptions.ModbusException as e:
                     self.signalError.emit(self.objectName(), e.code, str(e))
                     self._state = ModbusServerPort.State.STATE_TIMEOUT
                     raise
@@ -318,7 +330,7 @@ class ModbusTcpServer(ModbusServerPort):
                     # None - open is in process
                     if r is None:
                         return None
-                except ModbusException as e:
+                except exceptions.ModbusException as e:
                     self.signalError.emit(self.objectName(), e.code, str(e))
                     raise
                 self._state = ModbusServerPort.State.STATE_CLOSED

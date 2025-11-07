@@ -1,7 +1,7 @@
 #!/bin/bash
-# Build script for ModbusPy documentation
+# Build script for modbuspy documentation
 
-echo "Building ModbusPy documentation..."
+echo "Building modbuspy documentation..."
 
 # Check if doxygen is installed
 if ! command -v doxygen &> /dev/null; then
