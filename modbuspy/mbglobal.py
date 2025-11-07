@@ -1,5 +1,5 @@
 """
-@file ModbusGlobal.py
+@file mbglobal.py
 @brief Contains general definitions of the Modbus library for Python.
 
 This module provides the core functionality for the ModbusPy library including:
@@ -17,27 +17,18 @@ This module provides the core functionality for the ModbusPy library including:
 """
 
 import time
-from enum import IntEnum, Enum
+from enum import IntEnum
 from typing import Optional, Union, List, Tuple
 from dataclasses import dataclass
 
 from .mbconfig import *
 from .statuscode import StatusCode
 
-from .port import ModbusPort
-from .tcpport import ModbusTcpPort
-from .rtuport import ModbusRtuPort
-from .ascport import ModbusAscPort
-from .clientport import ModbusClientPort
-from .serverport import ModbusServerPort
-from .serverresource import ModbusServerResource
-from .tcpserver import ModbusTcpServer
-
 # --------------------------------------------------------------------------------------------------------
 # ------------------------------------------- Helper functions -------------------------------------------
 # --------------------------------------------------------------------------------------------------------
 
-def get_bit(bit_buff: Union[bytes, bytearray], bit_num: int) -> bool:
+def getBit(bit_buff: Union[bytes, bytearray], bit_num: int) -> bool:
     """Get bit with number `bit_num` from array `bit_buff`."""
     if isinstance(bit_buff, (bytes, bytearray)):
         byte_index = bit_num // 8
@@ -46,7 +37,7 @@ def get_bit(bit_buff: Union[bytes, bytearray], bit_num: int) -> bool:
             return (bit_buff[byte_index] & (1 << bit_index)) != 0
     return False
 
-def set_bit(bit_buff: bytearray, bit_num: int, value: bool) -> None:
+def setBit(bit_buff: bytearray, bit_num: int, value: bool) -> None:
     """Set bit `value` with number `bit_num` to array `bit_buff`."""
     if isinstance(bit_buff, bytearray):
         byte_index = bit_num // 8
@@ -57,28 +48,28 @@ def set_bit(bit_buff: bytearray, bit_num: int, value: bool) -> None:
             else:
                 bit_buff[byte_index] &= ~(1 << bit_index)
 
-def get_bits(bit_buff: Union[bytes, bytearray], bit_num: int, bit_count: int) -> List[bool]:
+def getBits(bit_buff: Union[bytes, bytearray], bit_num: int, bit_count: int) -> List[bool]:
     """Get bits begins with number `bit_num` with `bit_count` from input bit array `bit_buff`."""
     bool_buff = []
     for i in range(bit_count):
-        bool_buff.append(get_bit(bit_buff, bit_num + i))
+        bool_buff.append(getBit(bit_buff, bit_num + i))
     return bool_buff
 
-def set_bits(bit_buff: bytearray, bit_num: int, bit_count: int, bool_buff: List[bool]) -> None:
+def setBits(bit_buff: bytearray, bit_num: int, bit_count: int, bool_buff: List[bool]) -> None:
     """Set bits begins with number `bit_num` with `bit_count` from input bool array `bool_buff` to output bit array `bit_buff`."""
     for i in range(min(bit_count, len(bool_buff))):
-        set_bit(bit_buff, bit_num + i, bool_buff[i])
+        setBit(bit_buff, bit_num + i, bool_buff[i])
 
 # Unit map constants and functions
 MB_UNITMAP_SIZE = 32
 
 def mb_unitmap_get_bit(unitmap: Union[bytes, bytearray], unit: int) -> bool:
     """Get bit from unitmap for specific unit."""
-    return get_bit(unitmap, unit)
+    return getBit(unitmap, unit)
 
 def mb_unitmap_set_bit(unitmap: bytearray, unit: int, value: bool) -> None:
     """Set bit in unitmap for specific unit."""
-    set_bit(unitmap, unit, value)
+    setBit(unitmap, unit, value)
 
 # --------------------------------------------------------------------------------------------------------
 # ----------------------------------------- Modbus function codes ----------------------------------------
@@ -308,7 +299,7 @@ def read_mem_bits(offset: int, count: int, mem_buff: Union[bytes, bytearray],
     
     # Get the bits and pack them into bytes
     for i in range(actual_count):
-        if get_bit(mem_buff, offset + i):
+        if getBit(mem_buff, offset + i):
             byte_index = i // 8
             bit_index = i % 8
             result[byte_index] |= (1 << bit_index)
@@ -342,7 +333,7 @@ def write_mem_bits(offset: int, count: int, values: Union[bytes, bytearray],
         bit_index = i % 8
         if byte_index < len(values):
             bit_value = (values[byte_index] & (1 << bit_index)) != 0
-            set_bit(mem_buff, offset + i, bit_value)
+            setBit(mem_buff, offset + i, bit_value)
     
     return StatusCode.Status_Good, actual_count
 
@@ -1015,49 +1006,3 @@ class ModbusInterface:
         """
         return StatusCode.Status_BadIllegalFunction, None
 
-def createPort(protocolType: ProtocolType, blocking: bool, **settings) -> ModbusPort:
-    """Factory function to create ModbusPort instance based on specified protocol type and port name.
-    
-    Args:
-        port_type: Protocol type (ProtocolType enum).
-        port_name: Port name (e.g. "COM1", "/dev/ttyS0", "
-    """
-    if protocolType == ProtocolType.TCP:
-        p = ModbusTcpPort(blocking=blocking)
-        p.setSettings(**settings)
-        return p
-    elif protocolType == ProtocolType.RTU:
-        p = ModbusRtuPort(blocking=blocking)
-        p.setSettings(**settings)
-        return p
-    elif protocolType == ProtocolType.ASC:
-        p = ModbusAscPort(blocking=blocking)
-        p.setSettings(**settings)
-        return p
-    else:
-        raise ValueError(f"Unsupported protocol type: {protocolType}")
-    
-def createClientPort(protocolType :ProtocolType, blocking: bool, **settings) -> ModbusClientPort:
-    """Factory function to create ModbusClientPort instance based on specified protocol type and port name.
-
-    Args:
-        protocolType: Protocol type (ProtocolType enum).
-        blocking: Blocking mode (True/False).
-        **settings: Additional settings for the client port.
-
-    Returns:
-        An instance of ModbusClientPort.
-    """
-    port = createPort(protocolType, blocking, **settings)
-    return ModbusClientPort(port)
-
-def createServerPort(device: ModbusInterface, protocolType: ProtocolType, blocking: bool, **settings) -> ModbusServerPort:
-    serv = None
-    if protocolType == ProtocolType.TCP:
-        tcp = ModbusTcpServer(device)
-        tcp.setSettings(**settings)
-        serv = tcp
-    else:
-        port = createPort(protocolType, blocking, **settings)
-        serv = ModbusServerResource(port, device)
-    return serv
