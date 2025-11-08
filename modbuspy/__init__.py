@@ -27,8 +27,8 @@ from .mbglobal import (MBPY_VERSION_MAJOR,
                        MBPY_VERSION_STR  ,
                        ProtocolType      ,
                        StatusCode        ,
-                       ModbusInterface   )
-
+                       Address)
+from .mbinterface import ModbusInterface
 from .exceptions import ModbusException
 from .utils import createPort, createClientPort, createServerPort
 from .client import ModbusClient

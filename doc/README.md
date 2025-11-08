@@ -64,7 +64,7 @@ To customize the documentation:
 4. **Configure diagrams**: Enable `HAVE_DOT = YES` if Graphviz is installed
 
 ## Output Formats
-
+git 
 The current configuration generates:
 - **HTML**: Interactive web documentation (default)
 - **LaTeX/PDF**: Disabled (can be enabled by setting `GENERATE_LATEX = YES`)

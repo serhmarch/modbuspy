@@ -5,8 +5,9 @@ Author: serhmarch
 Date: November 2025
 """
 
-from typing import Optional
+from typing import Optional, Tuple
 from .statuscode import StatusCode
+from .mbglobal import MB_FMT_UINT16_LE, pack, unpack
 from .mbobject import ModbusObject
 from .clientport import ModbusClientPort
 
@@ -69,11 +70,11 @@ class ModbusClient(ModbusObject):
     def getCommEventLog(self) -> bytes:
         return self._port._getCommEventLog(self, self._unit)
 
-    def writeMultipleCoils(self, offset: int, count: int, values: bytes) -> bool:
-        return self._port._writeMultipleCoils(self, self._unit, offset, count, values)
+    def writeMultipleCoils(self, offset: int, values: bytes, count: int = -1) -> bool:
+        return self._port._writeMultipleCoils(self, self._unit, offset, values, count)
 
-    def writeMultipleRegisters(self, offset: int, count: int, values: bytes) -> bool:
-        return self._port._writeMultipleRegisters(self, self._unit, offset, count, values)
+    def writeMultipleRegisters(self, offset: int, values: bytes) -> bool:
+        return self._port._writeMultipleRegisters(self, self._unit, offset, values)
 
     def reportServerID(self) -> bytes:
         return self._port._reportServerID(self, self._unit)
@@ -82,13 +83,38 @@ class ModbusClient(ModbusObject):
         return self._port._maskWriteRegister(self, self._unit, offset, andMask, orMask)
 
     def readWriteMultipleRegisters(self, readOffset: int, readCount: int,
-                                    writeOffset: int, writeCount: int, writeValues: bytes) -> bytes:
+                                    writeOffset: int, writeValues: bytes) -> bytes:
         return self._port._readWriteMultipleRegisters(self, self._unit, readOffset, readCount,
-                                                      writeOffset, writeCount, writeValues)
+                                                      writeOffset, writeValues)
         
     def readFIFOQueue(self, fifoadr: int) -> bytes:
         return self._port._readFIFOQueue(self, self._unit, fifoadr)
 
+    # formatting methods
+    def readCoilsF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return unpack(self._readCoils(self, unit, offset, count), fmt=fmt)
+
+    def readDiscreteInputsF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return unpack(self._readDiscreteInputs(self, unit, offset, count), fmt=fmt)
+
+    def readHoldingRegistersF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return unpack(self._readHoldingRegisters(self, unit, offset, count), fmt=fmt)
+
+    def readInputRegistersF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return unpack(self._readInputRegisters(self, unit, offset, count), fmt=fmt)
+
+    def writeMultipleCoilsF(self, unit: int, offset: int, values: Tuple, count: int = -1, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
+        return self._writeMultipleCoils(self, unit, offset, pack(fmt, values), count)
+    
+    def writeMultipleRegistersF(self, unit: int, offset: int, values: Tuple, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
+        return self._writeMultipleRegisters(self, unit, offset, pack(fmt, values))
+    
+    def readWriteMultipleRegistersF(self, unit: int, readOffset: int, readCount: int,
+                                    writeOffset: int, writeValues: Tuple, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return unpack(self._readWriteMultipleRegisters(self, unit, readOffset, readCount,
+                                                       writeOffset, pack(fmt, writeValues)),
+                      fmt=fmt)
+    
     # Port status methods
     
     def lastPortStatus(self) -> StatusCode:

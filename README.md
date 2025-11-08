@@ -96,13 +96,13 @@ First `c1` client owns `port`, then when finished resource transferred to `c2` a
 ### Server
 
 Unlike client the server does not implement `ModbusInterface` directly.
-It accepts pointer to `ModbusInterface` in its constructor as parameter and transfers all requests
+It accepts reference to `ModbusInterface` in its constructor as parameter and transfers all requests
 to this interface. So user can define by itself how incoming Modbus-request will be processed:
 ```python
-from modbuspy import ModbusServerPort, ModbusInterface, TcpSettings, ProtocolType, StatusCode
+from modbuspy import ModbusServerPort, ModbusInterface, ProtocolType, StatusCode
 #...
 class MyModbusDevice(ModbusInterface):
-    MEM_SIZE = 16
+    MEM_SIZE = 100
     
     def __init__(self):
         super().__init__()

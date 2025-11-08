@@ -13,12 +13,12 @@ This module provides the core functionality for the modbuspy library including:
 
 @author serhmarch
 @date November 2025
-@version 1.0.0
 """
 
 import time
 from enum import IntEnum
 from typing import Optional, Union, List, Tuple
+import struct
 
 from .mbconfig import *
 from .statuscode import StatusCode
@@ -141,6 +141,70 @@ MB_GET_COMM_EVENT_LOG_MAX = 64
 # Maximum events for `GetCommEventLog` function
 MB_READ_FIFO_QUEUE_MAX = 31
 
+# --------------------------------------------------------------------------------------------------------
+# Format string constants for struct packing/unpacking
+MB_FMT_INT16_BE = '>h'  # Big-endian 16-bit signed integer format
+MB_FMT_INT16_LE = '<h'  # Little-endian 16-bit signed integer format
+MB_FMT_UINT16_BE = '>H' # Big-endian 16-bit unsigned integer format
+MB_FMT_UINT16_LE = '<H' # Little-endian 16-bit unsigned integer format
+MB_FMT_INT32_BE = '>i'  # Big-endian 32-bit signed integer format
+MB_FMT_INT32_LE = '<i'  # Little-endian 32-bit signed integer format
+MB_FMT_UINT32_BE = '>I' # Big-endian 32-bit unsigned integer format
+MB_FMT_UINT32_LE = '<I' # Little-endian 32-bit unsigned integer format
+MB_FMT_INT64_BE = '>q'  # Big-endian 64-bit signed integer format
+MB_FMT_INT64_LE = '<q'  # Little-endian 64-bit signed integer format
+MB_FMT_UINT64_BE = '>Q' # Big-endian 64-bit unsigned integer format
+MB_FMT_UINT64_LE = '<Q' # Little-endian 64-bit unsigned integer format
+MB_FMT_FLOAT32_BE = '>f' # Big-endian 32-bit float format
+MB_FMT_FLOAT32_LE = '<f' # Little-endian 32-bit float format
+MB_FMT_FLOAT64_BE = '>d' # Big-endian 64-bit float format
+MB_FMT_FLOAT64_LE = '<d' # Little-endian 64-bit float format
+MB_FMT_FLOAT_BE = MB_FMT_FLOAT32_BE # Default float format (big-endian 32-bit)
+MB_FMT_FLOAT_LE = MB_FMT_FLOAT32_LE # Default float format (little-endian 32-bit)
+MB_FMT_DOUBLE_BE = MB_FMT_FLOAT64_BE # Default double format (big-endian 64-bit)
+MB_FMT_DOUBLE_LE = MB_FMT_FLOAT64_LE # Default double format (little-endian 64-bit)
+
+def pack(fmt: str, values: Union[tuple, list]) -> bytes:
+    """Pack data into buffer using the specified format string.
+    Args:
+        * fmt (str): Format string for packing data.
+          Same format as in `struct` module but can contain 2 characters at most:
+            - (can be omitted) First character defines endianness (e.g. '>' for big-endian, '<' for little-endian)
+            - Second character defines the type (e.g. 'h' for 16-bit integer, 'f' for 32-bit float).
+          This format defined for each item in `values` list/tuple (in comparison with `struct` module).
+        * values (Union[tuple, list]): Values to pack.
+    Returns: bytes array with packed data.
+    """
+    #size = struct.calcsize(fmt)
+    e = fmt[0]
+    if e.isalpha():
+        mfmt = e * (len(values))
+    else:
+        mfmt = e + fmt[-1] * (len(values))
+    return struct.pack(mfmt, *values)
+
+def unpack(fmt: str, buff: Union[bytes, bytearray]) -> Tuple:
+    """Unpack data from buffer using the specified format string.
+
+    Args:
+        * fmt (str): Format string for unpacking data.
+          Same format as in `struct` module but can contain 2 characters at most:
+            - (can be omitted) First character defines endianness (e.g. '>' for big-endian, '<' for little-endian)
+            - Second character defines the type (e.g. 'h' for 16-bit integer, 'f' for 32-bit float).
+          This format defined for each item in `values` list/tuple (in comparison with `struct` module).
+        * values (Union[tuple, list]): Values to pack.
+    Returns: tuple with each element as format data.
+    """
+    sz = struct.calcsize(fmt)
+    c = len(buff) // sz
+    e = fmt[0]
+    if e.isalpha():
+        mfmt = e * c
+    else:
+        mfmt = e + fmt[-1] * c
+    return struct.unpack(mfmt, buff)
+
+# --------------------------------------------------------------------------------------------------------
 # Define list of constants of Modbus protocol
 class Constants:
     """Constants of Modbus protocol."""
@@ -747,317 +811,4 @@ class Address:
         @details Return the string representation of the object.
         """
         return self.tostr(Address.Notation_Default)
-
-class ModbusInterface:
-    """Main interface of Modbus communication protocol.
-    
-    `ModbusInterface` contains list of functions that is supported by modbuspy library.
-
-    There are such functions as:
-    *  1 (0x01) - `READ_COILS`
-    *  2 (0x02) - `READ_DISCRETE_INPUTS`  
-    *  3 (0x03) - `READ_HOLDING_REGISTERS`
-    *  4 (0x04) - `READ_INPUT_REGISTERS`
-    *  5 (0x05) - `WRITE_SINGLE_COIL`
-    *  6 (0x06) - `WRITE_SINGLE_REGISTER`
-    *  7 (0x07) - `READ_EXCEPTION_STATUS`
-    *  8 (0x08) - `DIAGNOSTICS`
-    * 11 (0x0B) - `GET_COMM_EVENT_COUNTER`
-    * 12 (0x0C) - `GET_COMM_EVENT_LOG`
-    * 15 (0x0F) - `WRITE_MULTIPLE_COILS`
-    * 16 (0x10) - `WRITE_MULTIPLE_REGISTERS`
-    * 17 (0x11) - `REPORT_SERVER_ID`
-    * 22 (0x16) - `MASK_WRITE_REGISTER`
-    * 23 (0x17) - `READ_WRITE_MULTIPLE_REGISTERS`
-    * 24 (0x18) - `READ_FIFO_QUEUE`
-    
-    Each method returns `StatusCode` for result.
-    Default implementations raises `exceptions.IllegalFunctionError`.
-    """
-    
-    def readCoils(self, unit: int, offset: int, count: int) -> bytes:
-        """Function for read discrete outputs (coils, 0x bits).
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            count: Count of coils (bits).
-            
-        Returns:
-            * `bytes` object that is a bit array for read values.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-    
-    def readDiscreteInputs(self, unit: int, offset: int, count: int) -> bytes:
-        """Function for read digital inputs (1x bits).
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            count: Count of inputs (bits).
-            
-        Returns:
-            * `bytes` object that is a bit array for read values.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def readHoldingRegisters(self, unit: int, offset: int, count: int) -> bytes:
-        """Function for read holding (output) 16-bit registers (4x regs).
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            count: Count of registers.
-            
-        Returns:
-            * `bytes` object that is uint16 (little-endian) array for read values.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def readInputRegisters(self, unit: int, offset: int, count: int) -> bytes:
-        """Function for read input 16-bit registers (3x regs).
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            count: Count of registers.
-            
-        Returns:
-            * `bytes` object that is uint16 (little-endian) array for read values.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def writeSingleCoil(self, unit: int, offset: int, value: bool) -> StatusCode:
-        """Function for write one separate discrete output (0x coil).
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            value: Boolean value to be set.
-            
-        Returns:
-            * The result StatusCode of the operation.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def writeSingleRegister(self, unit: int, offset: int, value: int) -> StatusCode:
-        """Function for write one separate 16-bit holding register (4x).
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            value: 16-bit unsigned integer value to be set.
-            
-        Returns:
-            * The result StatusCode of the operation.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def readExceptionStatus(self, unit: int) -> bytes:
-        """Function to read ExceptionStatus.
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            
-        Returns:
-            * `bytes` array with single byte that containing the exception status.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def diagnostics(self, unit: int, subfunc: int, indata: bytes) -> bytes:
-        """Function provides a series of tests for checking the communication system
-        between a client device and a server, or for checking various internal error
-        conditions within a server.
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            subfunc: Subfunction code.
-            indata: Input data buffer for the diagnostic function.
-            
-        Returns:
-            * `bytes` array containing the response data.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def getCommEventCounter(self, unit: int) -> bytes:
-        """Function is used to get a status word and an event count from the
-        remote device's communication event counter.
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            
-        Returns:
-            * `bytes` array containing 2 uint16 (little-endian) values:
-               * status word
-               * event counter
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def getCommEventLog(self, unit: int) -> bytes:
-        """Function is used to get a status word, event count, message count and event log
-        from the remote device's communication event counter.
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            
-        Returns:
-            * `bytes` array containing values:
-               * status word (uint16, little-endian)
-               * event counter (uint16, little-endian)
-               * message count (uint16, little-endian)
-               * event log (each event is one byte)
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def writeMultipleCoils(self, unit: int, offset: int, count: int, values: bytes) -> StatusCode:
-        """Function for write coils (discrete outputs, 1-bit values) (0x data).
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            count: Count of coils (bits).
-            values: Input buffer (bit array) which values must be written.
-            
-        Returns:
-            * The result StatusCode of the operation.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def writeMultipleRegisters(self, unit: int, offset: int, count: int, values: bytes) -> StatusCode:
-        """Function for write holding (output) 16-bit registers (4x regs).
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            count: Count of registers.
-            values: Input buffer which values must be written.
-            
-        Returns:
-            * The result StatusCode of the operation.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def reportServerID(self, unit: int) -> bytes:
-        """Function to read the description of the type, the current status,
-        and other information specific to a remote device.
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            
-        Returns:
-            * `bytes` array that represents the server ID.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-        
-    def maskWriteRegister(self, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode:
-        """Function is used to modify the contents of a specified holding register
-        using a combination of an AND mask, an OR mask, and the register's current contents.
-        The function's algorithm is:
-        Result = (Current Contents AND And_Mask) OR (Or_Mask AND (NOT And_Mask))
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            offset: Starting offset (0-based).
-            andMask: 16-bit unsigned integer value AND mask.
-            orMask: 16-bit unsigned integer value OR mask.
-
-        Returns:
-            * The result StatusCode of the operation.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-
-    def readWriteMultipleRegisters(self, unit: int, readOffset: int, readCount: int,
-                                    writeOffset: int, writeCount: int, writeValues: bytes) -> bytes:
-        """This function code performs a combination of one read operation and one
-        write operation in a single MODBUS transaction.
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            read_offset: Starting offset for read (0-based).
-            read_count: Count of registers to read.
-            write_offset: Starting offset for write (0-based).
-            write_count: Count of registers to write.
-            write_values: Input buffer which values must be written.
-            
-        Returns:
-            * `bytes` object that is uint16 (little-endian) array for read values.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
-
-    def readFIFOQueue(self, unit: int, fifoadr: int) -> bytes:
-        """Function for read the contents of a First-In-First-Out (FIFO) queue
-        of register in a remote device.
-        
-        Args:
-            unit: Address of the remote Modbus device.
-            fifoadr: Address of FIFO (0-based).
-            
-        Returns:
-            * `bytes` object that is uint16 (little-endian) array for FIFO values.
-            * `None` when operation is not finished yet (only for nonblocking mode).
-
-        Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
-        """
-        raise exceptions.IllegalFunctionError("Function not supported")
 
