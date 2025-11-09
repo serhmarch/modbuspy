@@ -28,13 +28,88 @@ Library implements such Modbus functions as:
 
 ### Common usage
 
-Library was written in Python and uses modern Python features like type hints and context managers.
 To start using this library you must import `ModbusClientPort` (`ModbusClient`) or
-`ModbusServerPort` modules (of course after install the package).
-These modules directly or indirectly import `ModbusGlobal` main module.
-`ModbusGlobal` module contains declarations of main data types, functions and class interfaces
+`ModbusServerResource`(`ModbusTcpServer`) classes (of course after install the package).
+`modbuspy` module contains declarations of main data types, functions and class interfaces
 to work with the library.
 
+### Blocking mode
+
+Library supports both blocking and non-blocking modes of operation.
+When creating port object user can specify `blocking` parameter in the constructor.
+If `blocking` is set to `True` then port will operate in blocking mode.
+
+Blocking mode is standard function call that waits until operation is completed
+and returns result or raises an exception. 
+```python
+from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
+tcp = ModbusTcpPort(blocking=True)
+port = ModbusClientPort(tcp)
+try:
+    # `buff` is `bytes` object that contains uint16 (little-endian) array of read values
+    buff = port.readHoldingRegisters(unit=1, offset=0, count=10)
+    print(f"Read data: {buff}")
+    # process `buff` e.g. using `struct` module
+except ModbusException as ex:
+    print(f"Modbus error: {ex}")
+```
+
+### Non-blocking mode
+
+When `blocking` parameter is set to `False` then port will operate in non-blocking mode.
+Non-blocking mode is much the same as blocking mode, but function call returns immediately
+with `None` value if operation is not completed yet and user must call the function again
+later until resulting data is returned or an exception raises in case of error.
+
+```python
+import time
+from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
+tcp = ModbusTcpPort(blocking=False)
+port = ModbusClientPort(tcp)
+while True:
+    try:
+        buff = port.readHoldingRegisters(unit=1, offset=0, count=10)
+        # `buff` is `bytes` object that contains uint16 (little-endian) array of read values
+        if buff is not None:
+            print(f"Read data: {buff}")
+            # process `buff` e.g. using `struct` module
+    except ModbusException as ex:
+        print(f"Modbus error: {ex}")
+    do_some_other_work()
+    time.sleep(0.001)
+```
+
+TCP server is designed to work in single thread so it uses only non-blocking mode.
+
+### Modbus Interface
+
+`ModbusInterface` is the main interface that defines all supported Modbus functions.
+ModbusClientPort implements this interface directly and can be used as Modbus client.
+ 
+User can implement this interface to create own Modbus device and Modbus server will
+transfer all incoming requests to this interface.
+
+`ModbusInterface` defined as class where each function raises 
+`modbuspy.exceptions.IllegalFunctionError` by default:
+```python
+class ModbusInterface:
+    def readCoils(self, unit: int, offset: int, count: int) -> bytes: # ...
+    def readDiscreteInputs(self, unit: int, offset: int, count: int) -> bytes: # ...
+    def readHoldingRegisters(self, unit: int, offset: int, count: int) -> bytes: # ...
+    def readInputRegisters(self, unit: int, offset: int, count: int) -> bytes: # ...
+    def writeSingleCoil(self, unit: int, offset: int, value: bool) -> StatusCode: # ...
+    def writeSingleRegister(self, unit: int, offset: int, value: int) -> StatusCode: # ...
+    def readExceptionStatus(self, unit: int) -> bytes: # ...
+    def diagnostics(self, unit: int, subFunction: int, data: bytes) -> bytes: # ...
+    def getCommEventCounter(self, unit: int) -> bytes: # ...
+    def getCommEventLog(self, unit: int) -> bytes: # ...
+    def writeMultipleCoils(self, unit: int, offset: int, values: bytes, count: int = -1) -> StatusCode: # ...
+    def writeMultipleRegisters(self, unit: int, offset: int, values: bytes) -> StatusCode: # ...
+    def reportServerId(self, unit: int) -> bytes: # ...
+    def maskWriteRegister(self, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode: # ...
+    def readWriteMultipleRegisters(self, unit: int, readOffset: int, readCount: int, writeOffset: int, writeValues: bytes) -> bytes: # ...
+    def readFifoQueue(self, unit: int, offset: int) -> bytes: # ...
+```
 ### Client
 
 `ModbusClientPort` implements Modbus interface directly and can be used very simple:
@@ -93,13 +168,38 @@ In this example 3 clients with unit address 1, 2, 3 are used.
 User doesn't need to manage their common resource `port`. Library makes it automatically.
 First `c1` client owns `port`, then when finished resource transferred to `c2` and so on.
 
+#### Formatting methods
+
+`ModbusClientPort` and `ModbusClient` classes have special formatting versions 
+of Modbus interface functions which have suffix `F` in their names:
+```python
+def readCoilsF(self, unit: int, offset: int, count: int, fmt: str='<H') -> Tuple: #...
+def readDiscreteInputsF(self, unit: int, offset: int, count: int, fmt: str='<H') -> Tuple: #...
+def readHoldingRegistersF(self, unit: int, offset: int, count: int, fmt: str='<H') -> Tuple: #...
+def readInputRegistersF(self, unit: int, offset: int, count: int, fmt: str='<H') -> Tuple: #...
+def writeMultipleCoilsF(self, unit: int, offset: int, values: Tuple, count: int = -1, fmt: str='<H') -> StatusCode: #...
+def writeMultipleRegistersF(self, unit: int, offset: int, values: Tuple, fmt: str='<H') -> StatusCode: 
+def readWriteMultipleRegistersF(self, unit: int, readOffset: int, readCount: int,
+                                writeOffset: int, writeValues: Tuple, fmt: str='<H') -> Tuple: #...
+```
+
+Specified `fmt` parameter is used to pack/unpack data using `struct` module format strings.
+Format is defined using 1 or 2 symbol string for each value in the output tuple of formatted values.
+Formatted values are returned as Python `tuple` object for read-methods,
+and accepted as tuple `values` parameter for write-methods.
+
+For example `'<H'` format string means little-endian (`<`) unsigned short (`H`).
+
 ### Server
 
 Unlike client the server does not implement `ModbusInterface` directly.
 It accepts reference to `ModbusInterface` in its constructor as parameter and transfers all requests
 to this interface. So user can define by itself how incoming Modbus-request will be processed:
 ```python
-from modbuspy import ModbusServerPort, ModbusInterface, ProtocolType, StatusCode
+from modbuspy import createServerPort, ModbusInterface, ProtocolType, StatusCode
+from modbuspy import ModbusException
+from modbuspy.exceptions import (IllegalDataAddressError,
+                                 GatewayPathUnavailableError)
 #...
 class MyModbusDevice(ModbusInterface):
     MEM_SIZE = 100
@@ -116,39 +216,42 @@ class MyModbusDevice(ModbusInterface):
     
     def readHoldingRegisters(self, unit, offset, count):
         if unit != 1:
-            return StatusCode.Status_BadGatewayPathUnavailable, None
+            raise GatewayPathUnavailableError(f"Invalid unit: {unit}")
         if (offset + count) <= self.MEM_SIZE:
             # Convert register values to bytes
             result = bytearray()
             for i in range(count):
                 reg_value = self.mem4x[offset + i]
                 result.extend(reg_value.to_bytes(2, 'big'))
-            return StatusCode.Status_Good, bytes(result)
-        return StatusCode.Status_BadIllegalDataAddress, None
+            return bytes(result)
+        raise IllegalDataAddressError(f"Invalid readHoldingRegisters params: offset={offset}, count={count}")
+#...
 
 def main():
     device = MyModbusDevice()
-    settings = TcpSettings()
-    settings.port = 502  # STANDARD_TCP_PORT
-    settings.timeout = 3000
-    settings.maxconn = 10
-    port = ModbusServerPort.create(device, ProtocolType.TCP, settings, False)
+    settings = {}
+    settings['port'] = 502  # STANDARD_TCP_PORT
+    settings['timeout'] = 3000
+    settings['maxconn'] = 10
+    port = createServerPort(device, ProtocolType.TCP, settings, False)
     c = 0
     while True:
-        port.process()
+        try:
+            port.process()
+        except ModbusException as ex:
+            print(f"Error: {ex}")
+        c = (c + 1) % 65536
+        device.setValue(0, c)
         time.sleep(0.001)
-        if c % 1000 == 0:
-            device.setValue(0, device.getValue(0) + 1)
-        c += 1
 #...
 ```
 
 In this example `MyModbusDevice` ModbusInterface class was created.
 It implements only single function: `readHoldingRegisters` (`0x03`).
-All other functions will return `StatusCode.Status_BadIllegalFunction` by default.
+All other functions will raise `modpuspy.exceptions.IllegalFunctionError` by default.
 
 This example creates Modbus TCP server that processes connections and increments
-first 4x register by 1 every second. This example uses non-blocking mode.
+first 4x register by 1 every cycle. This example uses non-blocking mode.
 
 ### Signal/slot mechanism
 
@@ -158,7 +261,7 @@ Callbacks will be called in the order in which they were connected.
 
 For example `ModbusClientPort` signal/slot mechanism:
 ```python
-from modbuspy import ModbusClientPort, TcpSettings, ProtocolType
+from modbuspy import ModbusClientPort, ProtocolType, createClientPort
 
 class Printable:
     def printTx(self, source, buff):
@@ -169,11 +272,11 @@ def printRx(source, buff):
 
 def main():
     #...
-    settings = TcpSettings()
-    settings.host = "someadr.plc"
-    settings.port = 502
-    settings.timeout = 3000
-    port = ModbusClientPort.create(ProtocolType.TCP, settings, False)
+    settings = {}
+    settings['host'] = "someadr.plc"
+    settings['port'] = 502
+    settings['timeout'] = 3000
+    port = createClientPort(ProtocolType.TCP, settings, blocking=True)
     printer = Printable()
     port.signalTx.connect(printer.printTx)
     port.signalRx.connect(printRx)
@@ -184,7 +287,7 @@ def main():
 
 ### Requirements
 
-- Python 3.7 or higher
+- Python 3.6 or higher
 - `pyserial` library (for serial communication)
 
 ### Install dependencies
@@ -197,7 +300,7 @@ $ pip install pyserial
 
 1. **Clone repository:**
    ```console
-   $ git clone https://github.com/your-repo/modbuspy.git
+   $ git clone https://github.com/serhmarch/modbuspy.git
    $ cd modbuspy
    ```
 
@@ -222,23 +325,24 @@ $ pip install pyserial
 After installation, you can import and use modbuspy in your Python projects:
 
 ```python
-from modbuspy import ModbusClient, ModbusTcpPort, StatusCode
+from modbuspy import ModbusClient, ModbusTcpPort, ModbusException 
 
 # Create TCP port
-port = ModbusTcpPort()
-port.setHost("192.168.1.100")
-port.setPort(502)
+tcp = ModbusTcpPort(blocking=True)
+tcp.setHost("192.168.1.100")
+tcp.setPort(502)
+
+# Create client port
+port = ModbusClientPort(tcp)
 
 # Create client
-client = ModbusClient(port)
-client.setUnit(1)
+client = ModbusClient(unit=1, port=port)
 
-# Use the client
-if client.open():
-    try:
-        status, data = client.readHoldingRegisters(0, 10)
-        if status == StatusCode.Status_Good:
-            print(f"Read successful: {data}")
-    finally:
-        client.close()
+# Use the client.
+# No need to open port (connection) manually, library does it automatically.
+try:
+    data = client.readHoldingRegisters(1000, 10)
+    print(f"Data bytes: {data}")
+except ModbusException as e:
+    print(f"Error: {e}")
 ```

@@ -34,7 +34,7 @@ python democlient.py --host 192.168.1.100 -p 502
 python democlient.py -u 2 -o 100 -c 10
 
 # Set custom timeout
-python democlient.py --timeout 5.0
+python democlient.py --timeout 5000
 ```
 
 **Functions Tested:**
@@ -122,45 +122,11 @@ cd examples/client
 python simple_democlient.py --host localhost -p 5020 -c 10
 ```
 
-## Serial Examples
-
-### test_serial_ports.py
-
-A comprehensive test script for the Modbus serial port implementations located in `examples/serial/`.
-
-**Features:**
-- Tests both ASCII and RTU protocol implementations
-- Demonstrates serial port configuration
-- Shows checksum calculations (LRC for ASCII, CRC16 for RTU)
-- Tests frame formatting and parsing methods
-- Protocol comparison and feature overview
-
-**Usage:**
-```bash
-cd examples/serial
-python test_serial_ports.py
-```
-
-**Serial Protocols Supported:**
-- **ModbusAscPort**: ASCII protocol with hexadecimal encoding, LRC checksum, and `:` start + `\r\n` end delimiters
-- **ModbusRtuPort**: RTU protocol with binary encoding, CRC16 checksum, and timing-based frame detection
-
-**Configuration Options:**
-- Port name (COM1, /dev/ttyUSB0, etc.)
-- Baud rate (9600, 19200, etc.)
-- Data bits (5, 6, 7, 8)
-- Parity (None, Even, Odd, Space, Mark)
-- Stop bits (1, 1.5, 2)
-- Flow control (None, Hardware, Software)
-- Timeout settings
-
-See `examples/serial/README.md` for detailed documentation and usage examples.
-
 ## Notes
 
 - Serial protocols (RTU/ASCII) are fully implemented with complete frame formatting
 - The client includes timing control to space requests 1 second apart
-- The server automatically increments the first register every second for demonstration
+- The server automatically increments the first register every cycle for demonstration
 - Error handling displays detailed error messages for debugging
 - Test data patterns are used for write operations to demonstrate functionality
 - Both client and server support comprehensive logging of all Modbus traffic
