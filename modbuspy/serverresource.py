@@ -12,6 +12,7 @@ from .statuscode import StatusCode, StatusIsStandardError, StatusIsBad
 from . import exceptions
 from .exceptions import ModbusException
 from .mbglobal import *
+from .mbinterface import ModbusInterface
 from .serverport import ModbusServerPort
 from .port import ModbusPort
 
@@ -212,7 +213,7 @@ class ModbusServerResource(ModbusServerPort):
                 self._timestampRefresh()
                 func = self._func
                 if StatusIsBad(r):
-                    self.signalError.emit(self.objectName(), e.code, str(e))
+                    self.signalError.emit(self.objectName(), r, self._errorText)
                     func |= MBF_EXCEPTION
                     buff = bytearray(1)
                     if StatusIsStandardError(r):
@@ -378,51 +379,47 @@ class ModbusServerResource(ModbusServerPort):
         Returns:
             StatusCode indicating the result of device processing.
         """
+        res = None
         if self._func == MBF_READ_COILS:
-            self._valueBuff = self._device.readCoils(self._unit, self._offset, self._count)
-            return StatusCode.Status_Good
+            res = self._device.readCoils(self._unit, self._offset, self._count)
         elif self._func == MBF_READ_DISCRETE_INPUTS:
-            self._valueBuff = self._device.readDiscreteInputs(self._unit, self._offset, self._count)
-            return StatusCode.Status_Good
+            res = self._device.readDiscreteInputs(self._unit, self._offset, self._count)
         elif self._func == MBF_READ_HOLDING_REGISTERS:
-            self._valueBuff = self._device.readHoldingRegisters(self._unit, self._offset, self._count)
-            return StatusCode.Status_Good
+            res = self._device.readHoldingRegisters(self._unit, self._offset, self._count)
         elif self._func == MBF_READ_INPUT_REGISTERS:
-            self._valueBuff = self._device.readInputRegisters(self._unit, self._offset, self._count)
-            return StatusCode.Status_Good
+            res = self._device.readInputRegisters(self._unit, self._offset, self._count)
         elif self._func == MBF_WRITE_SINGLE_COIL:
             return self._device.writeSingleCoil(self._unit, self._offset, self._valueBuff[0])
         elif self._func == MBF_WRITE_SINGLE_REGISTER:
             return self._device.writeSingleRegister(self._unit, self._offset, self._valueBuff)
         elif self._func == MBF_READ_EXCEPTION_STATUS:
-            self._valueBuff = self._device.readExceptionStatus(self._unit)
-            return StatusCode.Status_Good
+            res = self._device.readExceptionStatus(self._unit)
         elif self._func == MBF_DIAGNOSTICS:
-            self._valueBuff = self._device.diagnostics(self._unit, self._subfunc, self._byteCount, self._valueBuff, self._outByteCount, self._valueBuff)
-            return StatusCode.Status_Good
+            res = self._device.diagnostics(self._unit, self._subfunc, self._byteCount, self._valueBuff, self._outByteCount, self._valueBuff)
         elif self._func == MBF_GET_COMM_EVENT_COUNTER:
-            self._valueBuff = self._device.getCommEventCounter(self._unit, self._status, self._count)
-            return StatusCode.Status_Good
+            res = self._device.getCommEventCounter(self._unit, self._status, self._count)
         elif self._func == MBF_GET_COMM_EVENT_LOG:
-            self._valueBuff = self._device.getCommEventLog(self._unit, self._status, self._count, self._messageCount, self._outByteCount, self._valueBuff)
-            return StatusCode.Status_Good
+            res = self._device.getCommEventLog(self._unit, self._status, self._count, self._messageCount, self._outByteCount, self._valueBuff)
         elif self._func == MBF_WRITE_MULTIPLE_COILS:
-            return self._device.writeMultipleCoils(self._unit, self._offset, self._count, self._valueBuff)
+            return self._device.writeMultipleCoils(self._unit, self._offset, self._valueBuff, self._count)
         elif self._func == MBF_WRITE_MULTIPLE_REGISTERS:
-            return self._device.writeMultipleRegisters(self._unit, self._offset, self._count, self._valueBuff)
+            return self._device.writeMultipleRegisters(self._unit, self._offset, self._valueBuff)
         elif self._func == MBF_REPORT_SERVER_ID:
-            self._valueBuff = self._device.reportServerID(self._unit, self._outByteCount, self._valueBuff)
-            return StatusCode.Status_Good
+            res = self._device.reportServerID(self._unit)
         elif self._func == MBF_MASK_WRITE_REGISTER:
             return self._device.maskWriteRegister(self._unit, self._offset, self._andMask, self._orMask)
         elif self._func == MBF_READ_WRITE_MULTIPLE_REGISTERS:
-            self._valueBuff = self._device.readWriteMultipleRegisters(self._unit, self._offset, self._count, self._valueBuff, self._writeOffset, self._writeCount, self._valueBuff)
-            return StatusCode.Status_Good
+            res = self._device.readWriteMultipleRegisters(self._unit,
+                                                          self._offset, self._count,
+                                                          self._writeOffset, self._valueBuff)
         elif self._func == MBF_READ_FIFO_QUEUE:
-            self._valueBuff = self._device.readFIFOQueue(self._unit, self._offset, self._count, self._valueBuff)
-            return StatusCode.Status_Good
+            res = self._device.readFIFOQueue(self._unit, self._offset)
         else:
-            return self._raiseError(exceptions.IllegalFunctionError, "Unsupported function")
+            self._raiseError(exceptions.IllegalFunctionError, "Unsupported function")
+        if res is None:
+            return None
+        self._valueBuff = res
+        return StatusCode.Status_Good
 
     def _processOutputData(self) -> bytearray:
         """Process output data buff with size and returns status of the operation.

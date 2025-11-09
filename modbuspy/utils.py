@@ -6,7 +6,8 @@
 @date November 2025
 """
 
-from .mbglobal import ProtocolType, ModbusInterface
+from .mbglobal import ProtocolType
+from .mbinterface import ModbusInterface
 from .port import ModbusPort
 from .tcpport import ModbusTcpPort
 from .rtuport import ModbusRtuPort

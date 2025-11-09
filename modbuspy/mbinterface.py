@@ -234,8 +234,10 @@ class ModbusInterface:
         Args:
             unit: Address of the remote Modbus device.
             offset: Starting offset (0-based).
-            count: Count of coils (bits).
             values: Input buffer (bit array) which values must be written.
+            count: Count of coils (bits). If `count` parameter is ommited (or =-1),
+                   the count is calculated from the length of `values` buffer
+                   as `count = len(values) * 8`.
             
         Returns:
             * The result StatusCode of the operation.
@@ -301,8 +303,9 @@ class ModbusInterface:
         """
         raise exceptions.IllegalFunctionError("Function not supported")
 
-    def readWriteMultipleRegisters(self, unit: int, readOffset: int, readCount: int,
-                                    writeOffset: int, writeValues: bytes) -> bytes:
+    def readWriteMultipleRegisters(self, unit: int,
+                                   readOffset: int, readCount: int,
+                                   writeOffset: int, writeValues: bytes) -> bytes:
         """This function code performs a combination of one read operation and one
         write operation in a single MODBUS transaction.
         

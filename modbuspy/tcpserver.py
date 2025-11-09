@@ -9,7 +9,8 @@ import socket
 import select
 from typing import List, Optional, Callable, Tuple
 
-from .mbglobal import ModbusInterface, ProtocolType, StatusCode, Constants, timer
+from .mbglobal import ProtocolType, StatusCode, Constants, timer
+from .mbinterface import ModbusInterface
 from . import exceptions
 from .tcpport import ModbusTcpPort
 from .mbobject import ModbusObject

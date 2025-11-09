@@ -11,7 +11,8 @@ from time import sleep
 
 from .statuscode import StatusCode
 from .exceptions import ModbusException, getException
-from .mbglobal import ModbusInterface, ProtocolType, timer
+from .mbglobal import ProtocolType, timer
+from .mbinterface import ModbusInterface
 from .mbobject import ModbusObject
 
 class ModbusServerPort(ModbusObject):

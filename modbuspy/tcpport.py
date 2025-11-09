@@ -9,6 +9,8 @@ from .statuscode import StatusCode
 from . import exceptions
 from .mbglobal import *
 from .port import ModbusPort
+from .exceptions import ModbusException
+from . import exceptions
 
 import socket
 import select
@@ -168,8 +170,7 @@ class ModbusTcpPort(ModbusPort):
                 try:
                     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                        
                 except Exception as e:
-                    self._raiseError(exceptions.TcpCreateError, 
-                                        f"TCP. Error while creating socket for '{self._host}:{self._port}'. Error: {str(e)}")
+                    self._raiseError(exceptions.TcpCreateError, f"TCP. Error while creating socket for '{self._host}:{self._port}'. Error: {str(e)}")
                     
                 # Set timeout for blocking mode
                 if self.isBlocking():
@@ -187,8 +188,7 @@ class ModbusTcpPort(ModbusPort):
                 if result != socket.EWOULDBLOCK:
                     self._sock.close()
                     self._state = ModbusPort.State.STATE_CLOSED
-                    self._raiseError(StatusCode.Status_BadTcpConnect,
-                                        f"TCP. Error while connecting to '{self._host}:{self._port}'. Error code: {result}")
+                    self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Error code: {result}")
 
                 # Fall through to ModbusPort.State.STATE_WAIT_FOR_OPEN
                 self._state = ModbusPort.State.STATE_WAIT_FOR_OPEN
@@ -201,8 +201,7 @@ class ModbusTcpPort(ModbusPort):
                         # Connection failed
                         self._sock.close()
                         self._state = ModbusPort.State.STATE_CLOSED
-                        self._raiseError(StatusCode.Status_BadTcpConnect,
-                                            f"TCP. Error while connecting to '{self._host}:{self._port}'. Connection failed")                    
+                        self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Connection failed")                    
                     elif ready_to_write:
                         # Connection successful
                         self._state = ModbusPort.State.STATE_OPENED
@@ -213,13 +212,13 @@ class ModbusTcpPort(ModbusPort):
                             return None
                         self._sock.close()
                         self._state = ModbusPort.State.STATE_CLOSED
-                        self._raiseError(StatusCode.Status_BadTcpConnect,
-                                            f"TCP. Error while connecting to '{self._host}:{self._port}'. Timeout")                        
+                        self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Timeout")                        
                 except Exception as e:
                     self._sock.close()
                     self._state = ModbusPort.State.STATE_CLOSED
-                    self._raiseError(StatusCode.Status_BadTcpConnect,
-                                        f"TCP. Error while connecting to '{self._host}:{self._port}'. Error: {str(e)}")
+                    if isinstance(e, ModbusException):
+                        raise e
+                    self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Error: {str(e)}")
             else:  # Default case
                 if self.isOpen() and not self.isChanged():
                     self._state = ModbusPort.State.STATE_OPENED
@@ -259,12 +258,15 @@ class ModbusTcpPort(ModbusPort):
                            ModbusPort.State.STATE_PREPARE_TO_WRITE,
                            ModbusPort.State.STATE_WAIT_FOR_WRITE,
                            ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL):
-            c = self._sock.send(self._buff)
-            if c >= 0:
-                self._state = ModbusPort.State.STATE_OPENED
-                return StatusCode.Status_Good
-            self.close()
-            self._raiseError(StatusCode.Status_BadTcpWrite, f"TCP. Error while writing to '{self._host}:{self._port}'. Error code: {c}.")
+            try:
+                c = self._sock.send(self._buff)
+                if c >= 0:
+                    self._state = ModbusPort.State.STATE_OPENED
+                    return StatusCode.Status_Good
+                self.close()
+                self._raiseError(exceptions.TcpWriteError, f"TCP. Error while writing to '{self._host}:{self._port}'. Connection lost.")
+            except socket.error as e:
+                self._raiseError(exceptions.TcpWriteError, f"TCP. Error while writing to '{self._host}:{self._port}'. {str(e)}")
         return None
     
     def read(self) -> StatusCode:
@@ -296,16 +298,14 @@ class ModbusTcpPort(ModbusPort):
                         if self._modeServer:
                             return StatusCode.Status_Uncertain
                         else:
-                            self._raiseError(StatusCode.Status_BadTcpRead, 
-                                           f"TCP. Error while reading from '{self._host}:{self._port}'. Remote connection closed")
+                            self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Remote connection closed")
                             
                 except socket.timeout:
                     # Socket timeout occurred
                     if self.isNonBlocking() and (timer() - self._timestamp < self.timeout()):
                         return None
                     self.close()
-                    self._raiseError(StatusCode.Status_BadTcpRead, 
-                                    f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
+                    self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
                     
                 except socket.error as e:
                     # Socket error occurred
@@ -313,21 +313,20 @@ class ModbusTcpPort(ModbusPort):
                         # Non-blocking socket would block - check timeout
                         if self.isNonBlocking() and (timer() - self._timestamp >= self.timeout()):
                             self.close()
-                            self._raiseError(StatusCode.Status_BadTcpRead, 
-                                           f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
+                            self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
                         # Return None to continue processing later
                         return None
                     else:
                         # Other socket error
                         self.close()
-                        self._raiseError(StatusCode.Status_BadTcpRead, 
-                                       f"TCP. Error while reading from '{self._host}:{self._port}'. Error code: {e.errno}. {str(e)}")
+                        self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Error code: {e.errno}. {str(e)}")
                         
                 except Exception as e:
                     # Unexpected error
                     self.close()
-                    self._raiseError(StatusCode.Status_BadTcpRead, 
-                                   f"TCP. Error while reading from '{self._host}:{self._port}'. Error: {str(e)}")
+                    if isinstance(e, ModbusException):
+                        raise e
+                    self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Error: {str(e)}")
                     
             return None
                     

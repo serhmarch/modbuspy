@@ -16,20 +16,20 @@ from typing import List, Optional
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import modbuspy modules
-from modbuspy.statuscode import StatusCode, StatusIsGood
+from modbuspy import StatusCode, StatusIsGood
 from modbuspy.mbglobal import (ProtocolType, Constants,
-                                   MBF_READ_COILS, MBF_READ_DISCRETE_INPUTS, 
-                                   MBF_READ_HOLDING_REGISTERS, MBF_READ_INPUT_REGISTERS,
-                                   MBF_WRITE_SINGLE_COIL, MBF_WRITE_SINGLE_REGISTER,
-                                   MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
-                                   MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
-                                   MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
-from modbuspy.client import ModbusClient
-from modbuspy.tcpport import ModbusTcpPort
-from modbuspy.rtuport import ModbusRtuPort
-from modbuspy.ascport import ModbusAscPort
-from modbuspy.clientport import ModbusClientPort
-from modbuspy.exceptions import ModbusException
+                               MBF_READ_COILS, MBF_READ_DISCRETE_INPUTS, 
+                               MBF_READ_HOLDING_REGISTERS, MBF_READ_INPUT_REGISTERS,
+                               MBF_WRITE_SINGLE_COIL, MBF_WRITE_SINGLE_REGISTER,
+                               MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
+                               MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
+                               MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
+from modbuspy import ModbusClient
+from modbuspy import ModbusTcpPort
+from modbuspy import ModbusRtuPort
+from modbuspy import ModbusAscPort
+from modbuspy import ModbusClientPort
+from modbuspy import ModbusException
 
 def print_regs(count: int, buff: bytes) -> None:
     """Print register values from buffer."""
@@ -254,6 +254,7 @@ def main():
     # Create client
     client = ModbusClient(options.unit, client_port)
     client.setObjectName(f"democlient({client.unit()})")
+    res = client.readHoldingRegistersF(0, 10, fmt='i')
 
     # Execute test requests
     for req in requests:
@@ -348,7 +349,7 @@ def main():
                     coil_data[i] = 0xAA  # Alternating pattern
                 print_bools(req.count, coil_data)
                 while 1:
-                    status = client.writeMultipleCoils(req.offset, req.count, coil_data)
+                    status = client.writeMultipleCoils(req.offset, coil_data, req.count)
                     if status is None: # for non-blocking mode
                         time.sleep(0.001)
                         continue
@@ -368,7 +369,7 @@ def main():
                     reg_data[i*2+1] = val & 0xFF
                 print_regs(req.count, reg_data)
                 while 1:
-                    status = client.writeMultipleRegisters(req.offset, req.count, reg_data)
+                    status = client.writeMultipleRegisters(req.offset, reg_data)
                     if status is None: # for non-blocking mode
                         time.sleep(0.001)
                         continue
@@ -416,7 +417,7 @@ def main():
                 print_regs(req.count, write_data)
                 while 1:
                     result = client.readWriteMultipleRegisters(req.offset, req.count, 
-                                                            req.offset, req.count, write_data)
+                                                               req.offset, write_data)
                     if result is None: # for non-blocking mode
                         time.sleep(0.001)
                         continue
@@ -452,7 +453,7 @@ def main():
     if client_port:
         client_port.close()
     
-    print("Demo client completed.")
+    print(f"{client.Name} completed.")
 
 
 if __name__ == "__main__":

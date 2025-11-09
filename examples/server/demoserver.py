@@ -23,14 +23,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import modbuspy modules
 from modbuspy.statuscode import StatusCode
-from modbuspy.mbglobal import (ProtocolType, timer,
-                                   Constants,
-                                   MB_REGE_SZ_BITES)
+from modbuspy import (ProtocolType,
+                      ModbusInterface,
+                      timer,
+                      Constants,
+                      MB_REGE_SZ_BITES)
 
-from modbuspy.tcpserver import ModbusTcpServer
-from modbuspy.serverresource import ModbusServerResource
-from modbuspy.rtuport import ModbusRtuPort
-from modbuspy.ascport import ModbusAscPort
+from modbuspy import ModbusTcpServer
+from modbuspy import ModbusServerResource
+from modbuspy import ModbusRtuPort
+from modbuspy import ModbusAscPort
 from modbuspy.exceptions import (ModbusException,
                                  IllegalDataAddressError,
                                  GatewayPathUnavailableError)
@@ -57,7 +59,7 @@ def print_close_connection(source: str) -> None:
     """Print connection close message."""
     print(f"Close connection: {source}")
 
-class Device:
+class Device(ModbusInterface):
     """
     Modbus device simulation with memory storage.
     
@@ -213,18 +215,21 @@ class Device:
             return bytes([self.memory[0] & 0xFF])
         return bytes([0])
     
-    def writeMultipleCoils(self, unit: int, offset: int, count: int, values: bytes) -> StatusCode:
+    def writeMultipleCoils(self, unit: int, offset: int, values: bytes, count: int = -1) -> StatusCode:
         """Write multiple coils (FC 15)."""
         if unit != self.unit:
-            raise GatewayPathUnavailableError("Unit address mismatch")        
+            raise GatewayPathUnavailableError("Unit address mismatch")
+        if count < 0:
+            count = len(values) * 8      
         if not self._write_mem_bits(offset, count, values):
             raise IllegalDataAddressError("Invalid data address")
         return StatusCode.Status_Good
     
-    def writeMultipleRegisters(self, unit: int, offset: int, count: int, values: bytes) -> StatusCode:
+    def writeMultipleRegisters(self, unit: int, offset: int, values: bytes) -> StatusCode:
         """Write multiple registers (FC 16)."""
         if unit != self.unit:
-            raise GatewayPathUnavailableError("Unit address mismatch")        
+            raise GatewayPathUnavailableError("Unit address mismatch")
+        count = len(values) // 2       
         if not self._write_mem_regs(offset, count, values):
             raise IllegalDataAddressError("Invalid data address")
         return StatusCode.Status_Good
@@ -241,11 +246,12 @@ class Device:
         return StatusCode.Status_Good
     
     def readWriteMultipleRegisters(self, unit: int, read_offset: int, read_count: int,
-                                   write_offset: int, write_count: int, write_values: bytes) -> bytes:
+                                   write_offset: int, write_values: bytes) -> bytes:
         """Read/Write multiple registers (FC 23)."""
         if unit != self.unit:
             raise GatewayPathUnavailableError("Unit address mismatch")        
         # Perform write first
+        write_count = len(write_values) // 2
         if not self._write_mem_regs(write_offset, write_count, write_values):
             raise IllegalDataAddressError("Invalid data address")
         # Then perform read
@@ -399,7 +405,9 @@ def main():
             try:
                 server.process()
             except ModbusException as e:
-                print(f"Modbus Exception: {e}")
+                # Error printing is handled by signalError
+                #print(f"Modbus Exception: {e}")
+                pass
             # Increment first register in every cycle (for demonstration)
             device.increment()
             if timer() - tmr >= 1000:

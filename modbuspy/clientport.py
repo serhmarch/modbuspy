@@ -192,28 +192,27 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
 
     # formatting methods
     def readCoilsF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readCoils(self, unit, offset, count), fmt=fmt)
+        return self._readCoilsF(self, unit, offset, count, fmt=fmt)
 
     def readDiscreteInputsF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readDiscreteInputs(self, unit, offset, count), fmt=fmt)
+        return self._readDiscreteInputsF(self, unit, offset, count, fmt=fmt)
 
     def readHoldingRegistersF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readHoldingRegisters(self, unit, offset, count), fmt=fmt)
+        return self._readHoldingRegistersF(self, unit, offset, count, fmt=fmt)
 
     def readInputRegistersF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readInputRegisters(self, unit, offset, count), fmt=fmt)
+        return self._readInputRegisters(self, unit, offset, count, fmt=fmt)
 
     def writeMultipleCoilsF(self, unit: int, offset: int, values: Tuple, count: int = -1, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
-        return self._writeMultipleCoils(self, unit, offset, pack(fmt, values), count)
+        return self._writeMultipleCoilsF(self, unit, offset, values, count, fmt=fmt)
     
     def writeMultipleRegistersF(self, unit: int, offset: int, values: Tuple, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
-        return self._writeMultipleRegisters(self, unit, offset, pack(fmt, values))
+        return self._writeMultipleRegistersF(self, unit, offset, values, fmt=fmt)
     
     def readWriteMultipleRegistersF(self, unit: int, readOffset: int, readCount: int,
                                     writeOffset: int, writeValues: Tuple, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readWriteMultipleRegisters(self, unit, readOffset, readCount,
-                                                       writeOffset, pack(fmt, writeValues)),
-                      fmt=fmt)
+        return self._readWriteMultipleRegistersF(self, unit, readOffset, readCount,
+                                                 writeOffset, writeValues, fmt=fmt)
     
     # Status methods
     
@@ -313,28 +312,52 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
 
     # formatting methods (extended)
     def _readCoilsF(self, client: ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readCoils(client, unit, offset, count), fmt=fmt)
+        buff = self._readCoils(client, unit, offset, count)
+        if buff is None:
+            return None
+        return unpack(fmt, buff)
 
     def _readDiscreteInputsF(self, client: ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readDiscreteInputs(client, unit, offset, count), fmt=fmt)
+        buff = self._readDiscreteInputs(client, unit, offset, count)
+        if buff is None:
+            return None
+        return unpack(fmt, buff)
 
     def _readHoldingRegistersF(self, client: ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readHoldingRegisters(client, unit, offset, count), fmt=fmt)
+        buff = self._readHoldingRegisters(client, unit, offset, count)
+        if buff is None:
+            return None
+        return unpack(fmt, buff)
 
     def _readInputRegistersF(self, client: ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readInputRegisters(client, unit, offset, count), fmt=fmt)
+        buff = self._readInputRegisters(client, unit, offset, count)
+        if buff is None:
+            return None
+        return unpack(fmt, buff)
 
     def _writeMultipleCoilsF(self, client: ModbusObject, unit: int, offset: int, values: Tuple, count: int = -1, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
-        return self._writeMultipleCoils(client, unit, offset, pack(fmt, values), count)
+        if self._currentClient is None:
+            return self._writeMultipleCoils(client, unit, offset, pack(fmt, values), count)
+        elif self._currentClient == client:
+            return self._writeMultipleCoils(client, unit, offset, bytes(), count)
     
     def _writeMultipleRegistersF(self, client: ModbusObject, unit: int, offset: int, values: Tuple, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
-        return self._writeMultipleRegisters(client, unit, offset, pack(fmt, values))
+        if self._currentClient is None:
+            return self._writeMultipleCoils(client, unit, offset, pack(fmt, values))
+        elif self._currentClient == client:
+            return self._writeMultipleCoils(client, unit, offset, bytes())
     
     def _readWriteMultipleRegistersF(self, client: ModbusObject, unit: int, readOffset: int, readCount: int,
                                     writeOffset: int, writeValues: Tuple, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readWriteMultipleRegisters(client, unit, readOffset, readCount,
-                                                       writeOffset, pack(fmt, writeValues)),
-                      fmt=fmt)
+        if self._currentClient is None:
+            buff = self._readWriteMultipleRegisters(client, unit, readOffset, readCount,
+                                                    writeOffset, pack(fmt, writeValues))
+        else:
+            buff = self._readWriteMultipleRegisters(client, unit, readOffset, readCount,
+                                                    writeOffset, bytes())
+        if buff is None:
+            return None
+        return unpack(fmt, buff)
     
     # extended methods
     def _readCoils(self, client: ModbusObject, unit: int, offset: int, count: int) -> bytes:
@@ -767,11 +790,11 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         """
         status = self.getRequestStatus(client)        
         if status == ModbusClientPort.RequestStatus.Enable:
+            if count < 0:
+                count = len(values) * 8
             if count > MB_MAX_DISCRETS:
                 self.cancelRequest(client)
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::writeMultipleCoils(offset={offset}, count={count}): Requested count of coils is too large")
-            elif count < 0:
-                count = len(values) * 8
             # Prepare request buffer
             self._buff = bytearray(5)
             self._buff[0] = (offset >> 8) & 0xFF # Start coil offset - MS BYTE
@@ -1057,7 +1080,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     return None
             except ModbusException as e:
                 self._repeats += 1
-                self._setPortError(e)
+                #self._setPortError(e)
                 if self._repeats < self._settings_tries:
                     self._port.setNextRequestRepeated(True)
                     if self._port.isNonBlocking():
@@ -1112,7 +1135,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    self.signalError.emit(self.getName(), e.code, str(e))
+                    #self.signalError.emit(self.getName(), e.code, str(e))
                     self._state = ModbusClientPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
                 self.signalOpened.emit(self.objectName())
@@ -1125,7 +1148,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    self.signalError.emit(self.getName(), e.code, str(e))
+                    #self.signalError.emit(self.getName(), e.code, str(e))
                     self._raisePortError(e)
                 self.signalClosed.emit(self.objectName())
                 self._state = ModbusClientPort.State.STATE_CLOSED
@@ -1151,7 +1174,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    self.signalError.emit(self.getName(), e.code, str(e))
+                    #self.signalError.emit(self.getName(), e.code, str(e))
                     self._state = ModbusClientPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
                 else:
@@ -1175,7 +1198,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     if r is None:
                         return None
                 except ModbusException as e:
-                    self.signalError.emit(self.getName(), e.code, str(e))
+                    #self.signalError.emit(self.getName(), e.code, str(e))
                     self._state = ModbusClientPort.State.STATE_TIMEOUT
                     self._raisePortError(e)
                 if not self._port.isOpen():
@@ -1288,6 +1311,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             self._lastErrorStatus = exc
             self._lastErrorText = text
         self._setStatus(self._lastErrorStatus)
+        self.signalError.emit(self.getName(), self._lastErrorStatus, self._lastErrorText)
 
     def _raiseErrorBase(self, exc, text: str = ""):
         """Sets the error parameters of the last operation performed and raises the exception.
@@ -1296,7 +1320,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             exc: Type of the ModbusException to raise.
             text: Text description of the error (optional).
         """
-        self._setError(exc, text)
+        self._setErrorBase(exc, text)
         rexc = None
         if isinstance(exc, ModbusException):
             rexc = exc

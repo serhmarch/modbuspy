@@ -12,7 +12,22 @@ from .mbobject import ModbusObject
 from .clientport import ModbusClientPort
 
 class ModbusClient(ModbusObject):
-    """Base class for Modbus clients"""
+    """Base class for Modbus clients
+
+    Client objects is wrapper around ModbusClientPort instances
+    to simplify usage of ModbusClientPort methods
+    reducing the number of parameters needed to call them.
+    ModbusClient holds the unit identifier of the Modbus device
+    to which it is connected.
+
+    Also ModbusClient can be used
+    as a way to simultaneously poll 2 or more Modbus devices
+    that are located in the same Modbus network
+    (e.g. on the same RS485 bus).
+
+    c1 = ModbusClient(1, clientPort)
+    c2 = ModbusClient(2, clientPort)
+    """
 
     def __init__(self, unit: int, port: ModbusClientPort):
         self._unit = unit
@@ -91,29 +106,30 @@ class ModbusClient(ModbusObject):
         return self._port._readFIFOQueue(self, self._unit, fifoadr)
 
     # formatting methods
-    def readCoilsF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readCoils(self, unit, offset, count), fmt=fmt)
+    def readCoilsF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return self._port._readCoilsF(self, self._unit, offset, count, fmt=fmt)
 
-    def readDiscreteInputsF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readDiscreteInputs(self, unit, offset, count), fmt=fmt)
+    def readDiscreteInputsF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return self._port._readDiscreteInputsF(self, self._unit, offset, count, fmt=fmt)
 
-    def readHoldingRegistersF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readHoldingRegisters(self, unit, offset, count), fmt=fmt)
+    def readHoldingRegistersF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return self._port._readHoldingRegistersF(self, self._unit, offset, count, fmt=fmt)
 
-    def readInputRegistersF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readInputRegisters(self, unit, offset, count), fmt=fmt)
+    def readInputRegistersF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return self._port._readInputRegistersF(self, self._unit, offset, count, fmt=fmt)
 
-    def writeMultipleCoilsF(self, unit: int, offset: int, values: Tuple, count: int = -1, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
-        return self._writeMultipleCoils(self, unit, offset, pack(fmt, values), count)
+    def writeMultipleCoilsF(self, offset: int, values: Tuple, count: int = -1, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
+        return self._port._writeMultipleCoilsF(self, self._unit, offset, values, count, fmt=fmt)
     
-    def writeMultipleRegistersF(self, unit: int, offset: int, values: Tuple, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
-        return self._writeMultipleRegisters(self, unit, offset, pack(fmt, values))
+    def writeMultipleRegistersF(self, offset: int, values: Tuple, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
+        return self._port._writeMultipleRegistersF(self, self._unit, offset, values, fmt=fmt)
     
-    def readWriteMultipleRegistersF(self, unit: int, readOffset: int, readCount: int,
+    def readWriteMultipleRegistersF(self, readOffset: int, readCount: int,
                                     writeOffset: int, writeValues: Tuple, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return unpack(self._readWriteMultipleRegisters(self, unit, readOffset, readCount,
-                                                       writeOffset, pack(fmt, writeValues)),
-                      fmt=fmt)
+        return self._port._readWriteMultipleRegistersF(self, self._unit,
+                                                       readOffset, readCount,
+                                                       writeOffset, writeValues,
+                                                       fmt=fmt)
     
     # Port status methods
     

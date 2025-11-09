@@ -177,10 +177,11 @@ def pack(fmt: str, values: Union[tuple, list]) -> bytes:
     """
     #size = struct.calcsize(fmt)
     e = fmt[0]
+    c = len(values)
     if e.isalpha():
-        mfmt = e * (len(values))
+        mfmt = str(c) + e
     else:
-        mfmt = e + fmt[-1] * (len(values))
+        mfmt = e + str(c) + fmt[-1]
     return struct.pack(mfmt, *values)
 
 def unpack(fmt: str, buff: Union[bytes, bytearray]) -> Tuple:
@@ -199,9 +200,9 @@ def unpack(fmt: str, buff: Union[bytes, bytearray]) -> Tuple:
     c = len(buff) // sz
     e = fmt[0]
     if e.isalpha():
-        mfmt = e * c
+        mfmt = str(c) + e
     else:
-        mfmt = e + fmt[-1] * c
+        mfmt = e + str(c) + fmt[-1]
     return struct.unpack(mfmt, buff)
 
 # --------------------------------------------------------------------------------------------------------

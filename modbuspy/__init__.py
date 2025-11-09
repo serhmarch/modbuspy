@@ -20,14 +20,8 @@ __all__ = [
     "createServerPort"
 ]
 
-from .mbglobal import (MBPY_VERSION_MAJOR, 
-                       MBPY_VERSION_MINOR,
-                       MBPY_VERSION_PATCH,
-                       MBPY_VERSION_INT  ,
-                       MBPY_VERSION_STR  ,
-                       ProtocolType      ,
-                       StatusCode        ,
-                       Address)
+from .mbglobal import *
+from .statuscode import *
 from .mbinterface import ModbusInterface
 from .exceptions import ModbusException
 from .utils import createPort, createClientPort, createServerPort
