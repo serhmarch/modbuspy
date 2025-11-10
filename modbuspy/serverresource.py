@@ -52,6 +52,7 @@ class ModbusServerResource(ModbusServerPort):
         self._writeOffset = 0
         self._outByteCount = 0
         self._valueBuff = bytearray()
+        self._value = 0
 
     def port(self) -> ModbusPort:
         """Returns pointer to inner port which was previously passed in constructor.
@@ -286,15 +287,12 @@ class ModbusServerResource(ModbusServerPort):
             if not (buff[2] == 0x00 or buff[2] == 0xFF) or (buff[3] != 0):  # Incorrect request from client - don't respond
                 return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect data value")
             self._offset = buff[1] | (buff[0]<<8)
-            self._valueBuff = bytearray(1)
-            self._valueBuff[0] = buff[2]
+            self._value = buff[2]
         elif self._func == MBF_WRITE_SINGLE_REGISTER:
             if len(buff) != 4: # Incorrect request from client - don't respond
                 return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset = buff[1] | (buff[0]<<8)
-            self._valueBuff = bytearray(2)
-            self._valueBuff[0] = buff[3]
-            self._valueBuff[1] = buff[2]
+            self._value = buff[3] | (buff[2]<<8)
         elif self._func == MBF_READ_EXCEPTION_STATUS:
             if len(buff) > 0:  # Incorrect request from client - don't respond
                 return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
@@ -389,9 +387,9 @@ class ModbusServerResource(ModbusServerPort):
         elif self._func == MBF_READ_INPUT_REGISTERS:
             res = self._device.readInputRegisters(self._unit, self._offset, self._count)
         elif self._func == MBF_WRITE_SINGLE_COIL:
-            return self._device.writeSingleCoil(self._unit, self._offset, self._valueBuff[0])
+            return self._device.writeSingleCoil(self._unit, self._offset, self._value)
         elif self._func == MBF_WRITE_SINGLE_REGISTER:
-            return self._device.writeSingleRegister(self._unit, self._offset, self._valueBuff)
+            return self._device.writeSingleRegister(self._unit, self._offset, self._value)
         elif self._func == MBF_READ_EXCEPTION_STATUS:
             res = self._device.readExceptionStatus(self._unit)
         elif self._func == MBF_DIAGNOSTICS:
@@ -442,16 +440,16 @@ class ModbusServerResource(ModbusServerPort):
                 buff[1 + i * 2] = self._valueBuff[i * 2 + 1]
         elif self._func == MBF_WRITE_SINGLE_COIL:
             buff = bytearray(4)
-            buff[0] = (self._offset >> 8) & 0xFF            # address of coil (Hi-byte)
-            buff[1] = (self._offset & 0xFF)                 # address of coil (Lo-byte)
-            buff[2] = 0xFF if self._valueBuff[0] else 0x00  # value (Hi-byte)
-            buff[3] = 0                                     # value (Lo-byte)
+            buff[0] = (self._offset >> 8) & 0xFF     # address of coil (Hi-byte)
+            buff[1] = (self._offset & 0xFF)          # address of coil (Lo-byte)
+            buff[2] = 0xFF if self._value else 0x00  # value (Hi-byte)
+            buff[3] = 0                              # value (Lo-byte)
         elif self._func == MBF_WRITE_SINGLE_REGISTER:
             buff = bytearray(4)
             buff[0] = (self._offset >> 8) & 0xFF # address of register (Hi-byte)
             buff[1] = (self._offset & 0xFF)      # address of register (Lo-byte)
-            buff[2] = self._valueBuff[1]         # value (Hi-byte)
-            buff[3] = self._valueBuff[0]         # value (Lo-byte)
+            buff[2] = (self._value >> 8) & 0xFF  # value (Hi-byte)
+            buff[3] = self._value & 0xFF         # value (Lo-byte)
         elif self._func == MBF_READ_EXCEPTION_STATUS:
             buff = bytearray(1)
             buff[0] = self._valueBuff[0]
