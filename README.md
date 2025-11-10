@@ -325,7 +325,10 @@ $ pip install pyserial
 After installation, you can import and use modbuspy in your Python projects:
 
 ```python
-from modbuspy import ModbusClient, ModbusTcpPort, ModbusException 
+from modbuspy import (ModbusClient,
+                      ModbusClientPort,
+                      ModbusTcpPort,
+                      ModbusException) 
 
 # Create TCP port
 tcp = ModbusTcpPort(blocking=True)
