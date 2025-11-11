@@ -229,11 +229,9 @@ class MyModbusDevice(ModbusInterface):
 
 def main():
     device = MyModbusDevice()
-    settings = {}
-    settings['port'] = 502  # STANDARD_TCP_PORT
-    settings['timeout'] = 3000
-    settings['maxconn'] = 10
-    port = createServerPort(device, ProtocolType.TCP, settings, False)
+    port = createServerPort(device, ProtocolType.TCP, blocking=False, port=502, # STANDARD_TCP_PORT
+                                                                      timeout=3000,
+                                                                      maxconn=10)
     c = 0
     while True:
         try:
@@ -269,14 +267,12 @@ class Printable:
 
 def printRx(source, buff):
     print(f"{source} Rx: {buff.hex()}")
-
+`
 def main():
     #...
-    settings = {}
-    settings['host'] = "someadr.plc"
-    settings['port'] = 502
-    settings['timeout'] = 3000
-    port = createClientPort(ProtocolType.TCP, settings, blocking=True)
+    port = createClientPort(ProtocolType.TCP, blocking=True, host="someadr.plc",
+                                                             port=502,
+                                                             timeout=3000)
     printer = Printable()
     port.signalTx.connect(printer.printTx)
     port.signalRx.connect(printRx)

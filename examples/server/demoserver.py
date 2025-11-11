@@ -113,7 +113,7 @@ class Device(ModbusInterface):
             self.memory[offset + i] = val
         return True
     
-    def _read_mem_bits(self, offset: int, count: int) -> bytes:
+    def _readMemBits(self, offset: int, count: int) -> bytes:
         """Read bits from memory (treating registers as bit arrays)."""
         if offset + count > self.bit_count():
             return None
@@ -130,7 +130,7 @@ class Device(ModbusInterface):
                     result[byte_idx] |= (1 << bit_pos)
         return bytes(result)
     
-    def _write_mem_bits(self, offset: int, count: int, values: bytes) -> bool:
+    def _writeMemBits(self, offset: int, count: int, values: bytes) -> bool:
         """Write bits to memory."""
         if offset + count > self.bit_count():
             return False
@@ -155,7 +155,7 @@ class Device(ModbusInterface):
         """Read coils (FC 01)."""
         if unit != self.unit:
             raise GatewayPathUnavailableError("Unit address mismatch")
-        res = self._read_mem_bits(offset, count)
+        res = self._readMemBits(offset, count)
         if not res:
             raise IllegalDataAddressError("Invalid data address")
         return res
@@ -164,7 +164,7 @@ class Device(ModbusInterface):
         """Read discrete inputs (FC 02)."""
         if unit != self.unit:
             raise GatewayPathUnavailableError("Unit address mismatch")
-        res = self._read_mem_bits(offset, count)
+        res = self._readMemBits(offset, count)
         if not res:
             raise IllegalDataAddressError("Invalid data address")
         return res
@@ -192,7 +192,7 @@ class Device(ModbusInterface):
         if unit != self.unit:
             raise GatewayPathUnavailableError("Unit address mismatch")
         bit_data = bytes([0xFF if value else 0x00])
-        if not self._write_mem_bits(offset, 1, bit_data):
+        if not self._writeMemBits(offset, 1, bit_data):
             raise IllegalDataAddressError("Invalid data address")
         return StatusCode.Status_Good
     
@@ -221,7 +221,7 @@ class Device(ModbusInterface):
             raise GatewayPathUnavailableError("Unit address mismatch")
         if count < 0:
             count = len(values) * 8      
-        if not self._write_mem_bits(offset, count, values):
+        if not self._writeMemBits(offset, count, values):
             raise IllegalDataAddressError("Invalid data address")
         return StatusCode.Status_Good
     

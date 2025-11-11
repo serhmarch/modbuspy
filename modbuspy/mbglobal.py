@@ -276,131 +276,93 @@ def lrc(byte_arr: Union[bytes, bytearray]) -> int:
         lrc_value += byte
     return ((-lrc_value) & 0xFF)
 
-def read_mem_regs(offset: int, count: int, mem_buff: Union[bytes, bytearray], 
-                  mem_reg_count: int) -> Tuple[StatusCode, bytes, int]:
-    """Function for copy (read) values from memory input `mem_buff` and put it to the output buffer for 16 bit registers.
+def readMemBits(bitoffset: int, bitcount: int, memBuff: bytearray) -> bytearray:
+    """Function for copy (read) values from memory input `mem_buff` and return it as output buffer for discretes (bits).
     
     Args:
-        offset: Memory offset to read from `mem_buff` in 16-bit registers size.
-        count: Count of 16-bit registers to read from memory `mem_buff`.
-        mem_buff: Memory buffer which holds data.
-        mem_reg_count: Size of memory buffer `mem_buff` in 16-bit registers.
+        offset: Memory offset to read from `memBuff` in bit size.
+        count: Count of bits to read from memory `memBuff`.
+        memBuff: Memory buffer which holds data.
+        memBitCount: Size of memory buffer `memBuff` in bits.
     
     Returns:
-        Tuple of (StatusCode, values_bytes, actual_count)
+        bytearray with read bits packed into bytes.
     """
-    if offset >= mem_reg_count:
-        return StatusCode.Status_BadIllegalDataAddress, b'', 0
-    
-    actual_count = min(count, mem_reg_count - offset)
-    if actual_count <= 0:
-        return StatusCode.Status_BadIllegalDataAddress, b'', 0
-    
-    start_byte = offset * 2
-    end_byte = start_byte + (actual_count * 2)
-    
-    if end_byte > len(mem_buff):
-        return StatusCode.Status_BadIllegalDataAddress, b'', 0
-    
-    values = mem_buff[start_byte:end_byte]
-    return StatusCode.Status_Good, values, actual_count
+    byteoffset = bitoffset // 8
+    rbyteoffset = (bitoffset+bitcount-1) // 8
+    bytecount = rbyteoffset-byteoffset+1
+    byarray = memBuff[byteoffset:byteoffset+bytecount]
+    shift = bitoffset % 8
+    rem = bitcount % 8
+    ri = (bitcount-1) // 8
+    if shift:
+        c = len(byarray)-1
+        for i in range(c):
+            b1 = byarray[i]
+            b2 = byarray[i+1]   
+            b = ((b2 << (8-shift)) | (b1 >> shift)) & 0xFF
+            byarray[i] = b
+    if rem:
+        mask = (1 << (rem-1))
+        mask |= (mask-1)
+        b = byarray[ri]
+        b = (b >> shift) & mask
+        byarray[ri] = b
+    if len(byarray) > ri+1:
+        del byarray[ri+1]
+    return byarray
 
-def write_mem_regs(offset: int, count: int, values: Union[bytes, bytearray], 
-                   mem_buff: bytearray, mem_reg_count: int) -> Tuple[StatusCode, int]:
-    """Function for copy (write) values from input buffer `values` to memory `mem_buff` for 16 bit registers.
-    
-    Args:
-        offset: Memory offset to write to `mem_buff` in 16-bit registers size.
-        count: Count of 16-bit registers to write into memory `mem_buff`.
-        values: Input buffer that holds data to write.
-        mem_buff: Memory buffer.
-        mem_reg_count: Size of memory buffer `mem_buff` in 16-bit registers.
-    
-    Returns:
-        Tuple of (StatusCode, actual_count)
-    """
-    if offset >= mem_reg_count:
-        return StatusCode.Status_BadIllegalDataAddress, 0
-    
-    actual_count = min(count, mem_reg_count - offset)
-    if actual_count <= 0:
-        return StatusCode.Status_BadIllegalDataAddress, 0
-    
-    start_byte = offset * 2
-    values_needed = actual_count * 2
-    
-    if len(values) < values_needed:
-        return StatusCode.Status_BadIllegalDataValue, 0
-    
-    if start_byte + values_needed > len(mem_buff):
-        return StatusCode.Status_BadIllegalDataAddress, 0
-    
-    mem_buff[start_byte:start_byte + values_needed] = values[:values_needed]
-    return StatusCode.Status_Good, actual_count
-
-def read_mem_bits(offset: int, count: int, mem_buff: Union[bytes, bytearray], 
-                  mem_bit_count: int) -> Tuple[StatusCode, bytes, int]:
-    """Function for copy (read) values from memory input `mem_buff` and put it to the output buffer for discretes (bits).
-    
-    Args:
-        offset: Memory offset to read from `mem_buff` in bit size.
-        count: Count of bits to read from memory `mem_buff`.
-        mem_buff: Memory buffer which holds data.
-        mem_bit_count: Size of memory buffer `mem_buff` in bits.
-    
-    Returns:
-        Tuple of (StatusCode, values_bytes, actual_count)
-    """
-    if offset >= mem_bit_count:
-        return StatusCode.Status_BadIllegalDataAddress, b'', 0
-    
-    actual_count = min(count, mem_bit_count - offset)
-    if actual_count <= 0:
-        return StatusCode.Status_BadIllegalDataAddress, b'', 0
-    
-    # Calculate how many bytes we need for the output
-    bytes_needed = (actual_count + 7) // 8
-    result = bytearray(bytes_needed)
-    
-    # Get the bits and pack them into bytes
-    for i in range(actual_count):
-        if getBit(mem_buff, offset + i):
-            byte_index = i // 8
-            bit_index = i % 8
-            result[byte_index] |= (1 << bit_index)
-    
-    return StatusCode.Status_Good, bytes(result), actual_count
-
-def write_mem_bits(offset: int, count: int, values: Union[bytes, bytearray], 
-                   mem_buff: bytearray, mem_bit_count: int) -> Tuple[StatusCode, int]:
+def writeMemBits(bitoffset: int, bitcount: int, value: Union[bytes, bytearray], memBuff: bytearray):
     """Function for copy (write) values from input buffer `values` to memory `mem_buff` for discretes (bits).
     
     Args:
-        offset: Memory offset to write to `mem_buff` in bit size.
-        count: Count of bits to write into memory `mem_buff`.
-        values: Input buffer that holds data to write.
-        mem_buff: Memory buffer.
-        mem_bit_count: Size of memory buffer `mem_buff` in bits.
+        bitoffset: Memory offset to write to `memBuff` in bit size.
+        bitcount: Count of bits to write into memory `memBuff`.
+        value: Input buffer that holds data to write.
+        memBuff: Memory buffer.
+        memBitCount: Size of memory buffer `memBuff` in bits.
     
     Returns:
-        Tuple of (StatusCode, actual_count)
+        None
     """
-    if offset >= mem_bit_count:
-        return StatusCode.Status_BadIllegalDataAddress, 0
-    
-    actual_count = min(count, mem_bit_count - offset)
-    if actual_count <= 0:
-        return StatusCode.Status_BadIllegalDataAddress, 0
-    
-    # Set the bits from the input values
-    for i in range(actual_count):
-        byte_index = i // 8
-        bit_index = i % 8
-        if byte_index < len(values):
-            bit_value = (values[byte_index] & (1 << bit_index)) != 0
-            setBit(mem_buff, offset + i, bit_value)
-    
-    return StatusCode.Status_Good, actual_count
+    byteoffset = bitoffset // 8
+    rbyteoffset = (bitoffset+bitcount-1) // 8
+    bytecount = rbyteoffset-byteoffset+1
+    byarray = bytearray(memBuff[byteoffset:byteoffset+bytecount])
+    shift = bitoffset % 8
+    c = bitcount // 8
+    rem = bitcount % 8
+    if shift:
+        mask = 0xFF << shift
+        notmask = ~mask
+        for i in range(c):
+            v = value[i] << shift
+            b = int.from_bytes([byarray[i], byarray[i+1]], byteorder='little')
+            b &= notmask
+            b |= v
+            tb = b.to_bytes(2, byteorder='little')
+            byarray[i]   = tb[0]
+            byarray[i+1] = tb[1]
+    elif c > 0:
+        byarray[0:c] = value[0:c]
+    if rem:
+        mask = (1 << (rem-1))
+        mask |= (mask-1)
+        mask = mask << shift
+        notmask = ~mask
+        v = (value[c] << shift) & mask
+        if shift+rem > 8:
+            b = int.from_bytes([byarray[c], byarray[c+1]], byteorder='little')
+            b &= notmask
+            b |= v
+            tb = b.to_bytes(2, byteorder='little')
+            byarray[c]   = tb[0]
+            byarray[c+1] = tb[1]
+        else:
+            b = byarray[c] & notmask
+            b |= v
+            byarray[c] = b
+    memBuff[byteoffset:byteoffset+bytecount] = byarray
 
 def bytesToAscii(bytes_buff: Union[bytes, bytearray]) -> bytes:
     """Function converts byte array to ASCII repr of byte array.
@@ -651,15 +613,6 @@ class Address:
         """
         @details Make modbus address from string representaion
         """
-        def dec_digit(c):
-            return int(c) if c.isdigit() else -1
-
-        def hex_digit(c):
-            try:
-                return int(c, 16)
-            except ValueError:
-                return -1
-
         if s.startswith('%'):
             i = 0
             if s.startswith(Address.sIEC61131Prefix3x):
@@ -680,27 +633,30 @@ class Address:
             offset = 0
             suffix = s[-1]
             if suffix == Address.cIEC61131SuffixHex:
-                for c in s[i:-1]:
-                    offset *= 16
-                    d = hex_digit(c)
-                    if d < 0:
-                        return Address()
-                    offset += d
+                try:
+                    for c in s[i:-1]:
+                        offset *= 16
+                        d = int(c, 16)
+                        offset += d
+                except ValueError:
+                    raise ValueError(f"Invalid value '{s}' to convert into Address: contains non-hex-digit characters")
             else:
-                for c in s[i:]:
-                    offset *= 10
-                    d = dec_digit(c)
-                    if d < 0:
-                        return Address()
-                    offset += d
+                try:
+                    for c in s[i:]:
+                        offset *= 10
+                        d = int(c)
+                        offset += d
+                except ValueError:
+                    raise ValueError(f"Invalid value '{s}' to convert into Address: contains non-dec-digit characters")
             self.setoffset(offset)
         else:
             acc = 0
-            for c in s:
-                d = dec_digit(c)
-                if d < 0:
-                    return Address()
-                acc = acc * 10 + d
+            try:
+                for c in s:
+                    d = int(c)
+                    acc = acc * 10 + d
+            except ValueError:
+                raise ValueError(f"Invalid value '{s}' to convert into Address: contains non-dec-digit characters")
             self.fromint(acc)
 
     def tostr(self, notation: int = Notation_Default) -> str:
