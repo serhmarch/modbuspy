@@ -92,7 +92,6 @@ python -m unittest test.test_mbglobal.TestBitManipulation.test_getBit_basic -v
 ```
 
 The `python -m unittest discover test/` command:
-
 - No entry point needed - uses automatic discovery
 - Finds test files by pattern matching (`test_*.py`)
 - Imports modules and scans for `TestCase` classes

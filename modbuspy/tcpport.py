@@ -45,11 +45,6 @@ class ModbusTcpPort(ModbusPort):
     def __del__(self):
         self.close()
 
-    def handle(self) -> int:
-        if self._sock is not None:
-            return self._sock.fileno()
-        return -1
-
     def type(self) -> ProtocolType:
         """Returns the Modbus protocol type.
         
@@ -58,6 +53,19 @@ class ModbusTcpPort(ModbusPort):
         """
         return ProtocolType.TCP
     
+    def handle(self) -> int:
+        if self._sock is not None:
+            return self._sock.fileno()
+        return -1
+    
+    def socket(self):
+        """Returns the underlying socket object.
+        
+        Returns:
+            The socket object.
+        """
+        return self._sock
+
     def host(self) -> str:
         """Returns the settings for the IP address or DNS name of the remote device.
         
@@ -148,7 +156,15 @@ class ModbusTcpPort(ModbusPort):
         Returns:
             True if auto-increment is enabled, False otherwise.
         """
-        return not self._autoIncrement
+        return self._autoIncrement
+    
+    def transactionId(self) -> int:
+        """Returns the current transaction identifier.
+        
+        Returns:
+            The current transaction identifier.
+        """
+        return self._transaction
     
     def open(self) -> StatusCode:
         fRepeatAgain = True        
@@ -179,17 +195,19 @@ class ModbusTcpPort(ModbusPort):
                     self._sock.setblocking(False)
     
                 self._timestamp = timer()
-                # socket.connect_ex is non-blocking and do not raise exceptions
-                result = self._sock.connect_ex((self._host, self._port))
-                if result == 0:
-                    # Connection successful
-                    self._state = ModbusPort.State.STATE_OPENED
-                    return StatusCode.Status_Good
-                if result != socket.EWOULDBLOCK:
-                    self._sock.close()
+                try:
+                    # socket.connect_ex is non-blocking and in most cases do not raise exceptions
+                    result = self._sock.connect_ex((self._host, self._port))
+                    if result == 0:
+                        # Connection successful
+                        self._state = ModbusPort.State.STATE_OPENED
+                        return StatusCode.Status_Good
+                    if result != socket.EWOULDBLOCK:
+                        raise socket.error(f"code={result}")
+                except Exception as e:
+                    self.close()
                     self._state = ModbusPort.State.STATE_CLOSED
-                    self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Error code: {result}")
-
+                    self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Error: {str(e)}")
                 # Fall through to ModbusPort.State.STATE_WAIT_FOR_OPEN
                 self._state = ModbusPort.State.STATE_WAIT_FOR_OPEN
                 
