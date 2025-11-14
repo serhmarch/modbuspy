@@ -769,3 +769,20 @@ class Address:
         """
         return self.tostr(Address.Notation_Default)
 
+class AwaitableMethod:
+    """AwaitableMethod helper class for asynchronous operations.
+    """
+    def __init__(self, meth, *args, **kwargs):
+        self._meth = meth
+        self._args = args
+        self._kwargs = kwargs
+
+    def __await__(self):
+        return self
+    
+    def __next__(self):
+        res = self._meth(*self._args, **self._kwargs)
+        if res is None:
+            return None
+        raise StopIteration(res)
+        

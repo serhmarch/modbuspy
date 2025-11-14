@@ -7,7 +7,7 @@ Date: November 2025
 
 from typing import Optional, Tuple
 from .statuscode import StatusCode
-from .mbglobal import MB_FMT_UINT16_LE, pack, unpack
+from .mbglobal import MB_FMT_UINT16_LE, AwaitableMethod
 from .mbobject import ModbusObject
 from .clientport import ModbusClientPort
 
@@ -47,7 +47,7 @@ class ModbusClient(ModbusObject):
         return self.unit()
 
     @Unit.setter
-    def Unit(self, unit: int) -> None:
+    def Unit(self, unit: int):
         """Property. Set the unit identifier."""
         return self.setUnit(unit)
 
@@ -156,3 +156,87 @@ class ModbusClient(ModbusObject):
             Text description of the last port error.
         """
         return self._port.lastErrorText()
+    
+
+class ModbusAsyncClient(ModbusClient):
+    """
+    """
+    def readCoils(self, offset: int, count: int) -> bytes:
+        return AwaitableMethod(super().readCoils, offset, count)
+    
+    def readDiscreteInputs(self, offset: int, count: int) -> bytes:
+        return AwaitableMethod(super().readDiscreteInputs, offset, count)
+
+    def readHoldingRegisters(self, offset: int, count: int) -> bytes:
+        return AwaitableMethod(super().readHoldingRegisters, offset, count)
+
+    def readInputRegisters(self, offset: int, count: int) -> bytes:
+        return AwaitableMethod(super().readInputRegisters, offset, count)
+
+    def writeSingleCoil(self, offset: int, value: bool) -> StatusCode:
+        return AwaitableMethod(super().writeSingleCoil, offset, value)
+
+    def writeSingleRegister(self, offset: int, value: int) -> StatusCode:
+        return AwaitableMethod(super().writeSingleRegister, offset, value)
+
+    def readExceptionStatus(self) -> bytes:
+        return AwaitableMethod(super().readExceptionStatus)
+
+    def diagnostics(self, subfunc: int, indata: Optional[bytes] = None) -> bytes:
+        return AwaitableMethod(super().diagnostics, subfunc, indata)
+        
+    def getCommEventCounter(self) -> bytes:
+        return AwaitableMethod(super().getCommEventCounter)
+
+    def getCommEventLog(self) -> bytes:
+        return AwaitableMethod(super().getCommEventLog)
+        
+    def writeMultipleCoils(self, offset: int, values: bytes, count: int = -1) -> StatusCode:
+        return AwaitableMethod(super().writeMultipleCoils, offset, values, count)
+        
+    def writeMultipleRegisters(self, offset: int, values: bytes) -> StatusCode:
+        return AwaitableMethod(super().writeMultipleRegisters, offset, values)
+        
+    def reportServerID(self) -> bytes:
+        return AwaitableMethod(super().reportServerID)
+        
+    def maskWriteRegister(self, offset: int, andMask: int, orMask: int) -> StatusCode:
+        return AwaitableMethod(super().maskWriteRegister, offset, andMask, orMask)
+
+    def readWriteMultipleRegisters(self,
+                                   readOffset: int, readCount: int,
+                                   writeOffset: int, writeValues: bytes) -> bytes:
+        return AwaitableMethod(super().readWriteMultipleRegisters,
+                               readOffset, readCount,
+                               writeOffset, writeValues)
+
+    def readFIFOQueue(self, fifoadr: int) -> bytes:
+        return AwaitableMethod(super().readFIFOQueue, fifoadr)
+
+    # formatting methods
+    def readCoilsF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super().readCoilsF, offset, count, fmt=fmt)
+
+    def readDiscreteInputsF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super().readDiscreteInputsF, offset, count, fmt=fmt)
+
+    def readHoldingRegistersF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super().readHoldingRegistersF, offset, count, fmt=fmt)
+
+    def readInputRegistersF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super().readInputRegistersF, offset, count, fmt=fmt)
+
+    def writeMultipleCoilsF(self, offset: int, values: Tuple, count: int = -1, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
+        return AwaitableMethod(super().writeMultipleCoilsF, offset, values, count, fmt=fmt)
+    
+    def writeMultipleRegistersF(self, offset: int, values: Tuple, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
+        return AwaitableMethod(super().writeMultipleRegistersF, offset, values, fmt=fmt)
+    
+    def readWriteMultipleRegistersF(self,
+                                    readOffset: int, readCount: int,
+                                    writeOffset: int, writeValues: Tuple,
+                                    fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super().readWriteMultipleRegistersF,
+                               readOffset, readCount,
+                               writeOffset, writeValues,
+                               fmt=fmt)

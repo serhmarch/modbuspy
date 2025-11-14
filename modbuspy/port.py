@@ -123,6 +123,16 @@ class ModbusPort(ABC):
         """
         return not self._modeBlocking
     
+    def setBlocking(self, blocking: bool):
+        """Sets blocking mode if True, False for non-blocking mode.
+        
+        Args:
+            blocking: True for blocking mode, False for non-blocking mode.
+        """
+        if self._modeBlocking != blocking:
+            self._modeBlocking = blocking
+            self._changed = True
+
     def timeout(self) -> int:
         """Returns the setting for the connection timeout of the remote device.
         

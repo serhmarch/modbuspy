@@ -87,18 +87,23 @@ class ModbusSerialPort(ModbusPort):
         self._timeoutInterByte = d.timeoutInterByte
         # Serial object
         self._serial = serial.Serial()
-        # Read/Write methods
-        if self.isBlocking():
+        # Other internal variables
+        self._timestamp = 0
+        # Blocking mode
+        self.setBlocking(blocking)
+
+    def handle(self):
+        return self._serial.fileno()
+    
+    def setBlocking(self, blocking):
+        super().setBlocking(blocking)
+        if blocking:
             self._readMethod  = self._blockingRead
             self._writeMethod = self._blockingWrite
         else:
             self._readMethod  = self._nonBlockingRead
             self._writeMethod = self._nonBlockingWrite
-        # Other internal variables
-        self._timestamp = 0
 
-    def handle(self):
-        return self._serial.fileno()
     
     def portName(self) -> str:
         """Get the serial port name (e.g., 'COM1', '/dev/ttyUSB0')."""
