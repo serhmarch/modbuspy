@@ -37,6 +37,9 @@ class TestModbusTcpPort(unittest.TestCase):
         self.patcher_socket = patch('modbuspy.tcpport.socket')
         self.mock_socket_module = self.patcher_socket.start()
         self.mock_socket_module.EWOULDBLOCK = socket.EWOULDBLOCK
+        self.mock_socket_module.SHUT_RDWR = socket.SHUT_RDWR
+        self.mock_socket_module.errno = socket.errno
+        self.mock_socket_module.error = socket.error
 
         self.addCleanup(self.patcher_socket.stop)
 
@@ -45,7 +48,7 @@ class TestModbusTcpPort(unittest.TestCase):
         self.addCleanup(self.patcher_select.stop)
 
         mock_sock = Mock() 
-        mock_sock.fileno.return_value = 10            #    
+        mock_sock.fileno.return_value = 10
         self.mock_sock = mock_sock
 
         # prevent select.select calls raising errors when called in destructor
@@ -72,6 +75,7 @@ class TestModbusTcpPort(unittest.TestCase):
         self.assertEqual(self.port.type(), ProtocolType.TCP)
         self.assertTrue(self.port.autoIncrement())
         self.assertEqual(self.port.transactionId(), 0)
+        self.assertFalse(self.port.isOpen())
 
     def test_settings_management(self):
         """Test settings get/set functionality"""
@@ -253,229 +257,325 @@ class TestModbusTcpPort(unittest.TestCase):
             
         self.assertFalse(self.port.isOpen())
         self.assertEqual(self.port._state, ModbusPort.State.STATE_CLOSED)
-#
-    #@patch('socket.socket')
-    #def test_open_socket_creation_error(self, mock_socket_class):
-    #    """Test socket creation error"""
-    #    mock_socket_class.side_effect = OSError("Socket creation failed")
-    #    
-    #    with self.assertRaises(exceptions.TcpCreateError):
-    #        self.port.open()
-#
-    #@patch('socket.socket')
-    #@patch('select.select')
-    #def test_open_non_blocking_success_after_wait(self, mock_select, mock_socket_class):
-    #    """Test non-blocking connection success after waiting"""
-    #    port = ModbusTcpPort(blocking=False)
-    #    mock_sock = Mock()
-    #    mock_socket_class.return_value = mock_sock
-    #    mock_sock.connect_ex.return_value = socket.EWOULDBLOCK
-    #    mock_sock.fileno.return_value = 10
-    #    
-    #    # First call to select returns socket ready for write
-    #    mock_select.return_value = ([], [mock_sock], [])
-    #    
-    #    result = port.open()
-    #    
-    #    self.assertEqual(result, StatusCode.Status_Good)
-    #    self.assertEqual(port._state, ModbusPort.State.STATE_OPENED)
-    #    
-    #    # Verify select was called with correct parameters
-    #    mock_select.assert_called_with([], [mock_sock], [mock_sock], 0.0)
-#
-    #@patch('socket.socket')
-    #@patch('select.select')
-    #@patch('modbuspy.mbglobal.timer')
-    #def test_open_non_blocking_timeout(self, mock_timer, mock_select, mock_socket_class):
-    #    """Test non-blocking connection timeout"""
-    #    port = ModbusTcpPort(blocking=False)
-    #    mock_sock = Mock()
-    #    mock_socket_class.return_value = mock_sock
-    #    mock_sock.connect_ex.return_value = socket.EWOULDBLOCK
-    #    mock_sock.fileno.return_value = 10
-    #    
-    #    # Mock select to return no ready sockets (timeout)
-    #    mock_select.return_value = ([], [], [])
-    #    
-    #    # Mock timer to simulate timeout
-    #    mock_timer.side_effect = [0, 2000]  # Start time, then past timeout
-    #    
-    #    with self.assertRaises(exceptions.TcpConnectError):
-    #        port.open()
-    #        
-    #    mock_sock.close.assert_called_once()
-#
-    #@patch('socket.socket')
-    #@patch('select.select')
-    #def test_open_connection_error_in_select(self, mock_select, mock_socket_class):
-    #    """Test connection error detected by select"""
-    #    port = ModbusTcpPort(blocking=False)
-    #    mock_sock = Mock()
-    #    mock_socket_class.return_value = mock_sock
-    #    mock_sock.connect_ex.return_value = socket.EWOULDBLOCK
-    #    mock_sock.fileno.return_value = 10
-    #    
-    #    # Mock select to return error socket
-    #    mock_select.return_value = ([], [], [mock_sock])
-    #    
-    #    with self.assertRaises(exceptions.TcpConnectError):
-    #        port.open()
-    #        
-    #    mock_sock.close.assert_called_once()
-#
-    #def test_open_already_open_unchanged(self):
-    #    """Test opening already opened connection with no changes"""
-    #    mock_sock = Mock()
-    #    mock_sock.fileno.return_value = 10
-    #    self.port._sock = mock_sock
-    #    self.port._state = ModbusPort.State.STATE_OPENED
-    #    self.port._changed = False
-    #    
-    #    with patch('select.select', return_value=([], [mock_sock], [])):
-    #        result = self.port.open()
-    #        
-    #    self.assertEqual(result, StatusCode.Status_Good)
-#
-    #def test_open_already_open_but_changed(self):
-    #    """Test opening already opened connection but settings changed"""
-    #    mock_sock = Mock()
-    #    mock_sock.fileno.return_value = 10
-    #    self.port._sock = mock_sock
-    #    self.port._state = ModbusPort.State.STATE_OPENED
-    #    self.port._changed = True
-    #    
-    #    # Should close existing connection
-    #    result = self.port.close()
-    #    self.assertEqual(result, StatusCode.Status_Good)
-    #    self.assertIsNone(self.port._sock)
-#
-    #def test_close_open_connection(self):
-    #    """Test closing an open connection"""
-    #    mock_sock = Mock()
-    #    mock_sock.fileno.return_value = 10
-    #    self.port._sock = mock_sock
-    #    
-    #    with patch('select.select', return_value=([], [mock_sock], [])):
-    #        result = self.port.close()
-    #        
-    #    self.assertEqual(result, StatusCode.Status_Good)
-    #    mock_sock.shutdown.assert_called_once_with(socket.SHUT_RDWR)
-    #    mock_sock.close.assert_called_once()
-    #    self.assertIsNone(self.port._sock)
-    #    self.assertEqual(self.port._state, ModbusPort.State.STATE_CLOSED)
-#
-    #def test_close_with_socket_error(self):
-    #    """Test closing connection when socket operations fail"""
-    #    mock_sock = Mock()
-    #    mock_sock.shutdown.side_effect = OSError("Socket error")
-    #    mock_sock.close.side_effect = OSError("Socket error")
-    #    self.port._sock = mock_sock
-    #    
-    #    # Should not raise exception
-    #    result = self.port.close()
-    #    
-    #    self.assertEqual(result, StatusCode.Status_Good)
-    #    self.assertIsNone(self.port._sock)
-#
-    #def test_close_no_connection(self):
-    #    """Test closing when no connection exists"""
-    #    self.port._sock = None
-    #    
-    #    result = self.port.close()
-    #    
-    #    self.assertEqual(result, StatusCode.Status_Good)
-#
-    #@patch('select.select')
-    #def test_is_open_with_valid_socket(self, mock_select):
-    #    """Test isOpen() with valid socket"""
-    #    mock_sock = Mock()
-    #    mock_sock.fileno.return_value = 10
-    #    self.port._sock = mock_sock
-    #    
-    #    # Mock select to return socket as readable/writable
-    #    mock_select.return_value = ([mock_sock], [], [])
-    #    
-    #    self.assertTrue(self.port.isOpen())
-    #    mock_select.assert_called_once_with([mock_sock], [mock_sock], [], 0.0)
-#
-    #@patch('select.select')
-    #def test_is_open_with_writable_socket(self, mock_select):
-    #    """Test isOpen() with writable socket"""
-    #    mock_sock = Mock()
-    #    mock_sock.fileno.return_value = 10
-    #    self.port._sock = mock_sock
-    #    
-    #    # Mock select to return socket as writable only
-    #    mock_select.return_value = ([], [mock_sock], [])
-    #    
-    #    self.assertTrue(self.port.isOpen())
-#
-    #def test_is_open_no_socket(self):
-    #    """Test isOpen() with no socket"""
-    #    self.port._sock = None
-    #    
-    #    self.assertFalse(self.port.isOpen())
-#
-    #def test_is_open_invalid_socket(self):
-    #    """Test isOpen() with invalid socket file descriptor"""
-    #    mock_sock = Mock()
-    #    mock_sock.fileno.return_value = -1  # Invalid fd
-    #    self.port._sock = mock_sock
-    #    
-    #    self.assertFalse(self.port.isOpen())
-#
-    #@patch('select.select')
-    #def test_is_open_not_ready(self, mock_select):
-    #    """Test isOpen() when socket is not ready"""
-    #    mock_sock = Mock()
-    #    mock_sock.fileno.return_value = 10
-    #    self.port._sock = mock_sock
-    #    
-    #    # Mock select to return no ready sockets
-    #    mock_select.return_value = ([], [], [])
-    #    
-    #    self.assertFalse(self.port.isOpen())
-#
-    #def test_write_successful(self):
-    #    """Test successful data writing"""
-    #    mock_sock = Mock()
-    #    self.port._sock = mock_sock
-    #    self.port._state = ModbusPort.State.STATE_OPENED
-    #    self.port._buff = bytearray(b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x02')
-    #    
-    #    mock_sock.send.return_value = 12  # All bytes sent
-    #    
-    #    result = self.port.write()
-    #    
-    #    self.assertEqual(result, StatusCode.Status_Good)
-    #    self.assertEqual(self.port._state, ModbusPort.State.STATE_OPENED)
-    #    mock_sock.send.assert_called_once_with(self.port._buff)
-#
-    #def test_write_socket_error(self):
-    #    """Test write failure due to socket error"""
-    #    mock_sock = Mock()
-    #    self.port._sock = mock_sock
-    #    self.port._state = ModbusPort.State.STATE_OPENED
-    #    self.port._buff = bytearray(b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x02')
-    #    
-    #    mock_sock.send.side_effect = socket.error("Connection lost")
-    #    
-    #    with self.assertRaises(exceptions.TcpWriteError):
-    #        self.port.write()
-#
-    #def test_write_connection_lost(self):
-    #    """Test write when connection is lost (send returns negative)"""
-    #    mock_sock = Mock()
-    #    self.port._sock = mock_sock
-    #    self.port._state = ModbusPort.State.STATE_OPENED
-    #    self.port._buff = bytearray(b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x02')
-    #    
-    #    mock_sock.send.return_value = -1  # Connection lost
-    #    
-    #    with patch.object(self.port, 'close') as mock_close:
-    #        with self.assertRaises(exceptions.TcpWriteError):
-    #            self.port.write()
-    #        mock_close.assert_called_once()
+
+    def test_open_socket_creation_error(self):
+        """Test socket creation error"""
+        socket = self.mock_socket_module
+        socket.socket.side_effect = OSError("Socket creation failed")
+        
+        with self.assertRaises(exceptions.TcpCreateError):
+            self.port.open()
+
+    def test_open_non_blocking_success_after_wait(self):
+        """Test non-blocking connection success after waiting"""
+        port = ModbusTcpPort(blocking=False)
+        self.mock_socket_module.socket.return_value = self.mock_sock
+        self.mock_sock.connect_ex.return_value = self.orig_socket.EWOULDBLOCK
+        
+        # First call to select returns socket ready for write
+        self.mock_select_module.select.return_value = ([], [self.mock_sock], [])
+        
+        result = port.open()
+        
+        self.assertEqual(result, StatusCode.Status_Good)
+        self.assertEqual(port._state, ModbusPort.State.STATE_OPENED)
+
+        port.close() # prevent destructor call non mock select
+        
+    def test_open_non_blocking_timeout(self):
+        """Test non-blocking connection timeout"""
+        with patch('modbuspy.tcpport.timer') as mock_timer:
+            port = ModbusTcpPort(blocking=False)
+            self.mock_socket_module.socket.return_value = self.mock_sock
+            self.mock_sock.connect_ex.return_value = self.orig_socket.EWOULDBLOCK
+            
+            # Mock select to return no ready sockets (timeout)
+            self.mock_select_module.select.return_value = ([], [], [])
+            
+            # Mock timer to simulate timeout
+            list_timer_results = [0, port.Timeout//2, port.Timeout]  # Start time, then middle and past timeout
+            mock_timer.side_effect = list_timer_results
+            
+            with self.assertRaises(exceptions.TcpConnectError):
+                for _ in range(len(list_timer_results)):  # Simulate multiple attempts
+                    port.open()
+                
+            self.mock_sock.close.assert_called_once()
+
+            port.close() # prevent destructor call non mock select
+
+    def test_open_connection_error_in_select(self):
+        """Test connection error detected by select"""
+        port = ModbusTcpPort(blocking=False)
+        self.mock_socket_module.socket.return_value = self.mock_sock
+        self.mock_sock.connect_ex.return_value = self.orig_socket.EWOULDBLOCK
+        
+        # Mock select to return error socket
+        self.mock_select_module.select.return_value = ([], [], [self.mock_sock])
+        
+        with self.assertRaises(exceptions.TcpConnectError):
+            for _ in range(2):  # Attempt to open
+                port.open()
+            
+        self.mock_sock.close.assert_called_once()
+        port.close() # prevent destructor call non mock select
+
+    def test_open_already_open_unchanged(self):
+        """Test opening already opened connection with no changes"""
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        port = ModbusTcpPort(sock=self.mock_sock)
+        result = port.open()            
+        self.assertEqual(result, StatusCode.Status_Good)
+        port.close() # prevent destructor call non mock select
+
+    def test_close_open_connection(self):
+        """Test closing an open connection"""
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        port = ModbusTcpPort(sock=self.mock_sock)
+        result = port.close()
+            
+        self.assertEqual(result, StatusCode.Status_Good)
+        self.mock_sock.shutdown.assert_called_once_with(socket.SHUT_RDWR)
+        self.mock_sock.close.assert_called_once()
+        self.assertIsNone(port._sock)
+        self.assertEqual(port._state, ModbusPort.State.STATE_CLOSED)
+
+    def test_close_with_socket_error(self):
+        """Test closing connection when socket operations fail"""
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        port = ModbusTcpPort(sock=self.mock_sock)
+        # Should not raise exception
+        result = port.close()
+        
+        self.assertEqual(result, StatusCode.Status_Good)
+        self.assertIsNone(port._sock)
+
+    def test_close_no_connection(self):
+        """Test closing when no connection exists"""
+        result = self.port.close()
+        self.assertEqual(result, StatusCode.Status_Good)
+
+    def test_is_open_with_valid_socket(self):
+        """Test isOpen() with valid socket"""
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        port = ModbusTcpPort(sock=self.mock_sock)
+        
+        self.assertTrue(port.isOpen())
+        port.close() # prevent destructor call non mock select
+
+    def test_is_open_invalid_socket(self):
+        """Test isOpen() with invalid socket file descriptor"""
+        self.mock_sock.fileno.return_value = -1  # Invalid fd
+        port = ModbusTcpPort(sock=self.mock_sock)        
+        self.assertFalse(port.isOpen())
+        port.close() # prevent destructor call non mock select
+
+    def test_is_open_not_ready(self):
+        """Test isOpen() when socket is not ready"""
+        self.mock_select_module.select.return_value = ([], [], [])
+        port = ModbusTcpPort(sock=self.mock_sock)        
+        self.assertFalse(port.isOpen())
+
+    def test_writeBuffer_client_mode(self):
+        """Test writeBuffer() method functionality in client mode"""
+        self.port.setServerMode(False)
+        unit = 1
+        func = 3
+        data = b'\x00\x00\x00\x02'  # Read 2 registers from address 0
+        
+        result = self.port.writeBuffer(unit, func, data)
+        
+        self.assertTrue(result)
+        self.assertEqual(self.port.transactionId(), 1)  # Should increment
+        self.assertEqual(self.port.unit(), unit)
+        self.assertEqual(self.port.function(), func)
+        
+        buff = self.port.writeBufferData()
+        self.assertEqual(len(buff), 12)  # 6-byte TCP header + 1 unit + 1 func + 4 data
+        
+        # Check TCP header format
+        transaction_id = (buff[0] << 8) | buff[1]
+        self.assertEqual(transaction_id, 1)
+        
+        protocol_id = (buff[2] << 8) | buff[3]
+        self.assertEqual(protocol_id, 0)
+        
+        length = (buff[4] << 8) | buff[5]
+        self.assertEqual(length, 6)  # unit + func + data length
+        
+        self.assertEqual(buff[6], unit)
+        self.assertEqual(buff[7], func)
+        self.assertEqual(buff[8:], data)
+
+    def test_writeBuffer_server_mode(self):
+        """Test writeBuffer() method functionality in server mode"""
+        self.port.setServerMode(True)
+        initial_transaction = 42
+        self.port._transaction = initial_transaction
+        
+        unit = 1
+        func = 3
+        data = b'\x02\x00\x01'  # Response data
+        
+        result = self.port.writeBuffer(unit, func, data)
+        
+        self.assertTrue(result)
+        self.assertEqual(self.port.transactionId(), initial_transaction)  # Should not increment
+        self.assertEqual(self.port.unit(), unit)
+        self.assertEqual(self.port.function(), func)
+        
+        buff = self.port.writeBufferData()
+        self.assertEqual(len(buff), 11)  # 6-byte TCP header + 1 unit + 1 func + 3 data
+        
+        # Check TCP header format
+        transaction_id = (buff[0] << 8) | buff[1]
+        self.assertEqual(transaction_id, initial_transaction)
+        
+        protocol_id = (buff[2] << 8) | buff[3]
+        self.assertEqual(protocol_id, 0)
+        
+        length = (buff[4] << 8) | buff[5]
+        self.assertEqual(length, 5)  # unit + func + data length
+        
+        self.assertEqual(buff[6], unit)
+        self.assertEqual(buff[7], func)
+        self.assertEqual(buff[8:], data)
+
+    def test_readBuffer_client_mode(self):
+        """Test readBuffer() method functionality in client mode"""
+        self.port.setServerMode(False)
+        # Prepare buffer with sample data
+        self.port._buff = bytearray([
+             0x00, 0x01,  # Transaction ID
+             0x00, 0x00,  # Protocol ID
+             0x00, 0x05,  # Length (5 bytes)
+             0x01,        # Unit ID
+             0x03,        # Function code
+             0x02,        # Byte count
+             0x00, 0x01   # Data (register value)
+         ])
+        
+        self.port._transaction = 1  # Expected transaction ID
+        unit, func, data = self.port.readBuffer()
+        self.assertEqual(self.port.transactionId(), 1)
+        self.assertEqual(unit, 1)
+        self.assertEqual(func, 3)
+        self.assertEqual(data, b'\x02\x00\x01')  # Data portion
+        # Not correct transaction ID
+        self.port._buff = bytearray([
+             0x00, 0x02,  # Transaction ID - not correct
+             0x00, 0x00,  # Protocol ID
+             0x00, 0x05,  # Length (5 bytes)
+             0x01,        # Unit ID
+             0x03,        # Function code
+             0x02,        # Byte count
+             0x00, 0x01   # Data (register value)
+         ])
+        with self.assertRaises(exceptions.ModbusException):
+            self.port.readBuffer()
+        # Not correct Protocol ID
+        self.port._buff = bytearray([
+             0x00, 0x01,  # Transaction ID
+             0x00, 0x01,  # Protocol ID - not correct
+             0x00, 0x05,  # Length (5 bytes)
+             0x01,        # Unit ID
+             0x03,        # Function code
+             0x02,        # Byte count
+             0x00, 0x01   # Data (register value)
+         ])
+        # Not correct buffer length
+        self.port._buff = bytearray([
+             0x00, 0x01,  # Transaction ID
+             0x00, 0x00,  # Protocol ID
+             0x00, 0x06,  # Length (6 bytes) - not correct
+             0x01,        # Unit ID
+             0x03,        # Function code
+             0x02,        # Byte count
+             0x00, 0x01   # Data (register value)
+         ])
+        with self.assertRaises(exceptions.ModbusException):
+            self.port.readBuffer()
+
+    def test_write_successful_blocking(self):
+        """Test successful data writing in blocking mode"""
+        self.mock_socket_module.socket.return_value = self.mock_sock
+        self.mock_sock.connect_ex.return_value = 0  # Success
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        result = self.port.open()
+        self.assertEqual(result, StatusCode.Status_Good)
+        self.port._buff = bytearray(b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x02')
+        
+        self.mock_sock.send.return_value = len(self.port._buff)  # All bytes sent
+        
+        result = self.port.write()
+        
+        self.assertEqual(result, StatusCode.Status_Good)
+        self.assertEqual(self.port._state, ModbusPort.State.STATE_OPENED)
+        self.mock_sock.send.assert_called_once_with(self.port._buff)
+
+    def test_write_successful_nonblocking(self):
+        """Test successful data writing in nonblocking mode"""
+        self.mock_socket_module.socket.return_value = self.mock_sock
+        self.mock_sock.connect_ex.return_value = 0  # Success
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        port = ModbusTcpPort(blocking=False)
+        result = port.open()
+        self.assertEqual(result, StatusCode.Status_Good)
+        port._buff = bytearray(b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x02')
+        
+        self.mock_sock.send.return_value = len(port._buff)  # All bytes sent
+        
+        result = port.write()
+        
+        self.assertEqual(result, StatusCode.Status_Good)
+        self.assertEqual(port._state, ModbusPort.State.STATE_OPENED)
+        self.mock_sock.send.assert_called_once_with(port._buff)
+        
+    def test_write_socket_error_blocking(self):
+        """Test blocking write failure due to socket error"""
+        self.mock_socket_module.socket.return_value = self.mock_sock
+        self.mock_sock.connect_ex.return_value = 0  # Success
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        result = self.port.open()
+        self.assertEqual(result, StatusCode.Status_Good)
+        self.port._buff = bytearray(b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x02')
+        
+        self.mock_sock.send.side_effect = self.orig_socket.error("Connection lost")
+        
+        with self.assertRaises(exceptions.TcpWriteError):
+            self.port.write()
+        self.mock_sock.send.assert_called_once()
+
+    def test_write_socket_error_nonblocking(self):
+        """Test nonblocking write failure due to socket error"""
+        self.mock_socket_module.socket.return_value = self.mock_sock
+        self.mock_sock.connect_ex.return_value = 0  # Success
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        port = ModbusTcpPort(blocking=False)
+        result = port.open()
+        self.assertEqual(result, StatusCode.Status_Good)
+        port._buff = bytearray(b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x02')
+        
+        self.mock_sock.send.side_effect = self.orig_socket.error("Connection lost")
+        
+        with self.assertRaises(exceptions.TcpWriteError):
+            port.write()
+        self.mock_sock.send.assert_called_once()
+
+    def test_write_connection_lost(self):
+        """Test write when connection is lost (send returns negative)"""
+        self.mock_socket_module.socket.return_value = self.mock_sock
+        self.mock_sock.connect_ex.return_value = 0  # Success
+        self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
+        result = self.port.open()
+        self.assertEqual(result, StatusCode.Status_Good)
+        self.port._buff = bytearray(b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x02')
+        
+        self.mock_sock.send.return_value = -1  # Connection lost
+        
+        with self.assertRaises(exceptions.TcpWriteError):
+            self.port.write()
+        self.mock_sock.send.assert_called_once()
 #
     #def test_write_invalid_state(self):
     #    """Test write in invalid state"""

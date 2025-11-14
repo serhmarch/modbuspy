@@ -166,6 +166,22 @@ class ModbusTcpPort(ModbusPort):
         """
         return self._transaction
     
+    def unit(self) -> int:
+        """Returns the unit identifier of the last request.
+        
+        Returns:
+            The unit identifier.
+        """
+        return self._unit
+    
+    def function(self) -> int:
+        """Returns the function code of the last request.
+        
+        Returns:
+            The function code.
+        """
+        return self._func
+    
     def open(self) -> StatusCode:
         fRepeatAgain = True        
         while fRepeatAgain:
@@ -217,8 +233,7 @@ class ModbusTcpPort(ModbusPort):
                     _, ready_to_write, error_socks = select.select([], [self._sock], [self._sock], timeout_sec)                    
                     if error_socks:
                         # Connection failed
-                        self._sock.close()
-                        self._state = ModbusPort.State.STATE_CLOSED
+                        self.close()
                         self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Connection failed")                    
                     elif ready_to_write:
                         # Connection successful
@@ -228,12 +243,10 @@ class ModbusTcpPort(ModbusPort):
                         # Timeout
                         if self.isNonBlocking() and (timer() - self._timestamp < self.timeout()):
                             return None
-                        self._sock.close()
-                        self._state = ModbusPort.State.STATE_CLOSED
+                        self.close()
                         self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Timeout")                        
                 except Exception as e:
-                    self._sock.close()
-                    self._state = ModbusPort.State.STATE_CLOSED
+                    self.close()
                     if isinstance(e, ModbusException):
                         raise e
                     self._raiseError(exceptions.TcpConnectError, f"TCP. Error while connecting to '{self._host}:{self._port}'. Error: {str(e)}")
@@ -248,7 +261,7 @@ class ModbusTcpPort(ModbusPort):
         return None
 
     def close(self) -> StatusCode:
-        if self.isOpen():
+        if self._sock is not None and self._sock.fileno() >= 0:
             try:
                 self._sock.shutdown(socket.SHUT_RDWR)
                 self._sock.close()
@@ -375,12 +388,11 @@ class ModbusTcpPort(ModbusPort):
         buff = self._buff
         sz = len(buff)
         if sz < 8:
-            self._raiseError(exceptions.NotCorrectResponseError, "Not correct response. Responsed data length to small")
+            self._raiseError(exceptions.NotCorrectResponseError, "TCP. Not correct response. Responsed data length to small")
 
         transaction = buff[1] | (buff[0] << 8)
         if not ((buff[2] == 0) and (buff[3] == 0)):
-            self._raiseError(exceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
-
+            self._raiseError(exceptions.NotCorrectResponseError, "TCP. Not correct read-buffer's TCP-prefix (protocol ID)")
         cBytes = buff[5] | (buff[4] << 8)
         if cBytes != (sz-6):
             return self._raiseError(exceptions.NotCorrectResponseError, "TCP. Not correct read-buffer's TCP-prefix. Size defined in TCP-prefix is not equal to actual response-size")
@@ -389,7 +401,7 @@ class ModbusTcpPort(ModbusPort):
             self._transaction = transaction
         else:
             if self._transaction != transaction:
-                self._raiseError(exceptions.NotCorrectResponseError, "Not correct response. Requested transaction id is not equal to responded")
+                self._raiseError(exceptions.NotCorrectResponseError, "TCP. Not correct response. Requested transaction id is not equal to responded")
 
         unit = buff[6]
         func = buff[7]
