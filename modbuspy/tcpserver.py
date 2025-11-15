@@ -9,7 +9,7 @@ import socket
 import select
 from typing import List, Optional, Callable, Tuple
 
-from .mbglobal import ProtocolType, StatusCode, Constants, timer
+from .mbglobal import ProtocolType, StatusCode, Constants, timer, AwaitableMethod
 from .mbinterface import ModbusInterface
 from . import exceptions
 from .tcpport import ModbusTcpPort
@@ -33,7 +33,7 @@ class ModbusTcpServer(ModbusServerPort):
 
     class Defaults:
         """Defaults class contains default settings values for ModbusTcpServer."""
-        host   : str = "0.0.0.0"                   # Default setting 'TCP host name (DNS or IP address)'
+        host   : str = ""                          # Default setting 'TCP host name (DNS or IP address)'
         port   : int = Constants.STANDARD_TCP_PORT # Default setting 'TCP port number' for the listening server
         timeout: int = 30000                       # Default setting for the read timeout of every single connection (ms)
         maxconn: int = 10                          # Default setting for the maximum number of simultaneous connections
@@ -448,3 +448,12 @@ class ModbusTcpServer(ModbusServerPort):
         """
         port.close()
         
+
+class ModbusAsyncTcpServer(ModbusTcpServer):
+    """Asynchronous version of ModbusServerResource.
+    
+    All methods that can be blocking in ModbusServerResource are
+    overridden here to return `AwaitableMethod` objects.
+    """
+    def process(self):
+        return AwaitableMethod(super().process)

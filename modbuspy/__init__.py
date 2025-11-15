@@ -28,8 +28,8 @@ from .utils import createPort, createClientPort, createServerPort
 from .client import ModbusClient, ModbusAsyncClient
 from .clientport import ModbusClientPort, ModbusAsyncClientPort
 from .serverport import ModbusServerPort
-from .serverresource import ModbusServerResource
-from .tcpserver import ModbusTcpServer
+from .serverresource import ModbusServerResource, ModbusAsyncServerResource
+from .tcpserver import ModbusTcpServer, ModbusAsyncTcpServer
 from .tcpport import ModbusTcpPort
 from .serialport import ModbusSerialPort
 from .rtuport import ModbusRtuPort

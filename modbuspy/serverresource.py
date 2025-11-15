@@ -530,3 +530,17 @@ class ModbusServerResource(ModbusServerPort):
     def _raisePortError(self, e, text: Optional[str] = None):
         self._isErrorPort = True
         super()._raiseError(e, text)
+
+
+class ModbusAsyncServerResource(ModbusServerResource):
+    """Asynchronous version of ModbusServerResource.
+    
+    All methods that can be blocking in ModbusServerResource are
+    overridden here to return `AwaitableMethod` objects.
+    """
+    def __init__(self, port: ModbusPort, device: ModbusInterface):
+        port.setBlocking(False)
+        super().__init__(port, device)
+
+    def process(self):
+        return AwaitableMethod(super().process)
