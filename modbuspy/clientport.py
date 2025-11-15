@@ -86,9 +86,29 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         """Sets the Modbus port instance."""
         self._port = port
 
-    def close(self):
-        """Closes the Modbus client port."""
-        self._port.close()
+    def open(self) -> StatusCode:
+        """Opens the Modbus client port.
+        
+        Usually this method is called internally by the ModbusClient object.
+        So, the user does not need to call it directly.
+        
+        Returns:
+            * `StatusCode` indicating the result of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+        """
+        return self._port.open()
+
+    def close(self) -> StatusCode:
+        """Closes the Modbus client port.
+
+        For network socket it shuts down connection (TCP) and closes the socket.
+        For serial port it closes the port.
+        
+        Returns:
+            * `StatusCode` indicating the result of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+        """
+        return self._port.close()
 
     def isOpen(self) -> bool:
         """Checks if the Modbus client port is open.
@@ -1345,6 +1365,12 @@ class ModbusAsyncClientPort(ModbusClientPort):
         port.setBlocking(False)
         super().__init__(port)
 
+    def open(self) -> StatusCode:
+        return AwaitableMethod(super().open)
+    
+    def close(self) -> StatusCode:
+        return AwaitableMethod(super().close)
+    
     def readCoils(self, unit: int, offset: int, count: int) -> bytes:
         return AwaitableMethod(super().readCoils, unit, offset, count)
     
