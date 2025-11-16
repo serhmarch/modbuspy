@@ -342,15 +342,15 @@ class ModbusTcpPort(ModbusPort):
                     # Socket error occurred
                     if e.errno == socket.EWOULDBLOCK:
                         # Non-blocking socket would block - check timeout
-                        if self.isNonBlocking() and (timer() - self._timestamp >= self.timeout()):
-                            self.close()
-                            self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
-                        # Return None to continue processing later
-                        return None
-                    else:
-                        # Other socket error
-                        self.close()
-                        self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Error code: {e.errno}. {str(e)}")
+                        if self.isNonBlocking():
+                            if (timer() - self._timestamp >= self.timeout()):
+                                self.close()
+                                self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Timeout")
+                            # Return None to continue processing later
+                            return None
+                    # Other socket error
+                    self.close()
+                    self._raiseError(exceptions.TcpReadError, f"TCP. Error while reading from '{self._host}:{self._port}'. Error: {str(e)}")
                         
                 except Exception as e:
                     # Unexpected error
