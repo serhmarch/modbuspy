@@ -12,8 +12,9 @@
             //"program": "${file}",
             //"program": "examples/client/democlient.py",
             //"program": "examples/client/ademoclient.py",
+            "program": "examples/client/ademomulticlient.py",
             //"program": "examples/server/demoserver.py",
-            "program": "examples/server/ademoserver.py",
+            //"program": "examples/server/ademoserver.py",
             "console": "integratedTerminal",
             "args": "${command:pickArgs}"
             //"args": ["--type", "TCP",

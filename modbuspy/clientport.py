@@ -1362,7 +1362,8 @@ class ModbusAsyncClientPort(ModbusClientPort):
         Args:
             port: The ModbusPort instance to use for communication.
         """
-        port.setBlocking(False)
+        if port.isBlocking():
+            port.setBlocking(False)
         super().__init__(port)
 
     def open(self) -> StatusCode:

@@ -539,7 +539,8 @@ class ModbusAsyncServerResource(ModbusServerResource):
     overridden here to return `AwaitableMethod` objects.
     """
     def __init__(self, port: ModbusPort, device: ModbusInterface):
-        port.setBlocking(False)
+        if port.isBlocking():
+            port.setBlocking(False)
         super().__init__(port, device)
 
     def process(self):

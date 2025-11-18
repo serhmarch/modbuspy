@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ademoclient.py - Asynchronous Python Modbus Client Demo
+ademomulticlient.py - Asynchronous Python Modbus Client Demo for Multiple Units
 
 This is an asynchronous version of democlient.py that demonstrates how to use
 the ModbusAsyncClientPort class for non-blocking Modbus operations.
@@ -229,6 +229,14 @@ async def async_main():
     client_port.signalTx.connect(print_tx)
     client_port.signalRx.connect(print_rx)
 
+    await asyncio.gather(
+            run_requests(client_port, options.unit  , options),
+            run_requests(client_port, options.unit+1, options),
+            run_requests(client_port, options.unit+2, options)
+        )
+
+async def run_requests(client_port: ModbusAsyncClientPort, unit: int, options: Options):
+    """Run Modbus requests asynchronously."""
     # Define test requests
     requests = [
         RequestParams(MBF_READ_COILS, options.offset, options.count),
@@ -252,7 +260,7 @@ async def async_main():
         buff[i] = i % 256  # Fill with test pattern
     
     # Create async client
-    client = ModbusClient(options.unit, client_port)
+    client = ModbusClient(unit, client_port)
     client.setObjectName(f"asyncdemo({client.unit()})")
     
     # Execute test requests asynchronously
@@ -261,52 +269,52 @@ async def async_main():
         
         try:
             if req.func == MBF_READ_COILS:
-                print(f"READ_COILS(offset={req.offset}, count={req.count})")
+                print(f"{client.Name} READ_COILS(offset={req.offset}, count={req.count})")
                 result = await client.readCoils(req.offset, req.count)
                 print_bools(req.count, result)
                     
             elif req.func == MBF_READ_DISCRETE_INPUTS:
-                print(f"READ_DISCRETE_INPUTS(offset={req.offset}, count={req.count})")
+                print(f"{client.Name} READ_DISCRETE_INPUTS(offset={req.offset}, count={req.count})")
                 result = await client.readDiscreteInputs(req.offset, req.count)
                 print_bools(req.count, result)
                     
             elif req.func == MBF_READ_HOLDING_REGISTERS:
-                print(f"READ_HOLDING_REGISTERS(offset={req.offset}, count={req.count})")
+                print(f"{client.Name} READ_HOLDING_REGISTERS(offset={req.offset}, count={req.count})")
                 result = await client.readHoldingRegisters(req.offset, req.count)
                 print_regs(req.count, result)
                     
             elif req.func == MBF_READ_INPUT_REGISTERS:
-                print(f"READ_INPUT_REGISTERS(offset={req.offset}, count={req.count})")
+                print(f"{client.Name} READ_INPUT_REGISTERS(offset={req.offset}, count={req.count})")
                 result = await client.readInputRegisters(req.offset, req.count)
                 print_regs(req.count, result)
 
             elif req.func == MBF_WRITE_SINGLE_COIL:
-                print(f"WRITE_SINGLE_COIL(offset={req.offset})")
+                print(f"{client.Name} WRITE_SINGLE_COIL(offset={req.offset})")
                 test_value = True  # Test value
-                print(f"Writing: {test_value}")
+                print(f"{client.Name} Writing: {test_value}")
                 status = await client.writeSingleCoil(req.offset, test_value)
                 if StatusIsGood(status):
-                    print("Good")
+                    print(f"{client.Name} Good")
                 else:
-                    print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    print(f"{client.Name} Error: status={status}, {client_port.lastErrorText()}")
                     
             elif req.func == MBF_WRITE_SINGLE_REGISTER:
-                print(f"WRITE_SINGLE_REGISTER(offset={req.offset})")
+                print(f"{client.Name} WRITE_SINGLE_REGISTER(offset={req.offset})")
                 test_value = 12345  # Test value
-                print(f"Writing: {test_value}")
+                print(f"{client.Name} Writing: {test_value}")
                 status = await client.writeSingleRegister(req.offset, test_value)
                 if StatusIsGood(status):
-                    print("Good")
+                    print(f"{client.Name} Good")
                 else:
-                    print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    print(f"{client.Name} Error: status={status}, {client_port.lastErrorText()}")
                     
             elif req.func == MBF_READ_EXCEPTION_STATUS:
-                print("READ_EXCEPTION_STATUS")
+                print(f"{client.Name} READ_EXCEPTION_STATUS")
                 result = await client.readExceptionStatus()
-                print(f"Exception status: {result[0] if len(result) > 0 else 0}")
+                print(f"{client.Name}Exception status: {result[0] if len(result) > 0 else 0}")
                     
             elif req.func == MBF_WRITE_MULTIPLE_COILS:
-                print(f"WRITE_MULTIPLE_COILS(offset={req.offset}, count={req.count})")
+                print(f"{client.Name} WRITE_MULTIPLE_COILS(offset={req.offset}, count={req.count})")
                 # Create test coil data
                 coil_data = bytearray((req.count + 7) // 8)
                 for i in range(len(coil_data)):
@@ -314,12 +322,12 @@ async def async_main():
                 print_bools(req.count, coil_data)
                 status = await client.writeMultipleCoils(req.offset, coil_data, req.count)
                 if StatusIsGood(status):
-                    print("Good")
+                    print(f"{client.Name} Good")
                 else:
-                    print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    print(f"{client.Name} Error: status={status}, {client_port.lastErrorText()}")
                     
             elif req.func == MBF_WRITE_MULTIPLE_REGISTERS:
-                print(f"WRITE_MULTIPLE_REGISTERS(offset={req.offset}, count={req.count})")
+                print(f"{client.Name} WRITE_MULTIPLE_REGISTERS(offset={req.offset}, count={req.count})")
                 # Create test register data
                 reg_data = bytearray(req.count * 2)
                 for i in range(req.count):
@@ -329,52 +337,52 @@ async def async_main():
                 print_regs(req.count, reg_data)
                 status = await client.writeMultipleRegisters(req.offset, reg_data)
                 if StatusIsGood(status):
-                    print("Good")
+                    print(f"{client.Name} Good")
                 else:
-                    print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    print(f"{client.Name} Error: status={status}, {client_port.lastErrorText()}")
                     
             elif req.func == MBF_REPORT_SERVER_ID:
-                print("REPORT_SERVER_ID")
+                print(f"{client.Name} REPORT_SERVER_ID")
                 result = await client.reportServerID()
-                print(f"Server ID: {str(result)}")
+                print(f"{client.Name} Server ID: {str(result)}")
                     
             elif req.func == MBF_MASK_WRITE_REGISTER:
-                print(f"MASK_WRITE_REGISTER(offset={req.offset})")
+                print(f"{client.Name} MASK_WRITE_REGISTER(offset={req.offset})")
                 and_mask = 0x00FF  # Test masks
                 or_mask = 0x0F00
-                print(f"AND mask: {and_mask:04X}, OR mask: {or_mask:04X}")
+                print(f"{client.Name} AND mask: {and_mask:04X}, OR mask: {or_mask:04X}")
                 status = await client.maskWriteRegister(req.offset, and_mask, or_mask)
                 if StatusIsGood(status):
-                    print("Good")
+                    print(f"{client.Name} Good")
                 else:
-                    print(f"Error: status={status}, {client_port.lastErrorText()}")
+                    print(f"{client.Name} Error: status={status}, {client_port.lastErrorText()}")
                     
             elif req.func == MBF_READ_WRITE_MULTIPLE_REGISTERS:
-                print(f"READ_WRITE_MULTIPLE_REGISTERS(offset={req.offset}, count={req.count})")
+                print(f"{client.Name} READ_WRITE_MULTIPLE_REGISTERS(offset={req.offset}, count={req.count})")
                 # Create test write data
                 write_data = bytearray(req.count * 2)
                 for i in range(req.count):
                     val = i + 2000  # Test values starting from 2000
                     write_data[i*2] = (val >> 8) & 0xFF
                     write_data[i*2+1] = val & 0xFF
-                print(f"Writing: ", end="")
+                print(f"{client.Name} Writing: ", end="")
                 print_regs(req.count, write_data)
                 result = await client.readWriteMultipleRegisters(req.offset, req.count, 
                                                                  req.offset, write_data)
-                print(f"Read: ", end="")
+                print(f"{client.Name} Read: ", end="")
                 print_regs(req.count, result)
 
             elif req.func == MBF_READ_FIFO_QUEUE:
-                print(f"READ_FIFO_QUEUE(offset={req.offset})")
+                print(f"{client.Name} READ_FIFO_QUEUE(offset={req.offset})")
                 result = await client.readFIFOQueue(req.offset)
                 fifo_count = len(result) // 2
-                print(f"FIFO: ", end="")
+                print(f"{client.Name} FIFO: ", end="")
                 print_regs(fifo_count, result)
 
         except ModbusException as e:
-            print(f"Modbus Exception: {e}")
+            print(f"{client.Name} Modbus Exception: {e}")
         except Exception as e:
-            print(f"Exception occurred: {e}")
+            print(f"{client.Name} Exception occurred: {e}")
         
         # Timing control - wait at least 1 second between requests
         exec_time = time.time() - start_time
@@ -388,8 +396,7 @@ async def async_main():
     if client_port:
         client_port.close()
     
-    #print(f"{client.Name} completed.")
-    print(f"Example completed.")
+    print(f"{client.Name} completed.")
 
 def main():
     """Main entry point that runs the async main function."""
