@@ -57,19 +57,27 @@ class ModbusAscPort(ModbusSerialPort):
         if sz < 9:  # Note: 9 = 1(':')+2(unit)+2(func)+2(lrc)+1('\r')+1('\n')
             self._raiseError(exceptions.NotCorrectResponseError, "ASCII. Not correct response. Responsed data length to small")
 
-        if buff[0] != ':':
+        # Verify start colon (compare to ord(':') because buffer is bytes/ints)
+        if buff[0] != ord(':'):
             self._raiseError(exceptions.AscMissColonError, "ASCII. Missed colon ':' symbol")
 
-        if buff[sz-2] != '\r' or buff[sz-1] != '\n':
+        # Verify CR LF ending (buffer contains integer byte values)
+        if buff[sz-2] != ord('\r') or buff[sz-1] != ord('\n'):
             self._raiseError(exceptions.AscMissCrLfError, "ASCII. Missed CR-LF ending symbols")
 
-        ibuff = asciiToBytes(buff[1:sz-2]) # without ':' and CRLF
+        # Convert ASCII hex payload to binary (without ':' and CRLF)
+        try:
+            ibuff = asciiToBytes(buff[1:sz-2])
+        except Exception:
+            self._raiseError(exceptions.AscCharError, "ASCII. Bad ASCII symbol")
         if len(ibuff) == 0:
             self._raiseError(exceptions.AscCharError, "ASCII. Bad ASCII symbol")
 
-        if lrc(ibuff[:sz-1]) != ibuff[sz-1]:
+        # Check LRC: last byte of ibuff is LRC
+        if lrc(ibuff[:-1]) != ibuff[-1]:
             self._raiseError(exceptions.LrcError, "ASCII. Error LRC")
+
         # Prepare output data
         unit = ibuff[0]
         func = ibuff[1]
-        return unit, func, ibuff[2:sz-1] # without unit, func and LRC
+        return unit, func, ibuff[2:-1] # without unit, func and LRC
