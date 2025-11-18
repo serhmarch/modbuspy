@@ -28,7 +28,7 @@ from modbuspy.mbglobal import (ProtocolType, Constants,
                                MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
                                MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
                                MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
-from modbuspy import ModbusAsyncClient
+from modbuspy import ModbusClient
 from modbuspy import ModbusTcpPort
 from modbuspy import ModbusRtuPort
 from modbuspy import ModbusAscPort
@@ -252,7 +252,7 @@ async def async_main():
         buff[i] = i % 256  # Fill with test pattern
     
     # Create async client
-    client = ModbusAsyncClient(options.unit, client_port)
+    client = ModbusClient(options.unit, client_port)
     client.setObjectName(f"asyncdemo({client.unit()})")
     
     # Execute test requests asynchronously

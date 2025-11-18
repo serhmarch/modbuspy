@@ -25,7 +25,7 @@ from .statuscode import *
 from .mbinterface import ModbusInterface
 from .exceptions import ModbusException
 from .utils import createPort, createClientPort, createServerPort
-from .client import ModbusClient, ModbusAsyncClient
+from .client import ModbusClient
 from .clientport import ModbusClientPort, ModbusAsyncClientPort
 from .serverport import ModbusServerPort
 from .serverresource import ModbusServerResource, ModbusAsyncServerResource

@@ -5,9 +5,11 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.client import ModbusClient, ModbusAsyncClient
-from modbuspy.clientport import ModbusClientPort
-from modbuspy.mbglobal import AwaitableMethod
+from modbuspy.client import ModbusClient
+from modbuspy.clientport import ModbusClientPort, ModbusAsyncClientPort
+from modbuspy.mbglobal import ProtocolType, AwaitableMethod
+from modbuspy.port import ModbusPort
+from modbuspy.statuscode import StatusCode
 
 
 class MockClientPort(ModbusClientPort):
@@ -206,34 +208,91 @@ class TestModbusClient(unittest.TestCase):
 
 
 class TestModbusAsyncClient(unittest.TestCase):
-    """Unit tests for ModbusAsyncClient class"""
+    """Unit tests for ModbusClient (async) class"""
 
     def setUp(self):
-        self.mock_port = MockClientPort()
-        self.client = ModbusAsyncClient(unit=2, port=self.mock_port)
+        # Create a minimal mock port
+        class MockAsyncPort(ModbusPort):
+            def __init__(self):
+                super().__init__(blocking=True)
+                self._is_open = False
+            
+            def type(self) -> ProtocolType:
+                return ProtocolType.TCP
+            
+            def handle(self) -> int:
+                return 0
+            
+            def isOpen(self) -> bool:
+                return self._is_open
+            
+            def open(self) -> StatusCode:
+                self._is_open = True
+                return StatusCode.Status_Good
+            
+            def close(self) -> StatusCode:
+                self._is_open = False
+                return StatusCode.Status_Good
+            
+            def write(self) -> StatusCode:
+                return StatusCode.Status_Good
+            
+            def read(self) -> StatusCode:
+                return StatusCode.Status_Good
+            
+            def writeBuffer(self, unit: int, func: int, data: bytes):
+                pass
+            
+            def readBuffer(self):
+                return (1, 3, b'\x00\x01')
+            
+        self.mock_port = MockAsyncPort()
+        self.port = ModbusAsyncClientPort(self.mock_port)
+        self.client = ModbusClient(unit=2, port=self.port)
 
     def tearDown(self):
         self.client = None
         self.mock_port = None
 
+    def test_initialization(self):
+        """ModbusAsyncClient initialization stores unit and port"""
+        self.assertEqual(self.client._unit, 2)
+        self.assertIs(self.client._port, self.port)
+
+    def test_unit_getter_setter(self):
+        """unit() and setUnit() manage unit identifier"""
+        self.assertEqual(self.client.unit(), 2)
+        self.client.setUnit(7)
+        self.assertEqual(self.client.unit(), 7)
+
+    def test_unit_property(self):
+        """Unit property works correctly"""
+        self.assertEqual(self.client.Unit, 2)
+        self.client.Unit = 4
+        self.assertEqual(self.client.Unit, 4)
+
+    def test_port_method(self):
+        """port() returns underlying client port"""
+        self.assertIs(self.client.port(), self.port)
+
     def test_async_readCoils_returns_awaitable(self):
         """Async readCoils returns AwaitableMethod"""
-        result = self.client.readCoils(offset=0, count=8)
+        result = self.client.readCoils(offset=10, count=8)
         self.assertIsInstance(result, AwaitableMethod)
 
     def test_async_readDiscreteInputs_returns_awaitable(self):
         """Async readDiscreteInputs returns AwaitableMethod"""
-        result = self.client.readDiscreteInputs(offset=0, count=8)
+        result = self.client.readDiscreteInputs(offset=0, count=16)
         self.assertIsInstance(result, AwaitableMethod)
 
     def test_async_readHoldingRegisters_returns_awaitable(self):
         """Async readHoldingRegisters returns AwaitableMethod"""
-        result = self.client.readHoldingRegisters(offset=0, count=10)
+        result = self.client.readHoldingRegisters(offset=100, count=10)
         self.assertIsInstance(result, AwaitableMethod)
 
     def test_async_readInputRegisters_returns_awaitable(self):
         """Async readInputRegisters returns AwaitableMethod"""
-        result = self.client.readInputRegisters(offset=0, count=10)
+        result = self.client.readInputRegisters(offset=50, count=5)
         self.assertIsInstance(result, AwaitableMethod)
 
     def test_async_writeSingleCoil_returns_awaitable(self):
@@ -243,17 +302,58 @@ class TestModbusAsyncClient(unittest.TestCase):
 
     def test_async_writeSingleRegister_returns_awaitable(self):
         """Async writeSingleRegister returns AwaitableMethod"""
-        result = self.client.writeSingleRegister(offset=20, value=100)
+        result = self.client.writeSingleRegister(offset=20, value=0x5678)
+        self.assertIsInstance(result, AwaitableMethod)
+
+    def test_async_readExceptionStatus_returns_awaitable(self):
+        """Async readExceptionStatus returns AwaitableMethod"""
+        result = self.client.readExceptionStatus()
+        self.assertIsInstance(result, AwaitableMethod)
+
+    def test_async_diagnostics_returns_awaitable(self):
+        """Async diagnostics returns AwaitableMethod"""
+        result = self.client.diagnostics(subfunc=0, indata=None)
+        self.assertIsInstance(result, AwaitableMethod)
+
+    def test_async_getCommEventCounter_returns_awaitable(self):
+        """Async getCommEventCounter returns AwaitableMethod"""
+        result = self.client.getCommEventCounter()
+        self.assertIsInstance(result, AwaitableMethod)
+
+    def test_async_getCommEventLog_returns_awaitable(self):
+        """Async getCommEventLog returns AwaitableMethod"""
+        result = self.client.getCommEventLog()
         self.assertIsInstance(result, AwaitableMethod)
 
     def test_async_writeMultipleCoils_returns_awaitable(self):
         """Async writeMultipleCoils returns AwaitableMethod"""
-        result = self.client.writeMultipleCoils(offset=0, values=b'\xFF')
+        result = self.client.writeMultipleCoils(offset=0, values=b'\xFF\x00')
         self.assertIsInstance(result, AwaitableMethod)
 
     def test_async_writeMultipleRegisters_returns_awaitable(self):
         """Async writeMultipleRegisters returns AwaitableMethod"""
-        result = self.client.writeMultipleRegisters(offset=100, values=b'\x00\x10')
+        result = self.client.writeMultipleRegisters(offset=100, values=b'\x00\x10\x00\x20')
+        self.assertIsInstance(result, AwaitableMethod)
+
+    def test_async_reportServerID_returns_awaitable(self):
+        """Async reportServerID returns AwaitableMethod"""
+        result = self.client.reportServerID()
+        self.assertIsInstance(result, AwaitableMethod)
+
+    def test_async_maskWriteRegister_returns_awaitable(self):
+        """Async maskWriteRegister returns AwaitableMethod"""
+        result = self.client.maskWriteRegister(offset=50, andMask=0x00FF, orMask=0xFF00)
+        self.assertIsInstance(result, AwaitableMethod)
+
+    def test_async_readWriteMultipleRegisters_returns_awaitable(self):
+        """Async readWriteMultipleRegisters returns AwaitableMethod"""
+        result = self.client.readWriteMultipleRegisters(readOffset=0, readCount=10,
+                                                        writeOffset=100, writeValues=b'\x00\x01')
+        self.assertIsInstance(result, AwaitableMethod)
+
+    def test_async_readFIFOQueue_returns_awaitable(self):
+        """Async readFIFOQueue returns AwaitableMethod"""
+        result = self.client.readFIFOQueue(fifoadr=10)
         self.assertIsInstance(result, AwaitableMethod)
 
 

@@ -1450,3 +1450,84 @@ class ModbusAsyncClientPort(ModbusClientPort):
                                readOffset, readCount,
                                writeOffset, writeValues,
                                fmt=fmt)
+
+    # low-level methods
+    def _readCoils(self, client:ModbusObject, unit: int, offset: int, count: int) -> bytes:
+        return AwaitableMethod(super()._readCoils, client, unit, offset, count)
+    
+    def _readDiscreteInputs(self, client:ModbusObject, unit: int, offset: int, count: int) -> bytes:
+        return AwaitableMethod(super()._readDiscreteInputs, client, unit, offset, count)
+
+    def _readHoldingRegisters(self, client:ModbusObject, unit: int, offset: int, count: int) -> bytes:
+        return AwaitableMethod(super()._readHoldingRegisters, client, unit, offset, count)
+
+    def _readInputRegisters(self, client:ModbusObject, unit: int, offset: int, count: int) -> bytes:
+        return AwaitableMethod(super()._readInputRegisters, client, unit, offset, count)
+
+    def _writeSingleCoil(self, client:ModbusObject, unit: int, offset: int, value: bool) -> StatusCode:
+        return AwaitableMethod(super()._writeSingleCoil, client, unit, offset, value)
+
+    def _writeSingleRegister(self, client:ModbusObject, unit: int, offset: int, value: int) -> StatusCode:
+        return AwaitableMethod(super()._writeSingleRegister, client, unit, offset, value)
+
+    def _readExceptionStatus(self, client:ModbusObject, unit: int) -> bytes:
+        return AwaitableMethod(super()._readExceptionStatus, client, unit)
+
+    def _diagnostics(self, client:ModbusObject, unit: int, subfunc: int, indata: Optional[bytes] = None) -> bytes:
+        return AwaitableMethod(super()._diagnostics, client, unit, subfunc, indata)
+        
+    def _getCommEventCounter(self, client:ModbusObject, unit: int) -> bytes:
+        return AwaitableMethod(super()._getCommEventCounter, client, unit)
+
+    def _getCommEventLog(self, client:ModbusObject, unit: int) -> bytes:
+        return AwaitableMethod(super()._getCommEventLog, client, unit)
+        
+    def _writeMultipleCoils(self, client:ModbusObject, unit: int, offset: int, values: bytes, count: int = -1) -> StatusCode:
+        return AwaitableMethod(super()._writeMultipleCoils, client, unit, offset, values, count)
+        
+    def _writeMultipleRegisters(self, client:ModbusObject, unit: int, offset: int, values: bytes) -> StatusCode:
+        return AwaitableMethod(super()._writeMultipleRegisters, client, unit, offset, values)
+        
+    def _reportServerID(self, client:ModbusObject, unit: int) -> bytes:
+        return AwaitableMethod(super()._reportServerID, client, unit)
+        
+    def _maskWriteRegister(self, client:ModbusObject, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode:
+        return AwaitableMethod(super()._maskWriteRegister, client, unit, offset, andMask, orMask)
+
+    def _readWriteMultipleRegisters(self, client:ModbusObject, unit: int,
+                                   readOffset: int, readCount: int,
+                                   writeOffset: int, writeValues: bytes) -> bytes:
+        return AwaitableMethod(super()._readWriteMultipleRegisters, client, unit,
+                               readOffset, readCount,
+                               writeOffset, writeValues)
+
+    def _readFIFOQueue(self, client:ModbusObject, unit: int, fifoadr: int) -> bytes:
+        return AwaitableMethod(super()._readFIFOQueue, client, unit, fifoadr)
+
+    # low-level formatting methods
+    def _readCoilsF(self, client:ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super()._readCoilsF, client, unit, offset, count, fmt=fmt)
+
+    def _readDiscreteInputsF(self, client:ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super()._readDiscreteInputsF, client, unit, offset, count, fmt=fmt)
+    
+    def _readHoldingRegistersF(self, client:ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super()._readHoldingRegistersF, client, unit, offset, count, fmt=fmt)
+
+    def _readInputRegistersF(self, client:ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super()._readInputRegistersF, client, unit, offset, count, fmt=fmt)
+
+    def _writeMultipleCoilsF(self, client:ModbusObject, unit: int, offset: int, values: Tuple, count: int = -1, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
+        return AwaitableMethod(super()._writeMultipleCoilsF, client, unit, offset, values, count, fmt=fmt)
+    
+    def _writeMultipleRegistersF(self, client:ModbusObject, unit: int, offset: int, values: Tuple, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
+        return AwaitableMethod(super()._writeMultipleRegistersF, client, unit, offset, values, fmt=fmt)
+    
+    def _readWriteMultipleRegistersF(self, client:ModbusObject, unit: int,
+                                    readOffset: int, readCount: int,
+                                    writeOffset: int, writeValues: Tuple,
+                                    fmt: str=MB_FMT_UINT16_LE) -> Tuple:
+        return AwaitableMethod(super()._readWriteMultipleRegistersF, client, unit,
+                               readOffset, readCount,
+                               writeOffset, writeValues,
+                               fmt=fmt)
