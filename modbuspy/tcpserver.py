@@ -167,10 +167,10 @@ class ModbusTcpServer(ModbusServerPort):
             self._maxconn = 1
 
     def settings(self) -> dict:
-        s = ModbusTcpPort.Strings
+        s = ModbusTcpServer.Strings
         return {
             s.host   : self._host   ,
-            s.port   : self._port   ,
+            s.port   : self._tcpPort,
             s.timeout: self._timeout,
             s.maxconn: self._maxconn
         }
