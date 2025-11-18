@@ -22,6 +22,11 @@ class ModbusTcpServer(ModbusServerPort):
     
     ModbusTcpServer manages multiple simultaneous TCP connections and processes
     Modbus requests from multiple clients concurrently.
+
+    In addition to the signals inherited from ModbusServerPort, ModbusTcpServer
+    provides the following signals:
+        * `signalNewConnection(source:str)` - Emitted when a new client connection is established.
+        * `signalCloseConnection(source:str)` - Emitted when a client connection is closed.
     """
 
     class Strings:

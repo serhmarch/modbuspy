@@ -17,7 +17,15 @@ from .mbinterface import ModbusInterface
 from .port import ModbusPort
 
 class ModbusClientPort(ModbusObject, ModbusInterface):
-    """Base class for Modbus client ports."""
+    """Base class for Modbus client ports.
+    
+    Signals:
+        * `signalOpened(source:str)` - Emitted when the port is successfully opened.
+        * `signalClosed(source:str)` - Emitted when the port is closed.
+        * `signalError(source:str, code:int, text:str)` - Emitted when an error occurs.
+        * `signalTx(source:str, data:bytes)` - Emitted when data is transmitted.
+        * `signalRx(source:str, data:bytes)` - Emitted when data is received.
+    """
     
     class State(IntEnum):
         STATE_UNKNOWN            = 0

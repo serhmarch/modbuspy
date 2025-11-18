@@ -9,7 +9,7 @@
 
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = modbuspy
-PROJECT_NUMBER         = 1.0.0
+PROJECT_NUMBER         = 0.4.0
 PROJECT_BRIEF          = "Python implementation of Modbus TCP, RTU and ASCII protocols"
 PROJECT_LOGO           =
 PROJECT_ICON           =
@@ -157,7 +157,7 @@ INPUT_FILTER           =
 FILTER_PATTERNS        =
 FILTER_SOURCE_FILES    = NO
 FILTER_SOURCE_PATTERNS =
-USE_MDFILE_AS_MAINPAGE = pages/mainpage.md
+USE_MDFILE_AS_MAINPAGE = pages/01_architecture.md
 FORTRAN_COMMENT_AFTER  = 72
 
 #---------------------------------------------------------------------------
@@ -213,9 +213,9 @@ DOCSET_FEEDURL         =
 DOCSET_BUNDLE_ID       = org.doxygen.Project
 DOCSET_PUBLISHER_ID    = org.doxygen.Publisher
 DOCSET_PUBLISHER_NAME  = Publisher
-GENERATE_HTMLHELP      = NO
-CHM_FILE               =
-HHC_LOCATION           =
+GENERATE_HTMLHELP      = YES
+CHM_FILE               = ../../modbuspy.chm
+HHC_LOCATION           = "C:/Program Files (x86)/HTML Help Workshop/hhc.exe"
 GENERATE_CHI           = NO
 CHM_INDEX_ENCODING     =
 BINARY_TOC             = NO
@@ -259,7 +259,7 @@ EXTRA_SEARCH_MAPPINGS  =
 # Configuration options related to the LaTeX output
 #---------------------------------------------------------------------------
 
-GENERATE_LATEX         = NO
+GENERATE_LATEX         = YES
 LATEX_OUTPUT           = latex
 LATEX_CMD_NAME         =
 MAKEINDEX_CMD_NAME     = makeindex

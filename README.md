@@ -33,6 +33,31 @@ To start using this library you must import `ModbusClientPort` (`ModbusClient`) 
 `modbuspy` module contains declarations of main data types, functions and class interfaces
 to work with the library.
 
+Here are some common ways to use `modbuspy`:
+
+* **TCP, RTU, ASCII Clients** - Communicate with devices over TCP/IP or serial ports
+* **TCP, RTU, ASCII Servers** - Create Modbus TCP, RTU, or ASCII servers to handle client requests
+* **Blocking Mode** - Simple synchronous operations that wait for completion
+* **Non-blocking Mode** - If function can not complete operation immediately it returns `None`
+* **Async/await** - Use `asyncio` for modern Python async programming
+* **Signal/Slot** - Connect callbacks to monitor data transmission and events
+* **Formatting Functions** - Use `struct` module format strings for data conversion
+* **Multiple Clients** - Manage multiple Modbus units through a single port connection
+
+The library provides several features applicable to both client and server implementations:
+
+* **Multiple Protocol Support** - TCP, RTU, and ASCII protocols
+* **Flexible Port Configuration** - Customizable TCP and serial port settings
+* **Blocking and Non-blocking Modes** - Choose blocking or non-blocking operation
+* **Comprehensive Error Handling** - Detailed exception types and status codes
+* **Signal/Slot Mechanism** - Qt-like callbacks for monitoring events and data transmission
+* **Data Formatting** - Built-in struct module integration for data conversion
+* **Automatic Resource Management** - Simplified connection and resource handling
+* **CRC/LRC Validation** - Automatic checksum calculation and validation
+* **Configurable Timeouts** - Set custom timeout values for operations
+* **Exception Handling** - Standardized Modbus exception support
+* **Python 3.6+ Compatible** - Modern Python async/await support available
+
 ### Blocking mode
 
 Library supports both blocking and non-blocking modes of operation.
@@ -72,7 +97,7 @@ while True:
         # `buff` is `bytes` object that contains uint16 (little-endian) array of read values
         if buff is not None:
             print(f"Read data: {buff}")
-            # process `buff` e.g. using `struct` module
+        # process `buff` e.g. using `struct` module
     except ModbusException as ex:
         print(f"Modbus error: {ex}")
     do_some_other_work()
@@ -80,6 +105,15 @@ while True:
 ```
 
 TCP server is designed to work in single thread so it uses only non-blocking mode.
+
+### asyncio
+
+Library supports `asyncio` module to work with asynchronous programming.
+The library provides async-compatible functions and coroutines that integrate seamlessly with
+Python's event loop, allowing non-blocking I/O operations.
+You can use the library's async APIs to handle concurrent tasks efficiently without spawning multiple threads. 
+The implementation follows standard `asyncio` patterns, making it easy to combine with other async libraries 
+and frameworks.
 
 ### Modbus Interface
 
@@ -190,6 +224,24 @@ and accepted as tuple `values` parameter for write-methods.
 
 For example `'<H'` format string means little-endian (`<`) unsigned short (`H`).
 
+#### Async client
+
+`ModbusClientPort` class has special async counterpart: `ModbusAsyncClientPort`.
+Thise class implements same Modbus interface functions as their synchronous counterpart,
+but defined as `async` coroutines.
+```python
+import asyncio
+from modbuspy import createAsyncClientPort, ModbusClient, ProtocolType
+
+async def main():
+    port = createAsyncClientPort(protocolType=ProtocolType.TCP, host="192.168.1.100")
+    client = ModbusClient(unit=1, port=port)    
+    buff = await client.readHoldingRegisters(0, 10)
+    print(f"Read data: {buff}")
+
+asyncio.run(main())
+```
+
 ### Server
 
 Unlike client the server does not implement `ModbusInterface` directly.
@@ -250,6 +302,47 @@ All other functions will raise `modpuspy.exceptions.IllegalFunctionError` by def
 
 This example creates Modbus TCP server that processes connections and increments
 first 4x register by 1 every cycle. This example uses non-blocking mode.
+
+#### Async server
+
+`ModbusServerResource` and `ModbusTcpServer` classes have special async counterparts: 
+`ModbusAsyncServerResource` and `ModbusAsyncTcpServer` respectively.
+These classes derived from their synchronous counterparts reimplementing `process` method
+as `async` coroutine. `ModbusAsyncServerResource` accepts reference to `ModbusInterface`
+in its constructor as parameter and transfers all requests to this interface.
+So user can define by itself how incoming Modbus-request will be processed.
+```python
+import asyncio
+from modbuspy import createAsyncServerPort, ModbusInterface, ProtocolType, StatusCode
+from modbuspy.exceptions import IllegalDataAddressError
+
+class MyExampleDevice(ModbusInterface):
+    def __init__(self):
+        self.registers = [0] * 100
+    
+    def readHoldingRegisters(self, unit, offset, count):
+        if offset + count > len(self.registers):
+            raise IllegalDataAddressError("Invalid address")
+        result = bytearray()
+        for i in range(count):
+            result.extend(self.registers[offset + i].to_bytes(2, 'little'))
+        return bytes(result)
+    
+    def writeMultipleRegisters(self, unit, offset, values):
+        count = len(values) // 2
+        for i in range(count):
+            self.registers[offset + i] = int.from_bytes(values[i*2:i*2+2], 'little')
+        return StatusCode.Status_Good
+
+async def main():
+    device = MyExampleDevice()
+    port = createAsyncServerPort(device, ProtocolType.TCP, port=502)
+    while True:
+        await port.process()
+        await asyncio.sleep(0.001)
+
+asyncio.run(main())
+```
 
 ### Signal/slot mechanism
 

@@ -183,3 +183,6 @@ $RECYCLE.BIN/
 *~
 .directory
 .Trash-*
+
+# Doxygen
+doc/output/modbuspy/

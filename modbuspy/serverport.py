@@ -16,7 +16,15 @@ from .mbinterface import ModbusInterface
 from .mbobject import ModbusObject
 
 class ModbusServerPort(ModbusObject):
-    """Base class for Modbus server ports."""
+    """Base class for Modbus server ports.
+        
+    Signals:
+        * `signalOpened(source:str)` - Emitted when the port is successfully opened.
+        * `signalClosed(source:str)` - Emitted when the port is closed.
+        * `signalError(source:str, code:int, text:str)` - Emitted when an error occurs.
+        * `signalTx(source:str, data:bytes)` - Emitted when data is transmitted.
+        * `signalRx(source:str, data:bytes)` - Emitted when data is received.
+    """
     
     class State(IntEnum):
         STATE_UNKNOWN        = 0
@@ -138,6 +146,22 @@ class ModbusServerPort(ModbusObject):
             True if the port state is STATE_CLOSED, False otherwise.
         """
         return self._state == ModbusServerPort.State.STATE_CLOSED
+    
+    def lastErrorStatus(self) -> StatusCode:
+        """Returns status code of the last operation performed.
+        
+        Returns:
+            Status code of the last operation.
+        """
+        return self._errorStatus
+    
+    def lastErrorText(self) -> str:
+        """Returns text description of the last error occurred.
+        
+        Returns:
+            Text description of the last error.
+        """
+        return self._errorText
 
     def context(self) -> Optional[object]:
         """Return context of the port previously set by setContext function or None by default.
