@@ -3,17 +3,17 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "modbuspy"
+name = "libmodbuspy"
 version = "0.4.0"
 description = "A Python implementation of Modbus TCP, RTU, and ASCII protocols"
 readme = "README.md"
 requires-python = ">=3.6"
 license = {text = "MIT"}
 authors = [
-    {name = "serhmarch", email = ""}
+    {name = "serhmarch", email = "mrchsrg@gmail.com"}
 ]
 maintainers = [
-    {name = "serhmarch", email = ""}
+    {name = "serhmarch", email = "mrchsrg@gmail.com"}
 ]
 keywords = [
     "modbus",
@@ -71,20 +71,20 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/serhmarch/modbuspy"
-Repository = "https://github.com/serhmarch/modbuspy.git"
-Documentation = "https://github.com/serhmarch/modbuspy/tree/main/doc"
-"Bug Tracker" = "https://github.com/serhmarch/modbuspy/issues"
+Homepage = "https://github.com/serhmarch/libmodbuspy"
+Repository = "https://github.com/serhmarch/libmodbuspy.git"
+Documentation = "https://github.com/serhmarch/libmodbuspy/tree/main/doc"
+"Bug Tracker" = "https://github.com/serhmarch/libmodbuspy/issues"
 
 [project.scripts]
-modbus-client = "modbuspy.examples.democlient:main"
-modbus-server = "modbuspy.examples.demoserver:main"
+modbus-client = "libmodbuspy.examples.democlient:main"
+modbus-server = "libmodbuspy.examples.demoserver:main"
 
 [tool.setuptools]
-packages = ["modbuspy"]
+packages = ["libmodbuspy"]
 
 [tool.setuptools.package-data]
-modbuspy = ["py.typed"]
+libmodbuspy = ["py.typed"]
 
 [tool.black]
 line-length = 88
@@ -122,7 +122,7 @@ python_functions = [
 ]
 
 [tool.coverage.run]
-source = ["modbuspy"]
+source = ["libmodbuspy"]
 omit = [
     "*/test*",
     "*/examples/*",

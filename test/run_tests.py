@@ -1,7 +1,7 @@
 """
-Test runner for modbuspy library
+Test runner for libmodbuspy library
 
-This script runs all tests for the modbuspy library and provides
+This script runs all tests for the libmodbuspy library and provides
 a convenient way to execute specific test modules or all tests.
 
 Usage:
@@ -16,7 +16,7 @@ import os
 import unittest
 import argparse
 
-# Add the parent directory to the path to import modbuspy
+# Add the parent directory to the path to import libmodbuspy
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 
@@ -44,7 +44,7 @@ def run_specific_test(test_module):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Run modbuspy tests')
+    parser = argparse.ArgumentParser(description='Run libmodbuspy tests')
     parser.add_argument('test_module', nargs='?', help='Specific test module to run')
     parser.add_argument('-v', '--verbose', action='store_true', 
                        help='Run tests with verbose output')

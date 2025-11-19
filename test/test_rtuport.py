@@ -5,9 +5,9 @@ import os
 # Make sure tests can import package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.rtuport import ModbusRtuPort
-from modbuspy.mbglobal import ProtocolType, crc16
-from modbuspy import exceptions
+from libmodbuspy.rtuport import ModbusRtuPort
+from libmodbuspy.mbglobal import ProtocolType, crc16
+from libmodbuspy import exceptions
 
 
 class TestModbusRtuPort(unittest.TestCase):

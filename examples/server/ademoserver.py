@@ -20,22 +20,22 @@ import time
 import struct
 import asyncio
 
-# Add the modbuspy library path
+# Add the libmodbuspy library path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-# Import modbuspy modules
-from modbuspy.statuscode import StatusCode
-from modbuspy import (ProtocolType,
+# Import libmodbuspy modules
+from libmodbuspy.statuscode import StatusCode
+from libmodbuspy import (ProtocolType,
                       ModbusInterface,
                       Constants,
                       timer,
                       MB_REGE_SZ_BITES)
 
-from modbuspy import ModbusAsyncTcpServer
-from modbuspy import ModbusAsyncServerResource
-from modbuspy import ModbusRtuPort
-from modbuspy import ModbusAscPort
-from modbuspy.exceptions import (ModbusException,
+from libmodbuspy import ModbusAsyncTcpServer
+from libmodbuspy import ModbusAsyncServerResource
+from libmodbuspy import ModbusRtuPort
+from libmodbuspy import ModbusAscPort
+from libmodbuspy.exceptions import (ModbusException,
                                  IllegalDataAddressError,
                                  GatewayPathUnavailableError)
 

@@ -5,12 +5,12 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.clientport import ModbusClientPort, ModbusAsyncClientPort
-from modbuspy.port import ModbusPort
-from modbuspy.statuscode import StatusCode
-from modbuspy.mbglobal import ProtocolType
-from modbuspy import exceptions
-from modbuspy.mbglobal import AwaitableMethod
+from libmodbuspy.clientport import ModbusClientPort, ModbusAsyncClientPort
+from libmodbuspy.port import ModbusPort
+from libmodbuspy.statuscode import StatusCode
+from libmodbuspy.mbglobal import ProtocolType
+from libmodbuspy import exceptions
+from libmodbuspy.mbglobal import AwaitableMethod
 
 class MockPort(ModbusPort):
     """Mock port for testing ModbusClientPort"""
@@ -137,9 +137,9 @@ class TestModbusAsyncClientPort(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures for async client port"""
-        from modbuspy.port import ModbusPort
-        from modbuspy.mbglobal import ProtocolType
-        from modbuspy.statuscode import StatusCode
+        from libmodbuspy.port import ModbusPort
+        from libmodbuspy.mbglobal import ProtocolType
+        from libmodbuspy.statuscode import StatusCode
         
         # Create a minimal mock port
         class MockAsyncPort(ModbusPort):

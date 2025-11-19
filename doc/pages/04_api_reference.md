@@ -1,11 +1,11 @@
 # API Reference
 
-## Module: modbuspy
+## Module: libmodbuspy
 
 ### Main Package Exports
 
 ```python
-from modbuspy import (
+from libmodbuspy import (
     # Version information
     MBPY_VERSION_MAJOR,
     MBPY_VERSION_MINOR,
@@ -174,7 +174,7 @@ MBF_ENCAPSULATED_INTERFACE_TRANSPORT = 43
 
 ### ModbusException
 
-Base exception class for all modbuspy errors.
+Base exception class for all libmodbuspy errors.
 
 ```python
 class ModbusException(Exception):

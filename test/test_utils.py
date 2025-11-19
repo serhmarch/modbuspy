@@ -5,15 +5,15 @@ import os
 # Make sure tests can import package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.utils import createPort, createClientPort, createServerPort
-from modbuspy.mbglobal import ProtocolType
-from modbuspy.port import ModbusPort
-from modbuspy.tcpport import ModbusTcpPort
-from modbuspy.rtuport import ModbusRtuPort
-from modbuspy.ascport import ModbusAscPort
-from modbuspy.clientport import ModbusClientPort
-from modbuspy.serverport import ModbusServerPort
-from modbuspy.mbinterface import ModbusInterface
+from libmodbuspy.utils import createPort, createClientPort, createServerPort
+from libmodbuspy.mbglobal import ProtocolType
+from libmodbuspy.port import ModbusPort
+from libmodbuspy.tcpport import ModbusTcpPort
+from libmodbuspy.rtuport import ModbusRtuPort
+from libmodbuspy.ascport import ModbusAscPort
+from libmodbuspy.clientport import ModbusClientPort
+from libmodbuspy.serverport import ModbusServerPort
+from libmodbuspy.mbinterface import ModbusInterface
 
 
 class MockDevice(ModbusInterface):

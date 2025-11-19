@@ -30,7 +30,7 @@ from .statuscode import StatusCode
 class ModbusInterface:
     """Main interface of Modbus communication protocol.
     
-    `ModbusInterface` contains list of functions that is supported by modbuspy library.
+    `ModbusInterface` contains list of functions that is supported by libmodbuspy library.
 
     There are such functions as:
     *  1 (0x01) - `READ_COILS`
@@ -67,7 +67,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
     
@@ -84,7 +84,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -101,7 +101,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -118,7 +118,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -135,7 +135,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -152,7 +152,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -167,7 +167,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -186,7 +186,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -204,7 +204,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -224,7 +224,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -244,7 +244,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -262,7 +262,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -278,7 +278,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
         
@@ -299,7 +299,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
 
@@ -322,7 +322,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
 
@@ -339,7 +339,7 @@ class ModbusInterface:
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
-            Exceptions with base class `modbuspy.ModbusException` on error.
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
         """
         raise exceptions.IllegalFunctionError("Function not supported")
 

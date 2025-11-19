@@ -5,9 +5,9 @@ import os
 # Make sure tests can import package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.ascport import ModbusAscPort
-from modbuspy.mbglobal import ProtocolType, lrc, bytesToAscii, asciiToBytes
-from modbuspy import exceptions
+from libmodbuspy.ascport import ModbusAscPort
+from libmodbuspy.mbglobal import ProtocolType, lrc, bytesToAscii, asciiToBytes
+from libmodbuspy import exceptions
 
 
 class TestModbusAscPort(unittest.TestCase):

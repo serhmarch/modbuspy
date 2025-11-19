@@ -1,6 +1,6 @@
-# modbuspy Examples
+# libmodbuspy Examples
 
-This directory contains comprehensive example applications demonstrating the modbuspy Modbus library in both synchronous and asynchronous modes.
+This directory contains comprehensive example applications demonstrating the libmodbuspy Modbus library in both synchronous and asynchronous modes.
 
 ## Structure
 
@@ -407,7 +407,7 @@ python ademomulticlient.py -t TCP -r localhost -p 502 -u 1
 ## Requirements
 
 - Python 3.6+ (for async features)
-- modbuspy library (included in parent directory)
+- libmodbuspy library (included in parent directory)
 - `pyserial` library for RTU/ASCII serial support: `pip install pyserial`
 
 ## Signal and Callbacks

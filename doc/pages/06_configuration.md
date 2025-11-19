@@ -2,7 +2,7 @@
 
 ## Overview
 
-modbuspy provides comprehensive configuration options for different port 
+libmodbuspy provides comprehensive configuration options for different port 
 types and operation modes. This guide covers all available settings, 
 their defaults, and their impact on communication.
 
@@ -13,7 +13,7 @@ their defaults, and their impact on communication.
 All port types inherit from `ModbusPort` and share these core settings:
 
 ```python
-from modbuspy import ModbusTcpPort, ModbusRtuPort, ModbusAscPort
+from libmodbuspy import ModbusTcpPort, ModbusRtuPort, ModbusAscPort
 
 # Available for all port types
 port.setBlocking(True)  # Blocking vs non-blocking mode
@@ -25,7 +25,7 @@ port.setTimeout(5000)   # Operation timeout (ms)
 ### Connection Settings
 
 ```python
-from modbuspy import ModbusTcpPort, ModbusClientPort
+from libmodbuspy import ModbusTcpPort, ModbusClientPort
 
 tcp = ModbusTcpPort()
 client = ModbusClientPort(tcp)
@@ -49,7 +49,7 @@ tcp.setBlocking(True) # True: blocking, False: non-blocking
 ### Example: TCP Configuration
 
 ```python
-from modbuspy import ModbusTcpPort, ModbusClientPort, ProtocolType
+from libmodbuspy import ModbusTcpPort, ModbusClientPort, ProtocolType
 
 # Create port with configuration
 tcp = ModbusTcpPort(blocking=True)
@@ -70,7 +70,7 @@ if not client.connectPort():
 ### Serial Port Settings
 
 ```python
-from modbuspy import ModbusRtuPort, ModbusClientPort
+from libmodbuspy import ModbusRtuPort, ModbusClientPort
 
 rtu = ModbusRtuPort()
 client = ModbusClientPort(rtu)
@@ -86,7 +86,7 @@ rtu.setBaudRate(9600) # Common: 9600 (default)
                       # 38400, 57600, 115200
 
 # Data Format
-from modbuspy import Parity, StopBits
+from libmodbuspy import Parity, StopBits
 
 rtu.setDataBits(8)             # Data bits: 5-8 (default: 8)
 rtu.setParity(Parity.NoParity) # Parity enum values:
@@ -115,7 +115,7 @@ rtu.setTimeoutInterByte(5)           # Between bytes (ms)
 ### RTU Port Example
 
 ```python
-from modbuspy import (ModbusRtuPort, ModbusClientPort,
+from libmodbuspy import (ModbusRtuPort, ModbusClientPort,
                       Parity, StopBits,
                       ModbusException)
 
@@ -147,7 +147,7 @@ except ModbusException as e:
 ### Serial Port Settings
 
 ```python
-from modbuspy import ModbusAscPort, ModbusClientPort, Parity, StopBits
+from libmodbuspy import ModbusAscPort, ModbusClientPort, Parity, StopBits
 
 asc = ModbusAscPort()
 client = ModbusClientPort(asc)
@@ -179,7 +179,7 @@ asc.setTimeoutInterByte(5)
 ### ModbusClientPort Settings
 
 ```python
-from modbuspy import ModbusClientPort, ModbusTcpPort
+from libmodbuspy import ModbusClientPort, ModbusTcpPort
 
 port = ModbusTcpPort()
 client = ModbusClientPort(port)
@@ -198,7 +198,7 @@ The `ModbusClient` class provides a simplified interface wrapping the port and c
 ### ModbusAsyncClientPort Settings
 
 ```python
-from modbuspy import ModbusAsyncClientPort, ModbusTcpPort
+from libmodbuspy import ModbusAsyncClientPort, ModbusTcpPort
 
 tcp = ModbusTcpPort()
 async_client = ModbusAsyncClientPort(tcp)
@@ -214,7 +214,7 @@ async_client.setBroadcastEnabled(True)
 ### TCP Server Settings
 
 ```python
-from modbuspy import ModbusTcpServer, ModbusServerResource, 
+from libmodbuspy import ModbusTcpServer, ModbusServerResource, 
                      ModbusInterface
 
 class MyDevice(ModbusInterface):
@@ -234,7 +234,7 @@ server.setTimeout(30000)   # Client inactivity timeout (ms)
 ### Serial Server Settings
 
 ```python
-from modbuspy import (ModbusRtuPort,
+from libmodbuspy import (ModbusRtuPort,
                       ModbusServerResource,
                       Parity, StopBits)
 
@@ -259,6 +259,6 @@ server = ModbusServerResource(rtu, device)
 
 ## Global Configuration
 
-`modbuspy` provides global configuration through the port classes and 
+`libmodbuspy` provides global configuration through the port classes and 
 their settings. Most configuration is done on the port and client 
 instances.

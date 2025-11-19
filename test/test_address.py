@@ -1,5 +1,5 @@
 """
-Test suite for modbuspy.mbglobal.Address class
+Test suite for libmodbuspy.mbglobal.Address class
 
 Comprehensive tests for the Address class including:
 - Construction from various formats
@@ -14,10 +14,10 @@ import unittest
 import sys
 import os
 
-# Add the parent directory to the path to import modbuspy
+# Add the parent directory to the path to import libmodbuspy
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.mbglobal import Address, MemoryType
+from libmodbuspy.mbglobal import Address, MemoryType
 
 
 class TestAddressConstruction(unittest.TestCase):

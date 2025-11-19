@@ -12,24 +12,24 @@ import argparse
 import time
 from typing import List, Optional
 
-# Add the modbuspy library path
+# Add the libmodbuspy library path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-# Import modbuspy modules
-from modbuspy import StatusCode, StatusIsGood
-from modbuspy.mbglobal import (ProtocolType, Constants,
+# Import libmodbuspy modules
+from libmodbuspy import StatusCode, StatusIsGood
+from libmodbuspy.mbglobal import (ProtocolType, Constants,
                                MBF_READ_COILS, MBF_READ_DISCRETE_INPUTS, 
                                MBF_READ_HOLDING_REGISTERS, MBF_READ_INPUT_REGISTERS,
                                MBF_WRITE_SINGLE_COIL, MBF_WRITE_SINGLE_REGISTER,
                                MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
                                MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
                                MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
-from modbuspy import ModbusClient
-from modbuspy import ModbusTcpPort
-from modbuspy import ModbusRtuPort
-from modbuspy import ModbusAscPort
-from modbuspy import ModbusClientPort
-from modbuspy import ModbusException
+from libmodbuspy import ModbusClient
+from libmodbuspy import ModbusTcpPort
+from libmodbuspy import ModbusRtuPort
+from libmodbuspy import ModbusAscPort
+from libmodbuspy import ModbusClientPort
+from libmodbuspy import ModbusException
 
 def print_regs(count: int, buff: bytes) -> None:
     """Print register values from buffer."""
@@ -84,7 +84,7 @@ class Options:
         self.host    = ModbusTcpPort.Defaults.host
         self.port    = ModbusTcpPort.Defaults.port
         self.timeout = ModbusTcpPort.Defaults.timeout        
-        # Serial settings (not implemented in current modbuspy)
+        # Serial settings (not implemented in current libmodbuspy)
         self.serial_port = ModbusRtuPort.Defaults.portName
         self.baud_rate = ModbusRtuPort.Defaults.baudRate
         self.data_bits = ModbusRtuPort.Defaults.dataBits
@@ -254,7 +254,6 @@ def main():
     # Create client
     client = ModbusClient(options.unit, client_port)
     client.setObjectName(f"democlient({client.unit()})")
-    res = client.readHoldingRegistersF(0, 10, fmt='i')
 
     # Execute test requests
     for req in requests:

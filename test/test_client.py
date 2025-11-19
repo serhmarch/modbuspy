@@ -5,11 +5,11 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.client import ModbusClient
-from modbuspy.clientport import ModbusClientPort, ModbusAsyncClientPort
-from modbuspy.mbglobal import ProtocolType, AwaitableMethod
-from modbuspy.port import ModbusPort
-from modbuspy.statuscode import StatusCode
+from libmodbuspy.client import ModbusClient
+from libmodbuspy.clientport import ModbusClientPort, ModbusAsyncClientPort
+from libmodbuspy.mbglobal import ProtocolType, AwaitableMethod
+from libmodbuspy.port import ModbusPort
+from libmodbuspy.statuscode import StatusCode
 
 
 class MockClientPort(ModbusClientPort):

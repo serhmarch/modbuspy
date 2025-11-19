@@ -1,6 +1,6 @@
 """
 @file utils.py
-@brief Utility functions for modbuspy library.
+@brief Utility functions for libmodbuspy library.
 
 @author serhmarch
 @date November 2025

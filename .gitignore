@@ -185,4 +185,4 @@ $RECYCLE.BIN/
 .Trash-*
 
 # Doxygen
-doc/output/modbuspy/
+doc/output/libmodbuspy/

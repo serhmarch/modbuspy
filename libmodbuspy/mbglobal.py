@@ -2,7 +2,7 @@
 @file mbglobal.py
 @brief Contains general definitions of the Modbus library for Python.
 
-This module provides the core functionality for the modbuspy library including:
+This module provides the core functionality for the libmodbuspy library including:
 - Status codes and error handling
 - Protocol type definitions (TCP, RTU, ASCII)
 - Memory type definitions (coils, discrete inputs, holding registers, input registers)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-modbuspy implements three Modbus protocol variants: TCP, RTU (Remote Terminal Unit), and ASCII. Each protocol has different framing and communication characteristics while maintaining the same Modbus function codes and data formats.
+libmodbuspy implements three Modbus protocol variants: TCP, RTU (Remote Terminal Unit), and ASCII. Each protocol has different framing and communication characteristics while maintaining the same Modbus function codes and data formats.
 
 ## TCP Protocol
 
@@ -50,7 +50,7 @@ Data: Starting Address and Quantity
 ### TCP Port Configuration
 
 ```python
-from modbuspy import ModbusTcpPort, ModbusClientPort
+from libmodbuspy import ModbusTcpPort, ModbusClientPort
 
 tcp = ModbusTcpPort(blocking=True)
 tcp.setHost("192.168.1.100")        # IP or hostname
@@ -118,7 +118,7 @@ Result: Frame = 01 03 00 64 00 02 CRC_LOW CRC_HIGH
 ### RTU Port Configuration
 
 ```python
-from modbuspy import ModbusRtuPort, ModbusClientPort, Parity
+from libmodbuspy import ModbusRtuPort, ModbusClientPort, Parity
 
 rtu = ModbusRtuPort(blocking=True)
 rtu.setPortName("COM1")              # Windows: COM1-COM9
@@ -220,7 +220,7 @@ lrc = ((lrc ^ 0xFF) + 1) & 0xFF
 ### ASCII Port Configuration
 
 ```python
-from modbuspy import ModbusAscPort, ModbusClientPort, Parity
+from libmodbuspy import ModbusAscPort, ModbusClientPort, Parity
 
 asc = ModbusAscPort(blocking=True)
 asc.setPortName("COM1")              # Serial port

@@ -4,10 +4,10 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.serverport import ModbusServerPort
-from modbuspy.mbglobal import ProtocolType
-from modbuspy.mbinterface import ModbusInterface
-from modbuspy.statuscode import StatusCode
+from libmodbuspy.serverport import ModbusServerPort
+from libmodbuspy.mbglobal import ProtocolType
+from libmodbuspy.mbinterface import ModbusInterface
+from libmodbuspy.statuscode import StatusCode
 
 
 class MockDevice(ModbusInterface):

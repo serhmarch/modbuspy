@@ -1,5 +1,5 @@
 """
-Test suite for modbuspy.mbglobal module
+Test suite for libmodbuspy.mbglobal module
 
 Tests all functions and classes in the mbglobal module including:
 - Bit manipulation functions (getBit, setBit, getBits, setBits)
@@ -20,11 +20,11 @@ import os
 from unittest.mock import patch
 import time
 
-# Add the parent directory to the path to import modbuspy
+# Add the parent directory to the path to import libmodbuspy
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-import modbuspy.mbglobal as mbglobal
-from modbuspy.mbglobal import (
+import libmodbuspy.mbglobal as mbglobal
+from libmodbuspy.mbglobal import (
     # Bit manipulation functions
     getBit, setBit, getBits, setBits,
     # Unit map functions

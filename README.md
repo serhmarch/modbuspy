@@ -1,8 +1,8 @@
-# modbuspy
+# libmodbuspy
 
 ## Overview
 
-modbuspy is a free, open-source Modbus library written in Python.
+`libmodbuspy` is a free, open-source Modbus library written in Python.
 It implements client and server functions for TCP, RTU and ASCII versions of Modbus Protocol.
 It is a Python implementation of the [ModbusLib](https://github.com/serhmarch/ModbusLib) C++ library.
 
@@ -30,10 +30,10 @@ Library implements such Modbus functions as:
 
 To start using this library you must import `ModbusClientPort` (`ModbusClient`) or
 `ModbusServerResource`(`ModbusTcpServer`) classes (of course after install the package).
-`modbuspy` module contains declarations of main data types, functions and class interfaces
+`libmodbuspy` module contains declarations of main data types, functions and class interfaces
 to work with the library.
 
-Here are some common ways to use `modbuspy`:
+Here are some common ways to use `libmodbuspy`:
 
 * **TCP, RTU, ASCII Clients** - Communicate with devices over TCP/IP or serial ports
 * **TCP, RTU, ASCII Servers** - Create Modbus TCP, RTU, or ASCII servers to handle client requests
@@ -67,7 +67,7 @@ If `blocking` is set to `True` then port will operate in blocking mode.
 Blocking mode is standard function call that waits until operation is completed
 and returns result or raises an exception. 
 ```python
-from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
+from libmodbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
 tcp = ModbusTcpPort(blocking=True)
 port = ModbusClientPort(tcp)
 try:
@@ -88,7 +88,7 @@ later until resulting data is returned or an exception raises in case of error.
 
 ```python
 import time
-from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
+from libmodbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
 tcp = ModbusTcpPort(blocking=False)
 port = ModbusClientPort(tcp)
 while True:
@@ -124,7 +124,7 @@ User can implement this interface to create own Modbus device and Modbus server 
 transfer all incoming requests to this interface.
 
 `ModbusInterface` defined as class where each function raises 
-`modbuspy.exceptions.IllegalFunctionError` by default:
+`libmodbuspy.exceptions.IllegalFunctionError` by default:
 ```python
 class ModbusInterface:
     def readCoils(self, unit: int, offset: int, count: int) -> bytes: # ...
@@ -148,7 +148,7 @@ class ModbusInterface:
 
 `ModbusClientPort` implements Modbus interface directly and can be used very simple:
 ```python
-from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
+from libmodbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
 #...
 def main():
     tcp = ModbusTcpPort(blocking=True)
@@ -174,7 +174,7 @@ library makes it automatically.
 
 User can use `ModbusClient` class to simplify Modbus function's interface (don't need to use `unit` parameter):
 ```python
-from modbuspy import ModbusClient, ModbusClientPort, ModbusTcpPort, ModbusException
+from libmodbuspy import ModbusClient, ModbusClientPort, ModbusTcpPort, ModbusException
 #...
 def main():
     #...
@@ -231,7 +231,7 @@ Thise class implements same Modbus interface functions as their synchronous coun
 but defined as `async` coroutines.
 ```python
 import asyncio
-from modbuspy import createAsyncClientPort, ModbusClient, ProtocolType
+from libmodbuspy import createAsyncClientPort, ModbusClient, ProtocolType
 
 async def main():
     port = createAsyncClientPort(protocolType=ProtocolType.TCP, host="192.168.1.100")
@@ -248,9 +248,9 @@ Unlike client the server does not implement `ModbusInterface` directly.
 It accepts reference to `ModbusInterface` in its constructor as parameter and transfers all requests
 to this interface. So user can define by itself how incoming Modbus-request will be processed:
 ```python
-from modbuspy import createServerPort, ModbusInterface, ProtocolType, StatusCode
-from modbuspy import ModbusException
-from modbuspy.exceptions import (IllegalDataAddressError,
+from libmodbuspy import createServerPort, ModbusInterface, ProtocolType, StatusCode
+from libmodbuspy import ModbusException
+from libmodbuspy.exceptions import (IllegalDataAddressError,
                                  GatewayPathUnavailableError)
 #...
 class MyModbusDevice(ModbusInterface):
@@ -313,8 +313,8 @@ in its constructor as parameter and transfers all requests to this interface.
 So user can define by itself how incoming Modbus-request will be processed.
 ```python
 import asyncio
-from modbuspy import createAsyncServerPort, ModbusInterface, ProtocolType, StatusCode
-from modbuspy.exceptions import IllegalDataAddressError
+from libmodbuspy import createAsyncServerPort, ModbusInterface, ProtocolType, StatusCode
+from libmodbuspy.exceptions import IllegalDataAddressError
 
 class MyExampleDevice(ModbusInterface):
     def __init__(self):
@@ -352,7 +352,7 @@ Callbacks will be called in the order in which they were connected.
 
 For example `ModbusClientPort` signal/slot mechanism:
 ```python
-from modbuspy import ModbusClientPort, ProtocolType, createClientPort
+from libmodbuspy import ModbusClientPort, ProtocolType, createClientPort
 
 class Printable:
     def printTx(self, source, buff):
@@ -385,12 +385,18 @@ def main():
 $ pip install pyserial
 ```
 
+### Install library
+
+```console
+$ pip install libmodbuspy
+```
+
 ### Install from source
 
 1. **Clone repository:**
    ```console
-   $ git clone https://github.com/serhmarch/modbuspy.git
-   $ cd modbuspy
+   $ git clone https://github.com/serhmarch/libmodbuspy.git
+   $ cd libmodbuspy
    ```
 
 2. **Install in development mode:**
@@ -411,10 +417,10 @@ $ pip install pyserial
 
 ### Using in your project
 
-After installation, you can import and use modbuspy in your Python projects:
+After installation, you can import and use libmodbuspy in your Python projects:
 
 ```python
-from modbuspy import (ModbusClient,
+from libmodbuspy import (ModbusClient,
                       ModbusClientPort,
                       ModbusTcpPort,
                       ModbusException) 

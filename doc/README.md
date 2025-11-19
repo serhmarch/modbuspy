@@ -1,6 +1,6 @@
-# modbuspy Documentation
+# libmodbuspy Documentation
 
-This directory contains the Doxygen documentation setup for the modbuspy project.
+This directory contains the Doxygen documentation setup for the `libmodbuspy` project.
 
 ## Structure
 
@@ -36,7 +36,7 @@ This directory contains the Doxygen documentation setup for the modbuspy project
    ```
 
 3. Open the generated documentation:
-   - HTML: Open `output/modbuspy/html/index.html` in your web browser
+   - HTML: Open `output/libmodbuspy/html/index.html` in your web browser
    - The documentation will include:
      - API reference for all modules and classes
      - Code examples and usage patterns

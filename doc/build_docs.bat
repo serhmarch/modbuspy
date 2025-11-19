@@ -1,7 +1,7 @@
 @echo off
-REM Build script for modbuspy documentation (Windows)
+REM Build script for libmodbuspy documentation (Windows)
 
-echo Building modbuspy documentation...
+echo Building libmodbuspy documentation...
 
 REM Check if doxygen is installed
 where doxygen >nul 2>nul
@@ -21,7 +21,7 @@ doxygen Doxyfile
 REM Check if generation was successful
 if %ERRORLEVEL% EQU 0 (
     echo Documentation generated successfully!
-    echo Open output\modbuspy\html\index.html in your web browser to view the documentation
+    echo Open output\libmodbuspy\html\index.html in your web browser to view the documentation
 ) else (
     echo Error: Documentation generation failed
     exit /b 1

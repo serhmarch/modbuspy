@@ -6,10 +6,10 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modbuspy.tcpserver import ModbusTcpServer
-from modbuspy.mbinterface import ModbusInterface
-from modbuspy.mbglobal import ProtocolType, Constants
-from modbuspy.statuscode import StatusCode
+from libmodbuspy.tcpserver import ModbusTcpServer
+from libmodbuspy.mbinterface import ModbusInterface
+from libmodbuspy.mbglobal import ProtocolType, Constants
+from libmodbuspy.statuscode import StatusCode
 
 
 class MockDevice(ModbusInterface):
@@ -25,7 +25,7 @@ class TestModbusTcpServer(unittest.TestCase):
         self.device = MockDevice()
         
         # Patch socket module to avoid actual network operations
-        self.patcher_socket = patch('modbuspy.tcpserver.socket')
+        self.patcher_socket = patch('libmodbuspy.tcpserver.socket')
         self.mock_socket_module = self.patcher_socket.start()
         self.mock_socket_module.AF_INET = socket.AF_INET
         self.mock_socket_module.SOCK_STREAM = socket.SOCK_STREAM
@@ -173,7 +173,7 @@ class TestModbusTcpServer(unittest.TestCase):
 
     def test_state_enum_exists(self):
         """ModbusServerPort state enum is accessible"""
-        from modbuspy.serverport import ModbusServerPort
+        from libmodbuspy.serverport import ModbusServerPort
         self.assertTrue(hasattr(ModbusServerPort.State, 'STATE_OPENED'))
         self.assertTrue(hasattr(ModbusServerPort.State, 'STATE_CLOSED'))
 

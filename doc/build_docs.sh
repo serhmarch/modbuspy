@@ -1,7 +1,7 @@
 #!/bin/bash
-# Build script for modbuspy documentation
+# Build script for libmodbuspy documentation
 
-echo "Building modbuspy documentation..."
+echo "Building libmodbuspy documentation..."
 
 # Check if doxygen is installed
 if ! command -v doxygen &> /dev/null; then
@@ -20,7 +20,7 @@ doxygen Doxyfile
 # Check if generation was successful
 if [ $? -eq 0 ]; then
     echo "Documentation generated successfully!"
-    echo "Open output/modbuspy/html/index.html in your web browser to view the documentation"
+    echo "Open output/libmodbuspy/html/index.html in your web browser to view the documentation"
 else
     echo "Error: Documentation generation failed"
     exit 1

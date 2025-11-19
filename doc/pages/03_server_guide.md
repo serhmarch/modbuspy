@@ -2,7 +2,7 @@
 
 ## Overview
 
-The modbuspy server implementation allows you to create Modbus servers 
+The libmodbuspy server implementation allows you to create Modbus servers 
 that respond to client requests. The library provides both synchronous 
 and asynchronous server implementations, supporting TCP, RTU, and ASCII 
 protocols.
@@ -11,7 +11,7 @@ protocols.
 
 ### Design Principle
 
-Server implementations in modbuspy follow a clean separation of concerns:
+Server implementations in libmodbuspy follow a clean separation of concerns:
 
 1. **Server Port** - Handles protocol, framing, connection management
 2. **ModbusInterface** - User-implemented device logic
@@ -77,8 +77,8 @@ server.signalRx.connect(callback)
 
 **Example:**
 ```python
-from modbuspy import ModbusTcpServer, ModbusInterface, StatusCode
-from modbuspy.exceptions import IllegalDataAddressError
+from libmodbuspy import ModbusTcpServer, ModbusInterface, StatusCode
+from libmodbuspy.exceptions import IllegalDataAddressError
 
 class MyDevice(ModbusInterface):
     def __init__(self):
@@ -132,7 +132,7 @@ server.close()                   # Close serial port
 
 **Example - RTU Server:**
 ```python
-from modbuspy import ModbusServerResource, ModbusRtuPort, ModbusInterface, StatusCode
+from libmodbuspy import ModbusServerResource, ModbusRtuPort, ModbusInterface, StatusCode
 
 class MyDevice(ModbusInterface):
     def __init__(self):
@@ -174,7 +174,7 @@ async def process():             # Async process method
 **Example:**
 ```python
 import asyncio
-from modbuspy import ModbusAsyncTcpServer, ModbusInterface
+from libmodbuspy import ModbusAsyncTcpServer, ModbusInterface
 
 class MyDevice(ModbusInterface):
     # Implementation...
@@ -204,7 +204,7 @@ ModbusAsyncServerResource(port: ModbusPort, device: ModbusInterface)
 **Example:**
 ```python
 import asyncio
-from modbuspy import ModbusAsyncServerResource, ModbusRtuPort, ModbusInterface
+from libmodbuspy import ModbusAsyncServerResource, ModbusRtuPort, ModbusInterface
 
 class MyDevice(ModbusInterface):
     # Implementation...
@@ -334,7 +334,7 @@ def writeSingleCoil(self, unit: int, offset: int, value: bool) -> StatusCode
 
 **Example:**
 ```python
-from modbuspy import StatusCode
+from libmodbuspy import StatusCode
 
 def writeSingleCoil(self, unit, offset, value):
     if unit != 1:
@@ -491,9 +491,9 @@ Complete Modbus TCP server with simulated device memory.
 """
 
 import time
-from modbuspy import (ModbusTcpServer, ModbusInterface, StatusCode, 
+from libmodbuspy import (ModbusTcpServer, ModbusInterface, StatusCode, 
                       Constants, timer)
-from modbuspy.exceptions import (IllegalDataAddressError,
+from libmodbuspy.exceptions import (IllegalDataAddressError,
                                  GatewayPathUnavailableError)
 
 class SimulatedDevice(ModbusInterface):
@@ -616,9 +616,9 @@ Modbus RTU server over serial port.
 """
 
 import time
-from modbuspy import (ModbusServerResource, ModbusRtuPort, ModbusInterface,
+from libmodbuspy import (ModbusServerResource, ModbusRtuPort, ModbusInterface,
                       StatusCode)
-from modbuspy.exceptions import IllegalDataAddressError, GatewayPathUnavailableError
+from libmodbuspy.exceptions import IllegalDataAddressError, GatewayPathUnavailableError
 
 class SimpleDevice(ModbusInterface):
     def __init__(self):
@@ -682,8 +682,8 @@ Asynchronous Modbus TCP server with concurrent connections.
 """
 
 import asyncio
-from modbuspy import ModbusAsyncTcpServer, ModbusInterface, StatusCode
-from modbuspy.exceptions import IllegalDataAddressError
+from libmodbuspy import ModbusAsyncTcpServer, ModbusInterface, StatusCode
+from libmodbuspy.exceptions import IllegalDataAddressError
 
 class AsyncDevice(ModbusInterface):
     def __init__(self):
@@ -739,7 +739,7 @@ if __name__ == "__main__":
 When implementing `ModbusInterface`, raise appropriate exceptions:
 
 ```python
-from modbuspy.exceptions import (IllegalDataAddressError,
+from libmodbuspy.exceptions import (IllegalDataAddressError,
                                  IllegalDataValueError,
                                  GatewayPathUnavailableError,
                                  ServerDeviceFailureError)
@@ -765,7 +765,7 @@ def readHoldingRegisters(self, unit, offset, count):
 - Clean up connections on error
 
 ### 2. Thread Safety
-- modbuspy is not thread-safe
+- libmodbuspy is not thread-safe
 - Use async implementation for concurrent operations
 - Or use separate port instances per thread
 

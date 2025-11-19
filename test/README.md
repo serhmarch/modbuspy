@@ -1,6 +1,6 @@
 # ModbusPy Test Framework
 
-Professional test framework for the `modbuspy` library with comprehensive testing
+Professional test framework for the `libmodbuspy` library with comprehensive testing
 capabilities, coverage analysis, and flexible execution options.
 
 ## 📋 Test Framework Structure
@@ -107,7 +107,7 @@ pip install pytest pytest-cov
 pytest test/
 
 # With coverage
-pytest test/ --cov=modbuspy --cov-report=html --cov-report=term
+pytest test/ --cov=libmodbuspy --cov-report=html --cov-report=term
 
 # Specific tests
 pytest test/test_mbglobal.py::TestBitManipulation::test_getBit_basic -v
@@ -137,8 +137,8 @@ COVERAGE REPORT
 ==========================================
 Name                    Stmts   Miss  Cover   Missing
 -----------------------------------------------------
-modbuspy/mbglobal.py      425     12    97%   45-47, 123, 234-236
-modbuspy/address.py       156      3    98%   89, 145, 203
+libmodbuspy/mbglobal.py      425     12    97%   45-47, 123, 234-236
+libmodbuspy/address.py       156      3    98%   89, 145, 203
 -----------------------------------------------------
 TOTAL                     581     15    97%
 
@@ -155,7 +155,7 @@ coverage html
 
 # Using pytest-cov
 pip install pytest-cov
-pytest test/ --cov=modbuspy --cov-report=html
+pytest test/ --cov=libmodbuspy --cov-report=html
 ```
 
 ## 🛠️ Framework Capabilities
@@ -259,7 +259,7 @@ class TestValidation(unittest.TestCase):
 # Console Report
 Name                    Stmts   Miss  Cover   Missing
 -----------------------------------------------------
-modbuspy/mbglobal.py      425     12    97%   45-47, 123
+libmodbuspy/mbglobal.py      425     12    97%   45-47, 123
 
 # HTML Report (Interactive)
 # Generated in htmlcov/index.html
@@ -422,4 +422,4 @@ echo "✅ All tests passed!"
 ---
 
 **The ModbusPy test framework provides a robust foundation for ensuring code quality and reliability.
-Use it to validate your modbuspy implementations with confidence!** 🧪✨
+Use it to validate your libmodbuspy implementations with confidence!** 🧪✨

@@ -1,8 +1,8 @@
-# modbuspy Architecture
+# libmodbuspy Architecture
 
 ## Overview
 
-modbuspy is a comprehensive Modbus library for Python that implements client and server functionality for TCP, RTU, and ASCII protocols. The library is structured following object-oriented principles with clear separation of concerns.
+libmodbuspy is a comprehensive Modbus library for Python that implements client and server functionality for TCP, RTU, and ASCII protocols. The library is structured following object-oriented principles with clear separation of concerns.
 
 ## Core Design Principles
 
@@ -237,7 +237,7 @@ For TCP servers, each connection maintains independent state. For serial resourc
 
 ## Signal/Slot Mechanism
 
-modbuspy implements a Qt-like signal/slot system for event callbacks:
+libmodbuspy implements a Qt-like signal/slot system for event callbacks:
 
 **Port Signals:**
 - `signalOpened` - Emitted when port opens
@@ -291,7 +291,7 @@ ModbusException (Base)
 ## Module Organization
 
 ```
-modbuspy/
+libmodbuspy/
 ├── __init__.py              # Package exports
 ├── mbglobal.py              # Global definitions, constants, utilities
 ├── mbconfig.py              # Configuration structures
@@ -356,14 +356,14 @@ Signal/slot mechanism provides event notification similar to Qt's observer patte
 
 ## Thread Safety
 
-Currently, modbuspy is **not thread-safe**:
+Currently, libmodbuspy is **not thread-safe**:
 - Each port instance should be used by single thread
 - Multiple threads require separate port instances
 - For concurrent operations, use async implementations
 
 ## Summary
 
-The modbuspy architecture provides:
+The libmodbuspy architecture provides:
 - **Flexibility** through multiple abstraction layers
 - **Extensibility** via inheritance and factory patterns
 - **Compatibility** with blocking, non-blocking, and async modes

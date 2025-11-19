@@ -1,7 +1,7 @@
 """
-Test package for modbuspy library
+Test package for libmodbuspy library
 
-This package contains comprehensive tests for all modules in the modbuspy library.
+This package contains comprehensive tests for all modules in the libmodbuspy library.
 
 Test modules:
 - test_mbglobal: Tests for mbglobal module (bit manipulation, enums, functions, etc.)
@@ -15,7 +15,7 @@ Usage:
     python -m pytest test/test_mbglobal.py
     
     # Run with coverage
-    python -m pytest test/ --cov=modbuspy --cov-report=html
+    python -m pytest test/ --cov=libmodbuspy --cov-report=html
     
     # Run with unittest
     python -m unittest discover test/

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The modbuspy client implementation provides comprehensive support for 
+The libmodbuspy client implementation provides comprehensive support for 
 Modbus communication with devices. The library offers both synchronous 
 and asynchronous client interfaces through multiple abstraction levels.
 
@@ -33,7 +33,7 @@ ModbusClientPort(port: ModbusPort)
 
 **Example - Basic Usage:**
 ```python
-from modbuspy import ModbusClientPort, ModbusTcpPort
+from libmodbuspy import ModbusClientPort, ModbusTcpPort
 
 # Create TCP port
 tcp_port = ModbusTcpPort(blocking=True)
@@ -69,7 +69,7 @@ ModbusClient(unit: int, port: ModbusClientPort)
 
 **Example - Multiple Devices:**
 ```python
-from modbuspy import ModbusClient, ModbusClientPort, ModbusTcpPort
+from libmodbuspy import ModbusClient, ModbusClientPort, ModbusTcpPort
 
 tcp_port = ModbusTcpPort(blocking=True)
 tcp_port.setHost("192.168.1.100")
@@ -169,7 +169,7 @@ In blocking mode, method calls wait until the operation completes and returns th
 
 **Example:**
 ```python
-from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
+from libmodbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
 
 tcp = ModbusTcpPort(blocking=True)
 tcp.setHost("192.168.1.100")
@@ -197,7 +197,7 @@ In non-blocking mode, method calls return immediately. If the operation is incom
 **Example:**
 ```python
 import time
-from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
+from libmodbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
 
 tcp = ModbusTcpPort(blocking=False)  # Non-blocking mode
 tcp.setHost("192.168.1.100")
@@ -232,7 +232,7 @@ Asynchronous mode provides true non-blocking I/O using Python's `asyncio`.
 **Example:**
 ```python
 import asyncio
-from modbuspy import ModbusAsyncClientPort, ModbusTcpPort
+from libmodbuspy import ModbusAsyncClientPort, ModbusTcpPort
 
 async def main():
     tcp = ModbusTcpPort(blocking=False)
@@ -372,7 +372,7 @@ def writeSingleCoil(self, unit: int, offset: int, value: bool) -> StatusCode
 
 **Example:**
 ```python
-from modbuspy import StatusIsGood
+from libmodbuspy import StatusIsGood
 
 status = client.writeSingleCoil(0, True)
 if status is not None and StatusIsGood(status):
@@ -606,7 +606,7 @@ floats = client.readHoldingRegistersF(0, count=2, fmt='<f')
 ### Exception Handling
 
 ```python
-from modbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
+from libmodbuspy import ModbusClientPort, ModbusTcpPort, ModbusException
 
 tcp = ModbusTcpPort(blocking=True)
 port = ModbusClientPort(tcp)
@@ -627,7 +627,7 @@ It is contained in exception as `ModbusException.code`.
 Also it can be retrieved using `ModbusClientPort.lastErrorStatus()`
 and `ModbusServerPort.lastErrorStatus()`.
 
-Defintions of status codes is located in `modbuspy.statuscode` module.
+Defintions of status codes is located in `libmodbuspy.statuscode` module.
 
 ## Signal and Callback System
 
@@ -654,7 +654,7 @@ port.signalError.connect(on_error)
 
 ```python
 #!/usr/bin/env python3
-from modbuspy import (ModbusClient, ModbusClientPort, ModbusTcpPort, 
+from libmodbuspy import (ModbusClient, ModbusClientPort, ModbusTcpPort, 
                       ModbusException, StatusIsGood)
 
 def main():
@@ -688,7 +688,7 @@ if __name__ == "__main__":
 
 ```python
 #!/usr/bin/env python3
-from modbuspy import ModbusClient, ModbusClientPort, ModbusRtuPort
+from libmodbuspy import ModbusClient, ModbusClientPort, ModbusRtuPort
 
 def main():
     # Create RTU port
@@ -713,7 +713,7 @@ if __name__ == "__main__":
 ```python
 #!/usr/bin/env python3
 import asyncio
-from modbuspy import ModbusClient, ModbusAsyncClientPort, ModbusTcpPort
+from libmodbuspy import ModbusClient, ModbusAsyncClientPort, ModbusTcpPort
 
 async def main():
     tcp = ModbusTcpPort(blocking=False)
