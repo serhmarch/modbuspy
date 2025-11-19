@@ -64,6 +64,25 @@ The library provides several features applicable to both client and server imple
 * **Exception Handling** - Standardized Modbus exception support
 * **Python 3.7+ Compatible** - Modern Python async/await support available
 
+**Client features**:
+* ModbusClient (per-unit convenience) and ModbusClientPort (port/transport manager).
+* Automatically opens/closes connections and shares a port between multiple ModbusClient instances.
+* Formatted read/write helpers (format-suffixed methods) to pack/unpack values with struct-like format strings.
+* Helpers for packing binary data for PLC registers with endian control.
+* Returns tuples of typed values for reads and accepts tuples for writes.
+* Configurable timeouts, retries and error mapping to ModbusException hierarchy.
+* Automatic reconnection and resource timeouts.
+* Manage many unit addresses over one physical port without manual locking.
+
+**Server features**:
+* ModbusServerResource (port/transport manager) and ModbusTcpServer (TCP server).
+* Accepts ModbusInterface to define custom device behavior.
+* Non-blocking operation for single-threaded server loops.
+* Configurable timeouts, maximum connections and error handling.
+* Unit ID filtering - Automatic routing of requests to appropriate device units
+* Hot-reload configuration - Dynamically update server settings without stopping
+* Event callbacks - Register handlers for connection open/close and error events
+
 ### Blocking mode
 
 Library supports both blocking and non-blocking modes of operation.
@@ -257,7 +276,7 @@ to this interface. So user can define by itself how incoming Modbus-request will
 from libmodbuspy import createServerPort, ModbusInterface, ProtocolType, StatusCode
 from libmodbuspy import ModbusException
 from libmodbuspy.exceptions import (IllegalDataAddressError,
-                                 GatewayPathUnavailableError)
+                                    GatewayPathUnavailableError)
 #...
 class MyModbusDevice(ModbusInterface):
     MEM_SIZE = 100
@@ -427,9 +446,9 @@ After installation, you can import and use libmodbuspy in your Python projects:
 
 ```python
 from libmodbuspy import (ModbusClient,
-                      ModbusClientPort,
-                      ModbusTcpPort,
-                      ModbusException) 
+                         ModbusClientPort,
+                         ModbusTcpPort,
+                         ModbusException) 
 
 # Create TCP port
 tcp = ModbusTcpPort(blocking=True)
