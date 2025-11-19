@@ -24,6 +24,12 @@ Library implements such Modbus functions as:
 * `23` (`0x17`) - `READ_WRITE_MULTIPLE_REGISTERS`
 * `24` (`0x18`) - `READ_FIFO_QUEUE`
 
+## Installation
+
+```console
+pip install libmodbuspy
+```
+
 ## Using Library
 
 ### Common usage
