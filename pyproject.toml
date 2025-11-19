@@ -7,7 +7,7 @@ name = "libmodbuspy"
 version = "0.4.0"
 description = "A Python implementation of Modbus TCP, RTU, and ASCII protocols"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 license = {text = "MIT"}
 authors = [
     {name = "serhmarch", email = "mrchsrg@gmail.com"}
@@ -33,7 +33,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -142,7 +141,7 @@ exclude_lines = [
 ]
 
 [tool.mypy]
-python_version = "3.6"
+python_version = "3.7"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

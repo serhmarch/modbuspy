@@ -56,7 +56,7 @@ The library provides several features applicable to both client and server imple
 * **CRC/LRC Validation** - Automatic checksum calculation and validation
 * **Configurable Timeouts** - Set custom timeout values for operations
 * **Exception Handling** - Standardized Modbus exception support
-* **Python 3.6+ Compatible** - Modern Python async/await support available
+* **Python 3.7+ Compatible** - Modern Python async/await support available
 
 ### Blocking mode
 
@@ -376,7 +376,7 @@ def main():
 
 ### Requirements
 
-- Python 3.6 or higher
+- Python 3.7 or higher
 - `pyserial` library (for serial communication)
 
 ### Install dependencies

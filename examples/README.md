@@ -406,7 +406,7 @@ python ademomulticlient.py -t TCP -r localhost -p 502 -u 1
 
 ## Requirements
 
-- Python 3.6+ (for async features)
+- Python 3.7+ (for async features)
 - libmodbuspy library (included in parent directory)
 - `pyserial` library for RTU/ASCII serial support: `pip install pyserial`
 
