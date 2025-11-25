@@ -354,7 +354,7 @@ def main():
     options = parse_arguments()
     
     print("Modbus Demo Server - Python version")
-    print(f"Protocol: {['TCP', 'RTU', 'ASC'][options.type]}")
+    print(f"Protocol: {['ASC', 'RTU', 'TCP'][options.type]}")
     print(f"Unit: {options.unit}, Memory size: {options.count} registers")
     
     # Create device with simulated memory
