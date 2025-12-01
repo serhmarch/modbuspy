@@ -364,8 +364,8 @@ def main():
                 reg_data = bytearray(req.count * 2)
                 for i in range(req.count):
                     val = i + 1000  # Test values starting from 1000
-                    reg_data[i*2] = (val >> 8) & 0xFF
-                    reg_data[i*2+1] = val & 0xFF
+                    reg_data[i*2+1] = (val >> 8) & 0xFF
+                    reg_data[i*2] = val & 0xFF
                 print_regs(req.count, reg_data)
                 while 1:
                     status = client.writeMultipleRegisters(req.offset, reg_data)
@@ -410,8 +410,8 @@ def main():
                 write_data = bytearray(req.count * 2)
                 for i in range(req.count):
                     val = i + 2000  # Test values starting from 2000
-                    write_data[i*2] = (val >> 8) & 0xFF
-                    write_data[i*2+1] = val & 0xFF
+                    write_data[i*2+1] = (val >> 8) & 0xFF
+                    write_data[i*2] = val & 0xFF
                 print(f"Writing: ", end="")
                 print_regs(req.count, write_data)
                 while 1:
