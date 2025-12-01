@@ -111,7 +111,7 @@ class Device(ModbusInterface):
         if len(values) < count * 2:
             return False
         for i in range(count):
-            val = (values[i*2] << 8) | values[i*2+1]
+            val = (values[i*2+1] << 8) | values[i*2]
             self.memory[offset + i] = val
         return True
     
