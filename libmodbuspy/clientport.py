@@ -406,7 +406,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         status = self.getRequestStatus(client)        
         if status == ModbusClientPort.RequestStatus.Enable:
             if count > MB_MAX_DISCRETS:
-                self.cancelRequest(client)
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::readCoils(offset={offset}, count={count}): Requested count of coils is too large")
             # Prepare request buffer
             self._buff = bytearray(4)
@@ -430,7 +429,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             if fcBytes != ((self._count + 7) // 8):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' is not match received one")
             # Extract coil values from response
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(buff[1:fcBytes])
         else:
             return None
@@ -451,7 +450,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         status = self.getRequestStatus(client)        
         if status == ModbusClientPort.RequestStatus.Enable:
             if count > MB_MAX_DISCRETS:
-                self.cancelRequest(client)
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::readDiscreteInputs(offset={offset}, count={count}): Requested count of coils is too large")
             # Prepare request buffer
             self._buff = bytearray(4)
@@ -473,7 +471,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             if fcBytes != ((self._count + 7) // 8):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' is not match received one")
             # Extract coil values from response
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(buff[1:fcBytes])
         else:
             return None
@@ -494,7 +492,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         status = self.getRequestStatus(client)        
         if status == ModbusClientPort.RequestStatus.Enable:
             if count > MB_MAX_REGISTERS:
-                self.cancelRequest(client)
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::readHoldingRegisters(offset={offset}, count={count}): Requested count of holding registers is too large")
             # Prepare request buffer
             self._buff = bytearray(4)
@@ -523,7 +520,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             for i in range(fcRegs):
                 values[i*2  ] = buff[2+i*2]
                 values[i*2+1] = buff[1+i*2]
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(values)
         else:
             return None
@@ -544,7 +541,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         status = self.getRequestStatus(client)        
         if status == ModbusClientPort.RequestStatus.Enable:
             if count > MB_MAX_REGISTERS:
-                self.cancelRequest(client)
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::readInputRegisters(offset={offset}, count={count}): Requested count of holding registers is too large")
             # Prepare request buffer
             self._buff = bytearray(4)
@@ -573,7 +569,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             for i in range(fcRegs):
                 values[i*2  ] = buff[2+i*2]
                 values[i*2+1] = buff[1+i*2]
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(values)
         else:
             return None
@@ -612,7 +608,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             outOffset = buff[1] | (buff[0] << 8)
             if outOffset != self._offset:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'Offset' is not match received one")
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return StatusCode.Status_Good
         else:
             return None
@@ -655,7 +651,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             outValue = buff[3] | (buff[2] << 8)
             if outValue != self._value:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'Value' is not match received one")
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return StatusCode.Status_Good
         else:
             return None
@@ -685,7 +681,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                 return bytes()
             if len(buff) != 1:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(buff)
         else:
             return None
@@ -723,7 +719,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             outSubfunc = buff[1] | (buff[0] << 8)
             if outSubfunc != self._subfunc:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Diagnostics sub-function is not match received one")
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(buff[2:])
         else:
             return None
@@ -758,7 +754,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             values[1] = buff[0]  # Status - MS BYTE
             values[2] = buff[3]  # Event count - LS BYTE
             values[3] = buff[2]  # Event count - MS BYTE
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(values)
         else:
             return None
@@ -800,7 +796,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             values[4] = buff[5] # Message count - LS BYTE
             values[5] = buff[6] # Message count - MS BYTE
             values[6:] = buff[7:] # Event log data
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(values)
         else:
             return None
@@ -823,7 +819,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             if count < 0:
                 count = len(values) * 8
             if count > MB_MAX_DISCRETS:
-                self.cancelRequest(client)
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::writeMultipleCoils(offset={offset}, count={count}): Requested count of coils is too large")
             # Prepare request buffer
             self._buff = bytearray(5)
@@ -851,7 +846,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             outCount = buff[3] | (buff[2] << 8)
             if outCount != self._count:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'Count' is not match received one")
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return StatusCode.Status_Good
         else:
             return None
@@ -873,7 +868,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         if status == ModbusClientPort.RequestStatus.Enable:
             count = len(values) // 2
             if count > MB_MAX_REGISTERS:
-                self.cancelRequest(client)
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::readCoils(offset={offset}, count={count}): Requested count of coils is too large")
             # Prepare request buffer
             byteCount = count * 2
@@ -903,7 +897,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             outCount = buff[3] | (buff[2] << 8)
             if outCount != self._count:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'Count' is not match received one")
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return StatusCode.Status_Good
         else:
             return None
@@ -935,11 +929,97 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             byteCount = buff[0]
             if len(buff) != (byteCount+1):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' doesn't match with received data size")
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(buff[1:])
         else:
             return None
+
+    def _readFileRecord(self, client:ModbusObject, unit: int, records: list) -> list:
+        """Function is used to read one or more file records from a remote device.
         
+        Args:
+            client: The client object making the request.
+            unit: Address of the remote Modbus device.
+            records: list of records to read, where each record is
+                     a dict with keys "fileNumber", "recordNumber", "recordLength".
+
+        Returns:
+            * `list` of bytes array that represents the requested file records data.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
+        """
+        status = self.getRequestStatus(client)        
+        if status == ModbusClientPort.RequestStatus.Enable:
+            # Prepare request buffer
+            count = len(records)
+            if count > MB_FILE_RECORD_MAX:
+                self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::readFileRecord(): Requested count of records {count} is too large")
+            # Prepare request buffer
+            byteCount = count * 7
+            self._buff = bytearray(5+byteCount)
+            self._buff[0] = byteCount
+            i = 0
+            for record in records:
+                fileNumber = record["fileNumber"]
+                recordNumber = record["recordNumber"]
+                recordLength = record["recordLength"]
+                idx = 1 + i * 7
+                self._buff[idx    ] = 0x06                       # Reference Type - must be 0x06
+                self._buff[idx + 1] = (fileNumber >> 8) & 0xFF   # File number - MS BYTE
+                self._buff[idx + 2] = fileNumber & 0xFF          # File number - LS BYTE
+                self._buff[idx + 3] = (recordNumber >> 8) & 0xFF # Record number - MS BYTE
+                self._buff[idx + 4] =  recordNumber & 0xFF       # Record number - LS BYTE
+                self._buff[idx + 5] = (recordLength >> 8) & 0xFF # Record length - MS BYTE
+                self._buff[idx + 6] = recordLength & 0xFF        # Record length - LS BYTE
+                i += 1
+            self._count = count
+            status = ModbusClientPort.RequestStatus.Process        
+        if status == ModbusClientPort.RequestStatus.Process:
+            buff = self._request(unit, MBF_READ_FILE_RECORD, self._buff)
+            if buff is None:
+                return None
+            if self._isBroadcast():
+                return []
+            if len(buff) == 0:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+            byteCount = buff[0]
+            if len(buff) != (byteCount+1):
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' doesn't match with received data size")
+            res = []
+            opos = 1
+            for i in range(self._count):
+                if opos + 1 > byteCount:
+                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+                fileRespLength = buff[opos]
+                if ((fileRespLength < 1) or
+                    (fileRespLength > MB_FILE_RECORD_BUFF_SZ) or
+                    (fileRespLength & 0x01 == 0) # Record length must NOT be even: 1+2*N
+                    ):
+                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+                refType = buff[opos + 1]
+                if refType != 0x06:
+                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received reference type")
+                if opos + fileRespLength > byteCount:
+                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+                opos += 2
+                c = (fileRespLength - 1) // 2
+                b = bytearray(c)
+                for j in range(c):
+                    # Swap bytes in each register value
+                    idx = opos + j * 2
+                    b[j*2], b[j*2+1] = buff[idx+1], buff[idx]
+                recData = bytes(b)
+                res.append(recData)
+                opos += fileRespLength
+            if opos != (byteCount + 1):
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+            self._setStatusCompleted(StatusCode.Status_Good)
+            return res
+        else:
+            return None
+
     def _maskWriteRegister(self, client:ModbusObject, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode:
         """Mask write register on Modbus device.
 
@@ -983,7 +1063,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'AndMask' is not match received one")
             if (outOrMask != self._orMask):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'OrMask' is not match received one")
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return StatusCode.Status_Good
         else:
             return None
@@ -995,7 +1075,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         if status == ModbusClientPort.RequestStatus.Enable:
             writeCount = len(writeValues) // 2
             if readCount > MB_MAX_REGISTERS or writeCount > MB_MAX_REGISTERS:
-                self.cancelRequest(client)
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::readWriteMultipleRegisters(): Requested count of registers is too large")
             # Prepare request buffer
             byteCount = writeCount * 2
@@ -1033,7 +1112,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             for i in range(fcRegs):
                 values[i*2  ] = buff[2+i*2]
                 values[i*2+1] = buff[1+i*2]
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(values)
         else:
             return None
@@ -1078,7 +1157,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             for i in range(FIFOCount):
                 values[i*2  ] = buff[5+i*2]
                 values[i*2+1] = buff[4+i*2]
-            self._setStatus(StatusCode.Status_Good)
+            self._setStatusCompleted(StatusCode.Status_Good)
             return bytes(values)
         else:
             return None
@@ -1117,6 +1196,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                         return None
                     fRepeatAgain = True
                     continue
+                self._setCompleted()
                 raise e
             finally:
                 if r is not None:
@@ -1284,6 +1364,20 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         self._lastStatus = status
         self._lastStatusTimestamp = currentTimestamp()  
 
+    def _setStatusCompleted(self, status: StatusCode):
+        """Sets the status parameters of the last operation performed as completed.
+        
+        Args:
+            status: StatusCode of the completed operation.
+        """
+        self._setStatus(status)
+        self._setCompleted()
+
+    def _setCompleted(self):
+        """Sets the state of the last operation performed as completed.
+        """
+        self._currentClient = None
+
     def _setError(self, exc, text: str = ""):
         """Sets the error parameters of the last operation performed.
         
@@ -1302,6 +1396,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             text: Text description of the error (optional).
         """
         self._isLastPortError = False
+        self._setCompleted()
         self._raiseErrorBase(exc, text)
 
     def _setPortError(self, exc, text: str = ""):

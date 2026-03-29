@@ -99,6 +99,82 @@ MBF_ILLEGAL_FUNCTION                 = 73
 MBF_EXCEPTION                        = 128
 
 # --------------------------------------------------------------------------------------------------------
+# ----------------------------------- Modbus diagnostic function codes -----------------------------------
+# --------------------------------------------------------------------------------------------------------
+
+MBF_DIAGNOSTICS_RETURN_QUERY_DATA                      = 0
+MBF_DIAGNOSTICS_RESTART_COMMUNICATIONS_OPTION          = 1
+MBF_DIAGNOSTICS_RETURN_DIAGNOSTIC_REGISTER             = 2
+MBF_DIAGNOSTICS_CHANGE_ASCII_INPUT_DELIMITER           = 3
+MBF_DIAGNOSTICS_FORCE_LISTEN_ONLY_MODE                 = 4
+MBF_DIAGNOSTICS_CLEAR_COUNTERS_AND_DIAGNOSTIC_REGISTER = 10
+MBF_DIAGNOSTICS_RETURN_BUS_MESSAGE_COUNT               = 11
+MBF_DIAGNOSTICS_RETURN_BUS_COMMUNICATION_ERROR_COUNT   = 12
+MBF_DIAGNOSTICS_RETURN_BUS_EXCEPTION_ERROR_COUNT       = 13
+MBF_DIAGNOSTICS_RETURN_SERVER_MESSAGE_COUNT            = 14
+MBF_DIAGNOSTICS_RETURN_SERVER_NO_RESPONSE_COUNT        = 15
+MBF_DIAGNOSTICS_RETURN_SERVER_NAK_COUNT                = 16
+MBF_DIAGNOSTICS_RETURN_SERVER_BUSY_COUNT               = 17
+MBF_DIAGNOSTICS_RETURN_BUS_CHARACTER_OVERRUN_COUNT     = 18
+MBF_DIAGNOSTICS_CLEAR_OVERRUN_COUNTER_AND_FLAG         = 20
+
+
+# --------------------------------------------------------------------------------------------------------
+# ---------------------------------------- Modbus Events Constants ---------------------------------------
+# --------------------------------------------------------------------------------------------------------
+
+MB_RECEIVE_EVENT_COMMUNICATION_ERROR            = 0x82
+MB_RECEIVE_EVENT_CHARACTER_OVERRUN              = 0x90
+MB_RECEIVE_EVENT_CURRENTLY_IN_LISTEN_ONLY_MODE  = 0xA0
+MB_RECEIVE_EVENT_BROADCAST_RECEIVED             = 0xC0
+
+MB_SEND_EVENT_READ_EXCEPTION_SENT               = 0x41
+MB_SEND_EVENT_SERVER_ABORT_EXCEPTION_SENT       = 0x42
+MB_SEND_EVENT_SERVER_BUSY_EXCEPTION_SENT        = 0x44
+MB_SEND_EVENT_SERVER_PROGRAM_NAK_EXCEPTION_SENT = 0x48
+MB_SEND_EVENT_WRITE_TIMEOUT_ERROR_OCCURRED      = 0x50
+MB_SEND_EVENT_CURRENTLY_IN_LISTEN_ONLY_MODE     = 0x60
+
+MB_EVENT_ENTERED_LISTEN_ONLY_MODE               = 0x04
+MB_EVENT_INITIATED_COMMUNICATION_RESTART        = 0x00
+
+# --------------------------------------------------------------------------------------------------------
+# ----------------------------- Modbus Encapsulated Interface (MEI) Constants ----------------------------
+# --------------------------------------------------------------------------------------------------------
+
+# MEI Type for Read Device Identification (sub-function of FC43)
+MBF_MEI_READ_DEVICE_ID              = 0x0E
+
+# Read Device ID Code: Basic identification (objects 0x00-0x02)
+MB_MEI_READ_DEVICE_ID_BASIC         = 0x01
+# Read Device ID Code: Regular identification (objects 0x00-0x06)
+MB_MEI_READ_DEVICE_ID_REGULAR       = 0x02
+# Read Device ID Code: Extended identification (objects 0x00-0xFF)
+MB_MEI_READ_DEVICE_ID_EXTENDED      = 0x03
+# Read Device ID Code: Specific identification (one individual object)
+MB_MEI_READ_DEVICE_ID_SPECIFIC      = 0x04
+
+# Device ID Object: Vendor Name (mandatory, basic)
+MB_MEI_OBJECT_ID_VENDOR_NAME            = 0x00
+# Device ID Object: Product Code (mandatory, basic)
+MB_MEI_OBJECT_ID_PRODUCT_CODE           = 0x01
+# Device ID Object: Major Minor Revision (mandatory, basic)
+MB_MEI_OBJECT_ID_MAJOR_MINOR_REVISION   = 0x02
+# Device ID Object: Vendor URL (optional, regular)
+MB_MEI_OBJECT_ID_VENDOR_URL             = 0x03
+# Device ID Object: Product Name (optional, regular)
+MB_MEI_OBJECT_ID_PRODUCT_NAME           = 0x04
+# Device ID Object: Model Name (optional, regular)
+MB_MEI_OBJECT_ID_MODEL_NAME             = 0x05
+# Device ID Object: User Application Name (optional, regular)
+MB_MEI_OBJECT_ID_USER_APPLICATION_NAME  = 0x06
+
+# More Follows flag: additional objects available
+MB_MEI_MORE_FOLLOWS                     = 0xFF
+# More Follows flag: no more objects
+MB_MEI_NO_MORE_FOLLOWS                  = 0x00
+
+# --------------------------------------------------------------------------------------------------------
 # ---------------------------------------- Modbus count constants ----------------------------------------
 # --------------------------------------------------------------------------------------------------------
 
@@ -138,7 +214,13 @@ MB_TCP_IO_BUFF_SZ = 268
 # Maximum events for `GetCommEventLog` function
 MB_GET_COMM_EVENT_LOG_MAX = 64
 
-# Maximum events for `GetCommEventLog` function
+# Maximum records for `Read/Write FileRecord` functions,  floor(255 / 7)
+MB_FILE_RECORD_MAX = 35
+
+# Maximum buff length for `Read/Write FileRecord` functions
+MB_FILE_RECORD_BUFF_SZ = 251
+
+# Maximum count of registers for FIFO queue in `Read FIFO Queue` function
 MB_READ_FIFO_QUEUE_MAX = 31
 
 # --------------------------------------------------------------------------------------------------------
