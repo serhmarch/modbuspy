@@ -6,7 +6,7 @@ Date: November 2025
 """
 
 from enum import IntEnum
-from typing import Optional
+from typing import Optional, Collection, Tuple
 from time import sleep
 
 from .statuscode import StatusCode
@@ -206,6 +206,12 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         
     def reportServerID(self, unit: int) -> bytes:
         return self._reportServerID(self, unit)
+
+    def readFileRecord(self, unit: int, records: Collection) -> Tuple:
+        return self._readFileRecord(self, unit, records)
+        
+    def writeFileRecord(self, unit: int, records: Collection) -> StatusCode:
+        return self._writeFileRecord(self, unit, records)
         
     def maskWriteRegister(self, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode:
         return self._maskWriteRegister(self, unit, offset, andMask, orMask)
@@ -934,13 +940,13 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         else:
             return None
 
-    def _readFileRecord(self, client:ModbusObject, unit: int, records: list) -> list:
+    def _readFileRecord(self, client:ModbusObject, unit: int, records: Collection) -> Tuple:
         """Function is used to read one or more file records from a remote device.
         
         Args:
             client: The client object making the request.
             unit: Address of the remote Modbus device.
-            records: list of records to read, where each record is
+            records: Sized iterable collection of records to read, where each record is
                      a dict with keys "fileNumber", "recordNumber", "recordLength".
 
         Returns:
@@ -958,8 +964,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                 self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::readFileRecord(): Requested count of records {count} is too large")
             # Prepare request buffer
             byteCount = count * 7
-            self._buff = bytearray(5+byteCount)
-            self._buff[0] = byteCount
+            self._buff = bytearray(1+byteCount)
             i = 0
             for record in records:
                 fileNumber = record["fileNumber"]
@@ -974,6 +979,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                 self._buff[idx + 5] = (recordLength >> 8) & 0xFF # Record length - MS BYTE
                 self._buff[idx + 6] = recordLength & 0xFF        # Record length - LS BYTE
                 i += 1
+            self._buff[0] = byteCount
             self._count = count
             status = ModbusClientPort.RequestStatus.Process        
         if status == ModbusClientPort.RequestStatus.Process:
@@ -1016,7 +1022,71 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             if opos != (byteCount + 1):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
             self._setStatusCompleted(StatusCode.Status_Good)
-            return res
+            return tuple(res)
+        else:
+            return None
+
+    def _writeFileRecord(self, client:ModbusObject, unit: int, records: Collection) -> StatusCode:
+        """Function is used to write one or more file records to a remote device.
+        
+        Args:
+            client: The client object making the request.
+            unit: Address of the remote Modbus device.
+            records: Sized iterable collection of records to read, where each record is
+                     a dict with keys "fileNumber", "recordNumber", "recordLength".
+
+        Returns:
+            * `list` of bytes array that represents the requested file records data.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
+        """
+        status = self.getRequestStatus(client)        
+        if status == ModbusClientPort.RequestStatus.Enable:
+            # Prepare request buffer
+            count = len(records)
+            if count > MB_FILE_RECORD_MAX:
+                self._raiseError(StatusCode.Status_BadNotCorrectRequest, f"ModbusClientPort::writeFileRecord(): Requested count of records {count} is too large")
+            # Prepare request buffer
+            self._buff = bytearray(1)
+            byteCount = 0
+            for record in records:
+                fileNumber = record["fileNumber"]
+                recordNumber = record["recordNumber"]
+                recordData = record["recordData"]
+                recordLength = len(recordData) // 2
+                c = recordLength * 2 + 7
+                self._buff.resize(len(self._buff) + c)
+                idx = 1 + byteCount
+                self._buff[idx    ] = 0x06                       # Reference Type - must be 0x06
+                self._buff[idx + 1] = (fileNumber >> 8) & 0xFF   # File number - MS BYTE
+                self._buff[idx + 2] = fileNumber & 0xFF          # File number - LS BYTE
+                self._buff[idx + 3] = (recordNumber >> 8) & 0xFF # Record number - MS BYTE
+                self._buff[idx + 4] =  recordNumber & 0xFF       # Record number - LS BYTE
+                self._buff[idx + 5] = (recordLength >> 8) & 0xFF # Record length - MS BYTE
+                self._buff[idx + 6] = recordLength & 0xFF        # Record length - LS BYTE
+                for i in range(recordLength):
+                    # Swap bytes in each register value
+                    self._buff[idx + 7 + i*2] = recordData[i*2+1] # Register value - LS BYTE
+                    self._buff[idx + 8 + i*2] = recordData[i*2  ] # Register value - MS BYTE
+                byteCount += c
+            self._buff[0] = byteCount
+            self._count = count
+            status = ModbusClientPort.RequestStatus.Process        
+        if status == ModbusClientPort.RequestStatus.Process:
+            buff = self._request(unit, MBF_WRITE_FILE_RECORD, self._buff)
+            if buff is None:
+                return None
+            if self._isBroadcast():
+                return []
+            if len(buff) == 0:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+            byteCount = buff[0]
+            if len(buff) != (byteCount+1):
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' doesn't match with received data size")
+            self._setStatusCompleted(StatusCode.Status_Good)
+            return StatusCode.Status_Good
         else:
             return None
 
@@ -1513,6 +1583,12 @@ class ModbusAsyncClientPort(ModbusClientPort):
         
     def reportServerID(self, unit: int) -> bytes:
         return AwaitableMethod(super().reportServerID, unit)
+
+    def readFileRecord(self, unit: int, records: Collection) -> Tuple:
+        return AwaitableMethod(super().readFileRecord, unit, records)
+        
+    def writeFileRecord(self, unit: int, records: Collection) -> StatusCode:
+        return AwaitableMethod(super().writeFileRecord, unit, records)
         
     def maskWriteRegister(self, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode:
         return AwaitableMethod(super().maskWriteRegister, unit, offset, andMask, orMask)
@@ -1594,6 +1670,12 @@ class ModbusAsyncClientPort(ModbusClientPort):
         
     def _reportServerID(self, client:ModbusObject, unit: int) -> bytes:
         return AwaitableMethod(super()._reportServerID, client, unit)
+        
+    def _readFileRecord(self, client:ModbusObject, unit: int, records: Collection) -> Tuple:
+        return AwaitableMethod(super()._readFileRecord, client, unit, records)
+        
+    def _writeFileRecord(self, client:ModbusObject, unit: int, records: Collection) -> StatusCode:
+        return AwaitableMethod(super()._writeFileRecord, client, unit, records)
         
     def _maskWriteRegister(self, client:ModbusObject, unit: int, offset: int, andMask: int, orMask: int) -> StatusCode:
         return AwaitableMethod(super()._maskWriteRegister, client, unit, offset, andMask, orMask)

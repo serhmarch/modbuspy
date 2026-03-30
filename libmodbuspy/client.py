@@ -5,7 +5,7 @@ Author: serhmarch
 Date: November 2025
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Collection, Tuple
 from .statuscode import StatusCode
 from .mbglobal import MB_FMT_UINT16_LE
 from .mbobject import ModbusObject
@@ -94,6 +94,12 @@ class ModbusClient(ModbusObject):
     def reportServerID(self) -> bytes:
         return self._port._reportServerID(self, self._unit)
 
+    def readFileRecord(self, records: Collection) -> Tuple:
+        return self._readFileRecord(self, self._unit, records)
+        
+    def writeFileRecord(self, records: Collection) -> StatusCode:
+        return self._writeFileRecord(self, self._unit, records)
+        
     def maskWriteRegister(self, offset: int, andMask: int, orMask: int) -> bool:
         return self._port._maskWriteRegister(self, self._unit, offset, andMask, orMask)
 

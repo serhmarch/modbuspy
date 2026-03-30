@@ -24,6 +24,7 @@ for consistency across different platforms.
 @date November 2025
 """
 
+from typing import Collection, Tuple
 from . import exceptions
 from .statuscode import StatusCode
 
@@ -507,16 +508,16 @@ class ModbusInterface:
         """
         raise exceptions.IllegalFunctionError("Function not supported")
 
-    def readFileRecord(self, unit: int, records: list) -> list:
+    def readFileRecord(self, unit: int, records: Collection) -> Tuple:
         """Function is used to read one or more file records from a remote device.
         
         Args:
             unit: Address of the remote Modbus device.
-            records: list of records to read, where each record is
-                     a dict of keys "fileNumber", "recordNumber", "recordLength".
+            records: Sized iterable collection of records to read, where each record is
+                     a dict with keys "fileNumber", "recordNumber", "recordLength".
 
         Returns:
-            * `list` of bytes array that represents the requested file records data.
+            * `tuple` of bytes array that represents the requested file records data.
             * `None` when operation is not finished yet (only for nonblocking mode).
 
         Raises:
@@ -524,13 +525,13 @@ class ModbusInterface:
         """
         raise exceptions.IllegalFunctionError("Function not supported")
 
-    def writeFileRecord(self, unit: int, records: list) -> StatusCode:
+    def writeFileRecord(self, unit: int, records: Collection) -> StatusCode:
         """Function is used to write one or more file records to a remote device.
         
         Args:
             unit: Address of the remote Modbus device.
-            records: list of records to write, where each record is
-                     a dict of keys "fileNumber", "recordNumber", "recordData".
+            records: Sized iterable collection of records to write, where each record is
+                     a dict with keys "fileNumber", "recordNumber", "recordData".
 
         Returns:
             * The result StatusCode of the operation.
