@@ -55,6 +55,8 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         self._count = 0
         self._value = 0
         self._orMask = 0
+        self._readDeviceIdCode = 0
+        self._readDeviceIdObjectId = 0
         self._buff = bytearray()
         self._block = False
         self._currentClient = None
@@ -226,6 +228,9 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
     def readFIFOQueue(self, unit: int, fifoadr: int) -> bytes:
         return self._readFIFOQueue(self, unit, fifoadr)
 
+    def readDeviceIdentification(self, unit: int, deviceId: int, objectId: int) -> dict:
+        return self._readDeviceIdentification(self, unit, deviceId, objectId)
+
     # formatting methods
     def readCoilsF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
         return self._readCoilsF(self, unit, offset, count, fmt=fmt)
@@ -237,7 +242,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         return self._readHoldingRegistersF(self, unit, offset, count, fmt=fmt)
 
     def readInputRegistersF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
-        return self._readInputRegisters(self, unit, offset, count, fmt=fmt)
+        return self._readInputRegistersF(self, unit, offset, count, fmt=fmt)
 
     def writeMultipleCoilsF(self, unit: int, offset: int, values: Tuple, count: int = -1, fmt: str=MB_FMT_UINT16_LE) -> StatusCode:
         return self._writeMultipleCoilsF(self, unit, offset, values, count, fmt=fmt)
@@ -1232,6 +1237,77 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         else:
             return None
 
+    def _readDeviceIdentification(self, client:ModbusObject, unit: int, deviceId: int, objectId: int) -> dict:
+        """Function for Read Device Identification, FC43 (0x2B), MEI type 14 (0x0E).
+        Reads identity objects (vendor name, product code, revision, etc.) from a remote device.
+        The response is returned as list of tuples containing (objectId:int, objectData:bytes).
+
+        Args:
+            client: The client object making the request.
+            unit: Modbus unit/slave address.
+            deviceId: Read Device ID code: 1=Basic, 2=Regular, 3=Extended, 4=Specific.
+            objectId: Starting object ID to read from (0x00-0xFF).
+
+        Returns:
+            * `dict` of values representing the requested device identification:
+                - "conformityLevel" - Conformity level of the device
+                - "moreFollows" - Boolean flag indicating if more objects follow
+                - "nextObjectId" - Next object ID to read (if moreFollows is True)
+                - "objects" - list of tuples (objectId:int, objectData:bytes) for read objects
+            * `None` when operation is not finished yet (only for nonblocking mode).
+        """
+        
+        status = self.getRequestStatus(client)        
+        if status == ModbusClientPort.RequestStatus.Enable:
+            # Prepare request buffer
+            self._buff = bytearray(3)
+            self._buff[0] = MBF_MEI_READ_DEVICE_ID # MEI type for Read Device Identification
+            self._buff[1] = deviceId               # Read Device
+            self._buff[2] = objectId               # Starting Object ID
+            self._readDeviceIdCode = deviceId
+            self._readDeviceIdObjectId = objectId
+            status = ModbusClientPort.RequestStatus.Process        
+        if status == ModbusClientPort.RequestStatus.Process:
+            buff = self._request(unit, MBF_ENCAPSULATED_INTERFACE_TRANSPORT, self._buff)
+            if buff is None:
+                return None
+            if self._isBroadcast():
+                return dict()
+            sz = len(buff)
+            if sz < 6:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+            if buff[0] != MBF_MEI_READ_DEVICE_ID:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect MEI type in response")
+            #if buff[1] != self._readDeviceIdCode:
+            #    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect device ID in response")
+            conformityLevel = buff[2]
+            moreFollows = bool(buff[3])
+            nextObjectId = buff[4]
+            #numberOfObjects = buff[5]
+            objects = []
+            self._setStatusCompleted(StatusCode.Status_Good)
+            opos = 6
+            while opos < sz:
+                if opos + 2 > sz:
+                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+                objId = buff[opos]
+                objLen = buff[opos + 1]
+                if opos + 2 + objLen > sz:
+                    self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+                objData = bytes(buff[opos + 2 : opos + 2 + objLen])
+                objects.append((objId, objData))
+                opos += 2 + objLen
+            # if len(objects) != numberOfObjects:
+            #     self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received number of objects")
+            return {
+                "conformityLevel": conformityLevel,
+                "moreFollows": moreFollows,
+                "nextObjectId": nextObjectId,
+                "objects": tuple(objects)
+            }
+        else:
+            return None
+        
     def _request(self, unit: int, func: int, buff: bytes) -> StatusCode:
         """The function builds the packet that the write() function puts into the buffer.
         
@@ -1602,6 +1678,9 @@ class ModbusAsyncClientPort(ModbusClientPort):
 
     def readFIFOQueue(self, unit: int, fifoadr: int) -> bytes:
         return AwaitableMethod(super().readFIFOQueue, unit, fifoadr)
+    
+    def readDeviceIdentification(self, unit: int, deviceId: int, objectId: int) -> dict:
+        return AwaitableMethod(super().readDeviceIdentification, unit, deviceId, objectId)
 
     # formatting methods
     def readCoilsF(self, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
@@ -1689,6 +1768,9 @@ class ModbusAsyncClientPort(ModbusClientPort):
 
     def _readFIFOQueue(self, client:ModbusObject, unit: int, fifoadr: int) -> bytes:
         return AwaitableMethod(super()._readFIFOQueue, client, unit, fifoadr)
+    
+    def _readDeviceIdentification(self, client:ModbusObject, unit: int, deviceId: int, objectId: int) -> dict:
+        return AwaitableMethod(super()._readDeviceIdentification, client, unit, deviceId, objectId)
 
     # low-level formatting methods
     def _readCoilsF(self, client:ModbusObject, unit: int, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:

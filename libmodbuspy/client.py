@@ -111,6 +111,9 @@ class ModbusClient(ModbusObject):
     def readFIFOQueue(self, fifoadr: int) -> bytes:
         return self._port._readFIFOQueue(self, self._unit, fifoadr)
 
+    def readDeviceIdentification(self, deviceId: int, objectId: int) -> dict:
+        return self._port._readDeviceIdentification(self, self._unit, deviceId, objectId)
+
     # formatting methods
     def readCoilsF(self, offset: int, count: int, fmt: str=MB_FMT_UINT16_LE) -> Tuple:
         return self._port._readCoilsF(self, self._unit, offset, count, fmt=fmt)
