@@ -2,7 +2,7 @@
 MBPY_VERSION_MAJOR = 0
 
 # Minor part of libmodbuspy lib version
-MBPY_VERSION_MINOR = 4
+MBPY_VERSION_MINOR = 5
 
 # Patch part of libmodbuspy lib version
 MBPY_VERSION_PATCH = 0

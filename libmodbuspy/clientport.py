@@ -194,6 +194,9 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
     def diagnosticsReturnQueryData(self, unit: int, indata: bytes) -> bytes:
         return self._diagnosticsReturnQueryData(self, unit, indata)
         
+    def diagnosticsRestartCommunicationsOption(self, unit: int, clearEventLog: bool) -> bytes:
+        return self._diagnosticsRestartCommunicationsOption(self, unit, clearEventLog)
+        
     def getCommEventCounter(self, unit: int) -> bytes:
         return self._getCommEventCounter(self, unit)
 
@@ -715,7 +718,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             # Prepare request buffer
             subfunc = MBF_DIAGNOSTICS_RETURN_QUERY_DATA
             self._buff = bytearray(2)
-            self._buff[0] = (subfunc >> 8) & 0xFF # Sub function - MS BYTE1
+            self._buff[0] = (subfunc >> 8) & 0xFF # Sub function - MS BYTE
             self._buff[1] = subfunc & 0xFF        # Sub function - LS BYTE
             self._buff[2:] = indata
             self._subfunc = subfunc
@@ -735,7 +738,49 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             return bytes(buff[2:])
         else:
             return None
+
+    def diagnosticsRestartCommunicationsOption(self, client:ModbusObject, unit: int, clearEventLog: bool) -> StatusCode:
+        """Diagnostics subfunction restart communication and clears all of device's event counters.
         
+        Args:
+            client: The client object making the request.
+            unit: Address of the remote Modbus device.
+            clearEventLog: Boolean flag to clear the event log.
+            
+        Returns:
+            * The result StatusCode of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
+        """
+        status = self.getRequestStatus(client)        
+        if status == ModbusClientPort.RequestStatus.Enable:
+            # Prepare request buffer
+            subfunc = MBF_DIAGNOSTICS_RESTART_COMMUNICATIONS_OPTION
+            self._buff = bytearray(4)
+            self._buff[0] = (subfunc >> 8) & 0xFF           # Sub function - MS BYTE
+            self._buff[1] = subfunc & 0xFF                  # Sub function - LS BYTE
+            self._buff[2] = 0xFF if clearEventLog else 0x00 # Restart Option - 0xFF if true, 0x00 if false  
+            self._buff[3] = 0x00                            # Restart Option - must always be 0x00
+            self._subfunc = subfunc
+            status = ModbusClientPort.RequestStatus.Process        
+        if status == ModbusClientPort.RequestStatus.Process:
+            buff = self._request(unit, MBF_DIAGNOSTICS, self._buff)
+            if buff is None:
+                return None
+            if self._isBroadcast():
+                return bytes()
+            if len(buff) != 4:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+            outSubfunc = buff[1] | (buff[0] << 8)
+            if outSubfunc != self._subfunc:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Diagnostics sub-function is not match received one")
+            self._setStatusCompleted(StatusCode.Status_Good)
+            return StatusCode.Status_Good
+        else:
+            return None
+
     def _getCommEventCounter(self, client:ModbusObject, unit: int) -> bytes:
         """ Get communication event counter from Modbus device.
 
@@ -1646,6 +1691,9 @@ class ModbusAsyncClientPort(ModbusClientPort):
     def diagnosticsReturnQueryData(self, unit: int, indata: Optional[bytes] = None) -> bytes:
         return AwaitableMethod(super().diagnosticsReturnQueryData, unit, indata)
         
+    def diagnosticsRestartCommunicationsOption(self, unit: int, clearEventLog: bool) -> bytes:
+        return AwaitableMethod(super().diagnosticsRestartCommunicationsOption, unit, clearEventLog)
+        
     def getCommEventCounter(self, unit: int) -> bytes:
         return AwaitableMethod(super().getCommEventCounter, unit)
 
@@ -1735,6 +1783,9 @@ class ModbusAsyncClientPort(ModbusClientPort):
 
     def _diagnosticsReturnQueryData(self, client:ModbusObject, unit: int, indata: bytes) -> bytes:
         return AwaitableMethod(super()._diagnosticsReturnQueryData, client, unit, indata)
+        
+    def _diagnosticsRestartCommunicationsOption(self, client:ModbusObject, unit: int, clearEventLog: bool) -> bytes:
+        return AwaitableMethod(super()._diagnosticsRestartCommunicationsOption, client, unit, clearEventLog)
         
     def _getCommEventCounter(self, client:ModbusObject, unit: int) -> bytes:
         return AwaitableMethod(super()._getCommEventCounter, client, unit)

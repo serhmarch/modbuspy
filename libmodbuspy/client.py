@@ -79,6 +79,9 @@ class ModbusClient(ModbusObject):
     def diagnosticsReturnQueryData(self, indata: bytes) -> bytes:
         return self._port._diagnosticsReturnQueryData(self, self._unit, indata)
 
+    def diagnosticsRestartCommunicationsOption(self, clearEventLog: bool) -> bytes:
+        return self._port._diagnosticsRestartCommunicationsOption(self, self._unit, clearEventLog)
+
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)
 
