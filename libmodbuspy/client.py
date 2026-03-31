@@ -76,8 +76,8 @@ class ModbusClient(ModbusObject):
     def readExceptionStatus(self) -> int:
         return self._port._readExceptionStatus(self, self._unit)
 
-    def diagnostics(self, subfunc: int, indata: Optional[bytes] = None) -> bytes:
-        return self._port._diagnostics(self, self._unit, subfunc, indata)
+    def diagnosticsReturnQueryData(self, indata: bytes) -> bytes:
+        return self._port._diagnosticsReturnQueryData(self, self._unit, indata)
 
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)

@@ -191,8 +191,8 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
     def readExceptionStatus(self, unit: int) -> bytes:
         return self._readExceptionStatus(self, unit)
 
-    def diagnostics(self, unit: int, subfunc: int, indata: Optional[bytes] = None) -> bytes:
-        return self._diagnostics(self, unit, subfunc, indata)
+    def diagnosticsReturnQueryData(self, unit: int, indata: bytes) -> bytes:
+        return self._diagnosticsReturnQueryData(self, unit, indata)
         
     def getCommEventCounter(self, unit: int) -> bytes:
         return self._getCommEventCounter(self, unit)
@@ -697,26 +697,27 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         else:
             return None
         
-    def _diagnostics(self, client:ModbusObject, unit: int, subfunc: int, indata: Optional[bytes] = None) -> bytes:
-        """Perform diagnostics on Modbus device.
+    def _diagnosticsReturnQueryData(self, client:ModbusObject, unit: int, indata: bytes) -> bytes:
+        """Diagnostics subfunction provides an echo of the supplied data.
 
         Args:
             client: The client object making the request.
-            unit: Modbus unit/slave address.
-            subfunc: Diagnostic sub-function code.
-
+            unit: Address of the remote Modbus device.
+            indata: Input data buffer for the diagnostic function.
+            
         Returns:
-            Bytes containing the response data.
+            * `bytes` array containing the response data.
+            * `None` when operation is not finished yet (only for nonblocking mode).
         """
         
         status = self.getRequestStatus(client)        
         if status == ModbusClientPort.RequestStatus.Enable:
             # Prepare request buffer
+            subfunc = MBF_DIAGNOSTICS_RETURN_QUERY_DATA
             self._buff = bytearray(2)
-            self._buff[0] = (subfunc >> 8) & 0xFF # Sub function - MS BYTE
+            self._buff[0] = (subfunc >> 8) & 0xFF # Sub function - MS BYTE1
             self._buff[1] = subfunc & 0xFF        # Sub function - LS BYTE
-            if indata is not None:
-                self._buff[2:] = indata
+            self._buff[2:] = indata
             self._subfunc = subfunc
             status = ModbusClientPort.RequestStatus.Process        
         if status == ModbusClientPort.RequestStatus.Process:
@@ -1642,8 +1643,8 @@ class ModbusAsyncClientPort(ModbusClientPort):
     def readExceptionStatus(self, unit: int) -> bytes:
         return AwaitableMethod(super().readExceptionStatus, unit)
 
-    def diagnostics(self, unit: int, subfunc: int, indata: Optional[bytes] = None) -> bytes:
-        return AwaitableMethod(super().diagnostics, unit, subfunc, indata)
+    def diagnosticsReturnQueryData(self, unit: int, indata: Optional[bytes] = None) -> bytes:
+        return AwaitableMethod(super().diagnosticsReturnQueryData, unit, indata)
         
     def getCommEventCounter(self, unit: int) -> bytes:
         return AwaitableMethod(super().getCommEventCounter, unit)
@@ -1732,8 +1733,8 @@ class ModbusAsyncClientPort(ModbusClientPort):
     def _readExceptionStatus(self, client:ModbusObject, unit: int) -> bytes:
         return AwaitableMethod(super()._readExceptionStatus, client, unit)
 
-    def _diagnostics(self, client:ModbusObject, unit: int, subfunc: int, indata: Optional[bytes] = None) -> bytes:
-        return AwaitableMethod(super()._diagnostics, client, unit, subfunc, indata)
+    def _diagnosticsReturnQueryData(self, client:ModbusObject, unit: int, indata: bytes) -> bytes:
+        return AwaitableMethod(super()._diagnosticsReturnQueryData, client, unit, indata)
         
     def _getCommEventCounter(self, client:ModbusObject, unit: int) -> bytes:
         return AwaitableMethod(super()._getCommEventCounter, client, unit)
