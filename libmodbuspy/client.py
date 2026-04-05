@@ -67,10 +67,10 @@ class ModbusClient(ModbusObject):
     def readInputRegisters(self, offset: int, count: int) -> bytes:
         return self._port._readInputRegisters(self, self._unit, offset, count)
 
-    def writeSingleCoil(self, offset: int, value: bool) -> bool:
+    def writeSingleCoil(self, offset: int, value: bool) -> StatusCode:
         return self._port._writeSingleCoil(self, self._unit, offset, value)
 
-    def writeSingleRegister(self, offset: int, value: int) -> bool:
+    def writeSingleRegister(self, offset: int, value: int) -> StatusCode:
         return self._port._writeSingleRegister(self, self._unit, offset, value)
 
     def readExceptionStatus(self) -> int:
@@ -85,16 +85,19 @@ class ModbusClient(ModbusObject):
     def diagnosticsReturnDiagnosticRegister(self) -> bytes:
         return self._port._diagnosticsReturnDiagnosticRegister(self, self._unit)
 
+    def diagnosticsChangeAsciiInputDelimiter(self, delimiter: int) -> StatusCode:
+        return self._port._diagnosticsChangeAsciiInputDelimiter(self, self._unit, delimiter)
+
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)
 
     def getCommEventLog(self) -> bytes:
         return self._port._getCommEventLog(self, self._unit)
 
-    def writeMultipleCoils(self, offset: int, values: bytes, count: int = -1) -> bool:
+    def writeMultipleCoils(self, offset: int, values: bytes, count: int = -1) -> StatusCode:
         return self._port._writeMultipleCoils(self, self._unit, offset, values, count)
 
-    def writeMultipleRegisters(self, offset: int, values: bytes) -> bool:
+    def writeMultipleRegisters(self, offset: int, values: bytes) -> StatusCode:
         return self._port._writeMultipleRegisters(self, self._unit, offset, values)
 
     def reportServerID(self) -> bytes:
@@ -106,7 +109,7 @@ class ModbusClient(ModbusObject):
     def writeFileRecord(self, records: Collection) -> StatusCode:
         return self._writeFileRecord(self, self._unit, records)
         
-    def maskWriteRegister(self, offset: int, andMask: int, orMask: int) -> bool:
+    def maskWriteRegister(self, offset: int, andMask: int, orMask: int) -> StatusCode:
         return self._port._maskWriteRegister(self, self._unit, offset, andMask, orMask)
 
     def readWriteMultipleRegisters(self, readOffset: int, readCount: int,

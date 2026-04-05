@@ -200,8 +200,8 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
     def diagnosticsReturnDiagnosticRegister(self, unit: int) -> bytes:
         return self._diagnosticsReturnDiagnosticRegister(self, unit)
         
-    def getCommEventCounter(self, unit: int) -> bytes:
-        return self._getCommEventCounter(self, unit)
+    def diagnosticsChangeAsciiInputDelimiter(self, unit: int, delimiter: int) -> StatusCode:
+        return self._diagnosticsChangeAsciiInputDelimiter(self, unit, delimiter)
 
     def getCommEventLog(self, unit: int) -> bytes:
         return self._getCommEventLog(self, unit)
@@ -822,6 +822,48 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Diagnostics sub-function is not match received one")
             self._setStatusCompleted(StatusCode.Status_Good)
             return bytes([buff[3], buff[2]]) # Register value - LS BYTE first
+        else:
+            return None
+
+    def _diagnosticsChangeAsciiInputDelimiter(self, client:ModbusObject, unit: int, delimiter: int) -> StatusCode:
+        """Diagnostics subfunction sets the character `delimiter` as the end of message delimiter.
+        
+        Args:
+            client: The client object making the request.
+            unit: Address of the remote Modbus device.
+            delimiter: ASCII character to be set as the end of message delimiter.
+            
+        Returns:
+            * The result StatusCode of the operation.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
+        """
+        status = self.getRequestStatus(client)        
+        if status == ModbusClientPort.RequestStatus.Enable:
+            # Prepare request buffer
+            subfunc = MBF_DIAGNOSTICS_CHANGE_ASCII_INPUT_DELIMITER
+            self._buff = bytearray(4)
+            self._buff[0] = (subfunc >> 8) & 0xFF           # Sub function - MS BYTE
+            self._buff[1] = subfunc & 0xFF                  # Sub function - LS BYTE
+            self._buff[2] = delimiter & 0xFF                # ASCII Input Delimiter
+            self._buff[3] = 0x00                            # Must always be 0x00
+            self._subfunc = subfunc
+            status = ModbusClientPort.RequestStatus.Process        
+        if status == ModbusClientPort.RequestStatus.Process:
+            buff = self._request(unit, MBF_DIAGNOSTICS, self._buff)
+            if buff is None:
+                return None
+            if self._isBroadcast():
+                return bytes()
+            if len(buff) != 4:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+            outSubfunc = buff[1] | (buff[0] << 8)
+            if outSubfunc != self._subfunc:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Diagnostics sub-function is not match received one")
+            self._setStatusCompleted(StatusCode.Status_Good)
+            return StatusCode.Status_Good
         else:
             return None
 
@@ -1741,6 +1783,9 @@ class ModbusAsyncClientPort(ModbusClientPort):
     def diagnosticsReturnDiagnosticRegister(self, unit: int) -> bytes:
         return AwaitableMethod(super().diagnosticsReturnDiagnosticRegister, unit)
         
+    def diagnosticsChangeAsciiInputDelimiter(self, unit: int, delimiter: int) -> StatusCode:
+        return AwaitableMethod(super().diagnosticsChangeAsciiInputDelimiter, unit, delimiter)
+        
     def getCommEventCounter(self, unit: int) -> bytes:
         return AwaitableMethod(super().getCommEventCounter, unit)
 
@@ -1836,6 +1881,9 @@ class ModbusAsyncClientPort(ModbusClientPort):
         
     def _diagnosticsReturnDiagnosticRegister(self, client:ModbusObject, unit: int) -> bytes:
         return AwaitableMethod(super()._diagnosticsReturnDiagnosticRegister, client, unit)
+        
+    def _diagnosticsChangeAsciiInputDelimiter(self, client:ModbusObject, unit: int, delimiter: int) -> StatusCode:
+        return AwaitableMethod(super()._diagnosticsChangeAsciiInputDelimiter, client, unit, delimiter)
         
     def _getCommEventCounter(self, client:ModbusObject, unit: int) -> bytes:
         return AwaitableMethod(super()._getCommEventCounter, client, unit)
