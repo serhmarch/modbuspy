@@ -88,6 +88,9 @@ class ModbusClient(ModbusObject):
     def diagnosticsChangeAsciiInputDelimiter(self, delimiter: int) -> StatusCode:
         return self._port._diagnosticsChangeAsciiInputDelimiter(self, self._unit, delimiter)
 
+    def diagnosticsForceListenOnlyMode(self) -> StatusCode:
+        return self._port._diagnosticsForceListenOnlyMode(self, self._unit)
+    
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)
 
