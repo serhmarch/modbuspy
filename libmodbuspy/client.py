@@ -91,6 +91,9 @@ class ModbusClient(ModbusObject):
     def diagnosticsForceListenOnlyMode(self) -> StatusCode:
         return self._port._diagnosticsForceListenOnlyMode(self, self._unit)
     
+    def diagnosticsClearCountersAndDiagnosticRegister(self) -> StatusCode:
+        return self._port._diagnosticsClearCountersAndDiagnosticRegister(self, self._unit)
+    
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)
 
