@@ -97,6 +97,9 @@ class ModbusClient(ModbusObject):
     def diagnosticsReturnBusMessageCount(self) -> bytes:
         return self._port._diagnosticsReturnBusMessageCount(self, self._unit)
     
+    def diagnosticsReturnBusCommunicationErrorCount(self) -> bytes:
+        return self._port._diagnosticsReturnBusCommunicationErrorCount(self, self._unit)
+    
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)
 

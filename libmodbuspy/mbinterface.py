@@ -270,7 +270,7 @@ class ModbusInterface:
         
     def diagnosticsReturnBusMessageCount(self, unit: int) -> bytes:
         """Diagnostics subfunction returns the quantity of messages that the remote device has detected
-        on the communications system since its last restart, clear counters operation, or power –up.
+        on the communications system since its last restart, clear counters operation, or power-up.
         
         Args:
             unit: Address of the remote Modbus device.
