@@ -224,6 +224,9 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
     def diagnosticsReturnServerNoResponseCount(self, unit: int) -> bytes:
         return self._diagnosticsReturnServerNoResponseCount(self, unit)
     
+    def diagnosticsReturnServerNAKCount(self, unit: int) -> bytes:
+        return self._diagnosticsReturnServerNAKCount(self, unit)
+    
     def getCommEventCounter(self, unit: int) -> int:
         return self._getCommEventCounter(self, unit)
     
@@ -1161,6 +1164,49 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         if status == ModbusClientPort.RequestStatus.Enable:
             # Prepare request buffer
             subfunc = MBF_DIAGNOSTICS_RETURN_SERVER_NO_RESPONSE_COUNT
+            self._buff = bytearray(4)
+            self._buff[0] = (subfunc >> 8) & 0xFF # Sub function - MS BYTE
+            self._buff[1] = subfunc & 0xFF        # Sub function - LS BYTE
+            self._buff[2] = 0x00                  # Must be 0x00
+            self._buff[3] = 0x00                  # Must be 0x00
+            self._subfunc = subfunc
+            status = ModbusClientPort.RequestStatus.Process        
+        if status == ModbusClientPort.RequestStatus.Process:
+            buff = self._request(unit, MBF_DIAGNOSTICS, self._buff)
+            if buff is None:
+                return None
+            if self._isBroadcast():
+                return bytes()
+            if len(buff) != 4:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
+            outSubfunc = buff[1] | (buff[0] << 8)
+            if outSubfunc != self._subfunc:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Diagnostics sub-function is not match received one")
+            self._setStatusCompleted(StatusCode.Status_Good)
+            return bytes([buff[3], buff[2]]) # Register value - LS BYTE first
+        else:
+            return None
+
+    def _diagnosticsReturnServerNAKCount(self, client:ModbusObject, unit: int) -> bytes:
+        """Diagnostics subfunction returns the quantity of messages addressed to the remote device for
+        which it returned a Negative Acknowledge (NAK) exception response, since its last restart,
+        clear counters operation, or power-up.
+        
+        Args:
+            client: The client object making the request.
+            unit: Address of the remote Modbus device.
+            
+        Returns:
+            * `bytes` array of size 2 containing the register value.
+            * `None` when operation is not finished yet (only for nonblocking mode).
+
+        Raises:
+            Exceptions with base class `libmodbuspy.ModbusException` on error.
+        """
+        status = self.getRequestStatus(client)        
+        if status == ModbusClientPort.RequestStatus.Enable:
+            # Prepare request buffer
+            subfunc = MBF_DIAGNOSTICS_RETURN_SERVER_NAK_COUNT
             self._buff = bytearray(4)
             self._buff[0] = (subfunc >> 8) & 0xFF # Sub function - MS BYTE
             self._buff[1] = subfunc & 0xFF        # Sub function - LS BYTE
@@ -2123,6 +2169,9 @@ class ModbusAsyncClientPort(ModbusClientPort):
 
     def diagnosticsReturnServerNoResponseCount(self, unit: int) -> bytes:
         return AwaitableMethod(super().diagnosticsReturnServerNoResponseCount, unit)
+
+    def diagnosticsReturnServerNAKCount(self, unit: int) -> bytes:
+        return AwaitableMethod(super().diagnosticsReturnServerNAKCount, unit)
         
     def getCommEventCounter(self, unit: int) -> bytes:
         return AwaitableMethod(super().getCommEventCounter, unit)
@@ -2243,6 +2292,9 @@ class ModbusAsyncClientPort(ModbusClientPort):
 
     def _diagnosticsReturnServerNoResponseCount(self, client:ModbusObject, unit: int) -> bytes:
         return AwaitableMethod(super()._diagnosticsReturnServerNoResponseCount, client, unit)
+
+    def _diagnosticsReturnServerNAKCount(self, client:ModbusObject, unit: int) -> bytes:
+        return AwaitableMethod(super()._diagnosticsReturnServerNAKCount, client, unit)
         
     def _getCommEventCounter(self, client:ModbusObject, unit: int) -> bytes:
         return AwaitableMethod(super()._getCommEventCounter, client, unit)
