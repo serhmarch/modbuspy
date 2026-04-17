@@ -112,6 +112,9 @@ class ModbusClient(ModbusObject):
     def diagnosticsReturnServerNAKCount(self) -> bytes:
         return self._port._diagnosticsReturnServerNAKCount(self, self._unit)
     
+    def diagnosticsReturnServerBusyCount(self) -> bytes:
+        return self._port._diagnosticsReturnServerBusyCount(self, self._unit)
+    
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)
 
