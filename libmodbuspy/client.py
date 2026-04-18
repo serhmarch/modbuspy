@@ -115,6 +115,9 @@ class ModbusClient(ModbusObject):
     def diagnosticsReturnServerBusyCount(self) -> bytes:
         return self._port._diagnosticsReturnServerBusyCount(self, self._unit)
     
+    def diagnosticsReturnBusCharacterOverrunCount(self) -> bytes:
+        return self._port._diagnosticsReturnBusCharacterOverrunCount(self, self._unit)
+    
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)
 
@@ -131,10 +134,10 @@ class ModbusClient(ModbusObject):
         return self._port._reportServerID(self, self._unit)
 
     def readFileRecord(self, records: Collection) -> Tuple:
-        return self._readFileRecord(self, self._unit, records)
+        return self._port._readFileRecord(self, self._unit, records)
         
     def writeFileRecord(self, records: Collection) -> StatusCode:
-        return self._writeFileRecord(self, self._unit, records)
+        return self._port._writeFileRecord(self, self._unit, records)
         
     def maskWriteRegister(self, offset: int, andMask: int, orMask: int) -> StatusCode:
         return self._port._maskWriteRegister(self, self._unit, offset, andMask, orMask)
