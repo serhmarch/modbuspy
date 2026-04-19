@@ -118,6 +118,9 @@ class ModbusClient(ModbusObject):
     def diagnosticsReturnBusCharacterOverrunCount(self) -> bytes:
         return self._port._diagnosticsReturnBusCharacterOverrunCount(self, self._unit)
     
+    def diagnosticsClearOverrunCounterAndFlag(self) -> StatusCode:
+        return self._port._diagnosticsClearOverrunCounterAndFlag(self, self._unit)
+    
     def getCommEventCounter(self) -> int:
         return self._port._getCommEventCounter(self, self._unit)
 
