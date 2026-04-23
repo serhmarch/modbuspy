@@ -301,6 +301,8 @@ class ModbusServerResource(ModbusServerPort):
                 return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._subfunc = buff[1] | (buff[0]<<8)
             self._count = len(buff) - 2
+            if (self._subfunc != MBF_DIAGNOSTICS_RETURN_QUERY_DATA) and (self._count != 2):
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._valueBuff = buff[2:]
         elif self._func == MBF_GET_COMM_EVENT_COUNTER:
             if len(buff) > 0:  # Incorrect request from client - don't respond
@@ -393,7 +395,43 @@ class ModbusServerResource(ModbusServerPort):
         elif self._func == MBF_READ_EXCEPTION_STATUS:
             res = self._device.readExceptionStatus(self._unit)
         elif self._func == MBF_DIAGNOSTICS:
-            res = self._device.diagnostics(self._unit, self._subfunc, self._byteCount, self._valueBuff, self._outByteCount, self._valueBuff)
+            if self._subfunc == MBF_DIAGNOSTICS_RETURN_QUERY_DATA:
+                res = self._device.diagnosticsReturnQueryData(self._unit, self._valueBuff)
+                if res is None:
+                    return None
+                self._valueBuff = res
+                self._outByteCount = len(res)
+                return StatusCode.Status_Good
+            elif self._subfunc == MBF_DIAGNOSTICS_RESTART_COMMUNICATIONS_OPTION:
+                return self._device.diagnosticsRestartCommunicationsOption(self._unit, bool(self._valueBuff[0]))
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_DIAGNOSTIC_REGISTER:
+                res = self._device.diagnosticsReturnDiagnosticRegister(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_CHANGE_ASCII_INPUT_DELIMITER:
+                return self._device.diagnosticsChangeAsciiInputDelimiter(self._unit, self._valueBuff[0])
+            elif self._subfunc == MBF_DIAGNOSTICS_FORCE_LISTEN_ONLY_MODE:
+                return self._device.diagnosticsForceListenOnlyMode(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_CLEAR_COUNTERS_AND_DIAGNOSTIC_REGISTER:
+                return self._device.diagnosticsClearCountersAndDiagnosticRegister(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_BUS_MESSAGE_COUNT:
+                res = self._device.diagnosticsReturnBusMessageCount(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_BUS_COMMUNICATION_ERROR_COUNT:
+                res = self._device.diagnosticsReturnBusCommunicationErrorCount(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_BUS_EXCEPTION_ERROR_COUNT:
+                res = self._device.diagnosticsReturnBusExceptionErrorCount(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_SERVER_MESSAGE_COUNT:
+                res = self._device.diagnosticsReturnServerMessageCount(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_SERVER_NO_RESPONSE_COUNT:
+                res = self._device.diagnosticsReturnServerNoResponseCount(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_SERVER_NAK_COUNT:
+                res = self._device.diagnosticsReturnServerNAKCount(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_SERVER_BUSY_COUNT:
+                res = self._device.diagnosticsReturnServerBusyCount(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_RETURN_BUS_CHARACTER_OVERRUN_COUNT:
+                res = self._device.diagnosticsReturnBusCharacterOverrunCount(self._unit)
+            elif self._subfunc == MBF_DIAGNOSTICS_CLEAR_OVERRUN_COUNTER_AND_FLAG:
+                return self._device.diagnosticsClearOverrunCounterAndFlag(self._unit)
+            else:
+                return self._raiseError(exceptions.IllegalFunctionError, "Unsupported function")
         elif self._func == MBF_GET_COMM_EVENT_COUNTER:
             res = self._device.getCommEventCounter(self._unit, self._status, self._count)
         elif self._func == MBF_GET_COMM_EVENT_LOG:
@@ -454,10 +492,24 @@ class ModbusServerResource(ModbusServerPort):
             buff = bytearray(1)
             buff[0] = self._valueBuff[0]
         elif self._func == MBF_DIAGNOSTICS:
-            buff = bytearray(2)
-            buff[0] = (self._subfunc >> 8) & 0xFF # address of register (Hi-byte)
-            buff[1] = (self._subfunc & 0xFF)      # address of register (Lo-byte)
-            buff[2:] = self._valueBuff[0:]
+            buff = bytearray(4)
+            buff[0] = (self._subfunc >> 8) & 0xFF # sub function (Hi-byte)
+            buff[1] = (self._subfunc & 0xFF)      # sub function (Lo-byte)
+            if self._subfunc == MBF_DIAGNOSTICS_RETURN_QUERY_DATA:
+                buff = bytearray(self._outByteCount + 2)
+                buff[0] = (self._subfunc >> 8) & 0xFF
+                buff[1] = (self._subfunc & 0xFF)
+                buff[2:] = self._valueBuff[0:self._outByteCount]
+            elif self._subfunc in (MBF_DIAGNOSTICS_RESTART_COMMUNICATIONS_OPTION,
+                                   MBF_DIAGNOSTICS_CHANGE_ASCII_INPUT_DELIMITER,
+                                   MBF_DIAGNOSTICS_FORCE_LISTEN_ONLY_MODE,
+                                   MBF_DIAGNOSTICS_CLEAR_COUNTERS_AND_DIAGNOSTIC_REGISTER,
+                                   MBF_DIAGNOSTICS_CLEAR_OVERRUN_COUNTER_AND_FLAG):
+                buff[2] = self._valueBuff[0] if len(self._valueBuff) > 0 else 0x00
+                buff[3] = self._valueBuff[1] if len(self._valueBuff) > 1 else 0x00
+            else:
+                buff[2] = self._valueBuff[1] if len(self._valueBuff) > 1 else 0x00
+                buff[3] = self._valueBuff[0] if len(self._valueBuff) > 0 else 0x00
         elif self._func == MBF_GET_COMM_EVENT_COUNTER:
             buff = bytearray(4)
             buff[0] = (self._status >> 8) & 0xFF # status of counter (Hi-byte)
