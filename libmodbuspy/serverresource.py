@@ -397,11 +397,6 @@ class ModbusServerResource(ModbusServerPort):
         elif self._func == MBF_DIAGNOSTICS:
             if self._subfunc == MBF_DIAGNOSTICS_RETURN_QUERY_DATA:
                 res = self._device.diagnosticsReturnQueryData(self._unit, self._valueBuff)
-                if res is None:
-                    return None
-                self._valueBuff = res
-                self._outByteCount = len(res)
-                return StatusCode.Status_Good
             elif self._subfunc == MBF_DIAGNOSTICS_RESTART_COMMUNICATIONS_OPTION:
                 return self._device.diagnosticsRestartCommunicationsOption(self._unit, bool(self._valueBuff[0]))
             elif self._subfunc == MBF_DIAGNOSTICS_RETURN_DIAGNOSTIC_REGISTER:
@@ -492,22 +487,25 @@ class ModbusServerResource(ModbusServerPort):
             buff = bytearray(1)
             buff[0] = self._valueBuff[0]
         elif self._func == MBF_DIAGNOSTICS:
-            buff = bytearray(4)
-            buff[0] = (self._subfunc >> 8) & 0xFF # sub function (Hi-byte)
-            buff[1] = (self._subfunc & 0xFF)      # sub function (Lo-byte)
             if self._subfunc == MBF_DIAGNOSTICS_RETURN_QUERY_DATA:
-                buff = bytearray(self._outByteCount + 2)
+                buff = bytearray(len(self._valueBuff) + 2)
                 buff[0] = (self._subfunc >> 8) & 0xFF
                 buff[1] = (self._subfunc & 0xFF)
-                buff[2:] = self._valueBuff[0:self._outByteCount]
+                buff[2:] = self._valueBuff[:]
             elif self._subfunc in (MBF_DIAGNOSTICS_RESTART_COMMUNICATIONS_OPTION,
                                    MBF_DIAGNOSTICS_CHANGE_ASCII_INPUT_DELIMITER,
                                    MBF_DIAGNOSTICS_FORCE_LISTEN_ONLY_MODE,
                                    MBF_DIAGNOSTICS_CLEAR_COUNTERS_AND_DIAGNOSTIC_REGISTER,
                                    MBF_DIAGNOSTICS_CLEAR_OVERRUN_COUNTER_AND_FLAG):
+                buff = bytearray(4)
+                buff[0] = (self._subfunc >> 8) & 0xFF # sub function (Hi-byte)
+                buff[1] = (self._subfunc & 0xFF)      # sub function (Lo-byte)
                 buff[2] = self._valueBuff[0] if len(self._valueBuff) > 0 else 0x00
                 buff[3] = self._valueBuff[1] if len(self._valueBuff) > 1 else 0x00
             else:
+                buff = bytearray(4)
+                buff[0] = (self._subfunc >> 8) & 0xFF # sub function (Hi-byte)
+                buff[1] = (self._subfunc & 0xFF)      # sub function (Lo-byte)
                 buff[2] = self._valueBuff[1] if len(self._valueBuff) > 1 else 0x00
                 buff[3] = self._valueBuff[0] if len(self._valueBuff) > 0 else 0x00
         elif self._func == MBF_GET_COMM_EVENT_COUNTER:
