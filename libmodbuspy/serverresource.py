@@ -53,6 +53,7 @@ class ModbusServerResource(ModbusServerPort):
         self._outByteCount = 0
         self._valueBuff = bytearray()
         self._value = 0
+        self._records = []
 
     def port(self) -> ModbusPort:
         """Returns pointer to inner port which was previously passed in constructor.
@@ -340,6 +341,22 @@ class ModbusServerResource(ModbusServerPort):
         elif self._func == MBF_REPORT_SERVER_ID:
             if len(buff) > 0:  # Incorrect request from client - don't respond
                 return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
+        elif self._func == MBF_READ_FILE_RECORD:
+            if len(buff) < 8:  # Incorrect request from client - don't respond, minimum 1 record (7 bytes) + 1 byte count
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
+            recordsCount = buff[0] // 7  # each record is 7 bytes
+            if len(buff) != 1 + recordsCount * 7:  # don't match received bytes and number of records to follow
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
+            self._records = []
+            for i in range(recordsCount):
+                recIdx = 1 + i * 7
+                referenceType = buff[recIdx]
+                if referenceType != 0x06:  # Incorrect request from client - don't respond
+                    return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect reference type")
+                fileNumber   = buff[recIdx+2] | (buff[recIdx+1] << 8)
+                recordNumber = buff[recIdx+4] | (buff[recIdx+3] << 8)
+                recordLength = buff[recIdx+6] | (buff[recIdx+5] << 8)
+                self._records.append({"fileNumber": fileNumber, "recordNumber": recordNumber, "recordLength": recordLength})            
         elif self._func == MBF_MASK_WRITE_REGISTER:
             if len(buff) != 6:  # Incorrect request from client - don't respond
                 return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
@@ -437,6 +454,8 @@ class ModbusServerResource(ModbusServerPort):
             return self._device.writeMultipleRegisters(self._unit, self._offset, self._valueBuff)
         elif self._func == MBF_REPORT_SERVER_ID:
             res = self._device.reportServerID(self._unit)
+        elif self._func == MBF_READ_FILE_RECORD:
+            res = self._device.readFileRecord(self._unit, self._records)
         elif self._func == MBF_MASK_WRITE_REGISTER:
             return self._device.maskWriteRegister(self._unit, self._offset, self._andMask, self._orMask)
         elif self._func == MBF_READ_WRITE_MULTIPLE_REGISTERS:
@@ -534,6 +553,22 @@ class ModbusServerResource(ModbusServerPort):
         elif self._func == MBF_REPORT_SERVER_ID:
             buff[0] = self._outByteCount            # output bytes count
             buff[1:] = self._valueBuff[0:self._outByteCount]
+        elif self._func == MBF_READ_FILE_RECORD:
+            fileDataBuffs = self._valueBuff  # tuple of bytes, one per record (little-endian)
+            buffSz = 0
+            buff = bytearray(1)  # byte count placeholder at index 0
+            for i, record in enumerate(self._records):
+                recData = fileDataBuffs[i]
+                recordLength = record["recordLength"]
+                recBuff = bytearray(2 + recordLength * 2)
+                recBuff[0] = recordLength * 2 + 1  # file response length
+                recBuff[1] = 0x06                   # reference type
+                for j in range(recordLength):
+                    recBuff[2 + j * 2] = recData[j * 2 + 1]  # high byte
+                    recBuff[3 + j * 2] = recData[j * 2    ]  # low byte
+                buff.extend(recBuff)
+                buffSz += recordLength * 2 + 2
+            buff[0] = buffSz  # total byte count
         elif self._func == MBF_MASK_WRITE_REGISTER:
             buff = bytearray(6)
             buff[0] = (self._offset >> 8) & 0xFF      # address of register (Hi-byte)
