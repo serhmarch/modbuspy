@@ -356,7 +356,35 @@ class ModbusServerResource(ModbusServerPort):
                 fileNumber   = buff[recIdx+2] | (buff[recIdx+1] << 8)
                 recordNumber = buff[recIdx+4] | (buff[recIdx+3] << 8)
                 recordLength = buff[recIdx+6] | (buff[recIdx+5] << 8)
-                self._records.append({"fileNumber": fileNumber, "recordNumber": recordNumber, "recordLength": recordLength})            
+                self._records.append({"fileNumber": fileNumber, "recordNumber": recordNumber, "recordLength": recordLength})
+        elif self._func == MBF_WRITE_FILE_RECORD:
+            if len(buff) < 8 or buff[0] != len(buff) - 1:  # minimum 1 record (7 bytes) + 1 byte count
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
+            self._records = []
+            i = 1
+            dataTotal = 0
+            while i < len(buff):
+                if len(buff) - i < 7:  # at least 7 bytes per sub-request header
+                    return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
+                referenceType = buff[i]
+                if referenceType != 0x06:  # Incorrect request from client - don't respond
+                    return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect reference type")
+                fileNumber   = buff[i+2] | (buff[i+1] << 8)
+                recordNumber = buff[i+4] | (buff[i+3] << 8)
+                recordLength = buff[i+6] | (buff[i+5] << 8)
+                dataBytes = recordLength * 2
+                if dataTotal + dataBytes > MB_FILE_RECORD_BUFF_SZ:  # prevent data buffer overflow
+                    return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
+                if len(buff) - i < 7 + dataBytes:
+                    return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
+                recordData = bytearray(dataBytes)
+                for j in range(recordLength):
+                    recordData[j*2    ] = buff[i + 8 + j*2]  # LS byte (big-endian wire -> little-endian storage)
+                    recordData[j*2 + 1] = buff[i + 7 + j*2]  # MS byte
+                self._records.append({"fileNumber": fileNumber, "recordNumber": recordNumber,
+                                       "recordData": bytes(recordData)})
+                dataTotal += dataBytes
+                i += 7 + dataBytes
         elif self._func == MBF_MASK_WRITE_REGISTER:
             if len(buff) != 6:  # Incorrect request from client - don't respond
                 return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
@@ -456,6 +484,8 @@ class ModbusServerResource(ModbusServerPort):
             res = self._device.reportServerID(self._unit)
         elif self._func == MBF_READ_FILE_RECORD:
             res = self._device.readFileRecord(self._unit, self._records)
+        elif self._func == MBF_WRITE_FILE_RECORD:
+            return self._device.writeFileRecord(self._unit, self._records)
         elif self._func == MBF_MASK_WRITE_REGISTER:
             return self._device.maskWriteRegister(self._unit, self._offset, self._andMask, self._orMask)
         elif self._func == MBF_READ_WRITE_MULTIPLE_REGISTERS:
@@ -568,6 +598,28 @@ class ModbusServerResource(ModbusServerPort):
                     recBuff[3 + j * 2] = recData[j * 2    ]  # low byte
                 buff.extend(recBuff)
                 buffSz += recordLength * 2 + 2
+            buff[0] = buffSz  # total byte count
+        elif self._func == MBF_WRITE_FILE_RECORD:
+            buff = bytearray(1)  # byte count placeholder
+            buffSz = 0
+            for record in self._records:
+                fileNumber   = record["fileNumber"]
+                recordNumber = record["recordNumber"]
+                recordData   = record["recordData"]
+                recordLength = len(recordData) // 2
+                recBuff = bytearray(7 + recordLength * 2)
+                recBuff[0] = 0x06                          # reference type
+                recBuff[1] = (fileNumber >> 8) & 0xFF      # file number (Hi-byte)
+                recBuff[2] = fileNumber & 0xFF             # file number (Lo-byte)
+                recBuff[3] = (recordNumber >> 8) & 0xFF    # record number (Hi-byte)
+                recBuff[4] = recordNumber & 0xFF           # record number (Lo-byte)
+                recBuff[5] = (recordLength >> 8) & 0xFF    # record length (Hi-byte)
+                recBuff[6] = recordLength & 0xFF           # record length (Lo-byte)
+                for j in range(recordLength):
+                    recBuff[7 + j*2] = recordData[j*2 + 1]  # MS byte (big-endian on wire)
+                    recBuff[8 + j*2] = recordData[j*2    ]  # LS byte
+                buff.extend(recBuff)
+                buffSz += 7 + recordLength * 2
             buff[0] = buffSz  # total byte count
         elif self._func == MBF_MASK_WRITE_REGISTER:
             buff = bytearray(6)
