@@ -54,6 +54,12 @@ class ModbusServerResource(ModbusServerPort):
         self._valueBuff = bytearray()
         self._value = 0
         self._records = []
+        self._readDeviceIdCode = 0
+        self._readDeviceIdObjectId = 0
+        self._conformityLevel = 0
+        self._moreFollows = False
+        self._nextObjectId = 0
+        self._numberOfObjects = 0
 
     def port(self) -> ModbusPort:
         """Returns pointer to inner port which was previously passed in constructor.
@@ -412,6 +418,14 @@ class ModbusServerResource(ModbusServerPort):
             if len(buff) < 2:  # Incorrect request from client - don't respond
                 return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
             self._offset  = buff[1] | (buff[0]<<8)
+        elif self._func == MBF_ENCAPSULATED_INTERFACE_TRANSPORT:
+            # FC43 request must have at least 3 bytes: MEI Type + Read Dev ID Code + Object ID
+            if len(buff) < 3:
+                return self._raiseError(exceptions.NotCorrectRequestError, "Incorrect received data size")
+            if buff[0] != MBF_MEI_READ_DEVICE_ID:  # Verify MEI type is Read Device Identification (0x0E)
+                return self._raiseError(exceptions.IllegalFunctionError, f"Unsupported MEI Type 0x{buff[0]:02X}")
+            self._readDeviceIdCode     = buff[1]  # Read Device ID code (1-4)
+            self._readDeviceIdObjectId = buff[2]  # Object ID to start from
         else:
             return self._raiseError(exceptions.IllegalFunctionError, "Unsupported function")
 
@@ -494,6 +508,8 @@ class ModbusServerResource(ModbusServerPort):
                                                           self._writeOffset, self._valueBuff)
         elif self._func == MBF_READ_FIFO_QUEUE:
             res = self._device.readFIFOQueue(self._unit, self._offset)
+        elif self._func == MBF_ENCAPSULATED_INTERFACE_TRANSPORT:
+            res = self._device.readDeviceIdentification(self._unit, self._readDeviceIdCode, self._readDeviceIdObjectId)
         else:
             self._raiseError(exceptions.IllegalFunctionError, "Unsupported function")
         if res is None:
@@ -639,6 +655,26 @@ class ModbusServerResource(ModbusServerPort):
             for i in range(self._count):
                 buff[4+i*2] = self._valueBuff[i*2+1]
                 buff[5+i*2] = self._valueBuff[i*2  ]
+        elif self._func == MBF_ENCAPSULATED_INTERFACE_TRANSPORT:
+            d = self._valueBuff
+            conformityLevel  = d.get("conformityLevel", 0)
+            moreFollows      = d.get("moreFollows", False)
+            nextObjectId     = d.get("nextObjectId", 0)
+            objects          = d.get("objects", ())
+            numberOfObjects  = len(objects)
+            objBuff = bytearray()
+            for objId, objData in objects:
+                objBuff.append(objId & 0xFF)
+                objBuff.append(len(objData) & 0xFF)
+                objBuff.extend(objData)
+            buff = bytearray(6 + len(objBuff))
+            buff[0] = MBF_MEI_READ_DEVICE_ID                                         # MEI type
+            buff[1] = self._readDeviceIdCode                                         # Read Device ID code
+            buff[2] = conformityLevel                                                # Conformity level
+            buff[3] = MB_MEI_MORE_FOLLOWS if moreFollows else MB_MEI_NO_MORE_FOLLOWS # More Follows
+            buff[4] = nextObjectId                                                   # Next Object ID
+            buff[5] = numberOfObjects                                                # Number of objects
+            buff[6:] = objBuff[:]                                                    # Object data
         else:
             buff = bytearray(0)
         return buff
