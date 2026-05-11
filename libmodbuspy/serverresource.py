@@ -20,7 +20,7 @@ from .port import ModbusPort
 class ModbusServerResource(ModbusServerPort):
     """Implements direct control for ModbusPort derived classes (TCP or serial) for server side.
 
-    ModbusServerResource derived from ModbusServerPort and makes ModbusPort object behaves 
+    ModbusServerResource derived from ModbusServerPort and makes ModbusPort object behaves
     like server port. Pointer to ModbusPort object is passed to ModbusServerResource constructor.
 
     Also ModbusServerResource have ModbusInterface object as second parameter of constructor which
@@ -29,10 +29,10 @@ class ModbusServerResource(ModbusServerPort):
 
     def __init__(self, port: ModbusPort, device: ModbusInterface):
         """Constructor of the class.
-        
+
         Args:
             port: Pointer to the ModbusPort which is managed by the current class object.
-            device: Pointer to the ModbusInterface implementation to which all requests 
+            device: Pointer to the ModbusInterface implementation to which all requests
                    for Modbus functions are forwarded.
         """
         super().__init__(device)
@@ -53,10 +53,11 @@ class ModbusServerResource(ModbusServerPort):
         self._outByteCount = 0
         self._valueBuff = bytearray()
         self._value = 0
+        self._registerSize = 2   # bytes per register; standard Modbus is 2, but some devices may use 4 (e.g. for floating point registers)
 
     def port(self) -> ModbusPort:
         """Returns pointer to inner port which was previously passed in constructor.
-        
+
         Returns:
             The ModbusPort instance managed by this resource.
         """
@@ -66,7 +67,7 @@ class ModbusServerResource(ModbusServerPort):
 
     def type(self) -> ProtocolType:
         """Returns type of Modbus protocol. Same as port().type().
-        
+
         Returns:
             The protocol type (TCP, RTU, or ASC).
         """
@@ -80,7 +81,7 @@ class ModbusServerResource(ModbusServerPort):
 
     def open(self) -> StatusCode:
         """Opens the underlying port for server operations.
-        
+
         Returns:
             StatusCode indicating the result of the operation.
         """
@@ -98,7 +99,7 @@ class ModbusServerResource(ModbusServerPort):
 
     def isOpen(self) -> bool:
         """Checks if the underlying port is open.
-        
+
         Returns:
             True if the port is open, False otherwise.
         """
@@ -197,7 +198,7 @@ class ModbusServerResource(ModbusServerPort):
                 try:
                     r = self._processDevice()
                     if r is None:
-                        return None                    
+                        return None
                 except ModbusException as e:
                     toRead = (e.code == StatusCode.Status_BadGatewayPathUnavailable)
                     r = e.code
@@ -373,7 +374,7 @@ class ModbusServerResource(ModbusServerPort):
 
     def _processDevice(self) -> StatusCode:
         """Transfer input request Modbus function to inner device and returns status of the operation.
-        
+
         Returns:
             StatusCode indicating the result of device processing.
         """
@@ -414,14 +415,20 @@ class ModbusServerResource(ModbusServerPort):
             res = self._device.readFIFOQueue(self._unit, self._offset)
         else:
             self._raiseError(exceptions.IllegalFunctionError, "Unsupported function")
+
         if res is None:
             return None
-        self._valueBuff = res
+
+        if isinstance(res, tuple):
+            self._registerSize, self._valueBuff = res
+        else:
+            self._registerSize, self._valueBuff = (2, res)
+
         return StatusCode.Status_Good
 
     def _processOutputData(self) -> bytearray:
         """Process output data buff with size and returns status of the operation.
-        
+
         Returns:
             The output data buffer to send.
         """
@@ -433,11 +440,16 @@ class ModbusServerResource(ModbusServerPort):
         elif self._func in (MBF_READ_HOLDING_REGISTERS,
                             MBF_READ_INPUT_REGISTERS,
                             MBF_READ_WRITE_MULTIPLE_REGISTERS):
-            buff = bytearray(self._count * 2 + 1)
-            buff[0] = (self._count * 2) & 0xFF
-            for i in range(self._count):
-                buff[2 + i * 2] = self._valueBuff[i * 2    ]
-                buff[1 + i * 2] = self._valueBuff[i * 2 + 1]
+            buffsize = self._count * self._registerSize
+            buff = bytearray(buffsize + 1)
+            buff[0] = buffsize & 0xFF
+            if self._registerSize == 2:
+                for i in range(self._count):
+                    buff[i*2 + 2] = self._valueBuff[i*2    ]
+                    buff[i*2 + 1] = self._valueBuff[i*2 + 1]
+            else:
+                # Perform a byte-for-byte copy for non-standard register sizes (e.g. 4 bytes per register).
+                buff[1: buffsize + 1] = self._valueBuff[0: buffsize]
         elif self._func == MBF_WRITE_SINGLE_COIL:
             buff = bytearray(4)
             buff[0] = (self._offset >> 8) & 0xFF     # address of coil (Hi-byte)
@@ -509,12 +521,12 @@ class ModbusServerResource(ModbusServerPort):
 
     def _isBroadcast(self):
         """Returns True if the current request is a broadcast request, False otherwise.
-        
+
         Returns:
             True if the current request is a broadcast, False otherwise.
         """
         return self._unit == 0 and self.isBroadcastEnabled()
-    
+
     def _setError(self, e, text: Optional[str] = None):
         self._isErrorPort = False
         super()._setError(e, text)
@@ -534,7 +546,7 @@ class ModbusServerResource(ModbusServerPort):
 
 class ModbusAsyncServerResource(ModbusServerResource):
     """Asynchronous version of ModbusServerResource.
-    
+
     All methods that can be blocking in ModbusServerResource are
     overridden here to return `AwaitableMethod` objects.
     """
@@ -542,6 +554,7 @@ class ModbusAsyncServerResource(ModbusServerResource):
         if port.isBlocking():
             port.setBlocking(False)
         super().__init__(port, device)
+        self._process = super().process
 
     def process(self):
-        return AwaitableMethod(super().process)
+        return AwaitableMethod(self._process)

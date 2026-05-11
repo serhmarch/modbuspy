@@ -6,6 +6,8 @@ Date: November 2025
 """
 
 import os
+from typing import Union
+
 import serial
 
 from .port import ModbusPort
@@ -43,7 +45,7 @@ class ModbusSerialPort(ModbusPort):
         stopBits         = StopBits.OneStop                             # Default value for the serial port's stop bits
         flowControl      = FlowControl.NoFlowControl                    # Default value for the serial port's flow control
         timeoutFirstByte = 3000                                         # Default value for the serial port's timeout waiting first byte of packet
-        timeoutInterByte = 50                                           # Default value for the serial port's timeout waiting next byte of packet
+        timeoutInterByte = 5                                           # Default value for the serial port's timeout waiting next byte of packet
 
     @staticmethod
     def toSerialParity(parity:Parity) -> str:
@@ -165,43 +167,43 @@ class ModbusSerialPort(ModbusPort):
         """Property. Set the number of data bits."""
         return self.setDataBits(value)
 
-    def parity(self) -> Parity:
+    def parity(self) -> Union[Parity, None]:
         """Get the parity setting."""
         return self._parity
 
-    def setParity(self, value: Parity):
+    def setParity(self, value: Union[Parity, None]):
         """Set the parity setting."""
         if self._parity != value:
             self._parity = value
             self._changed = True
 
     @property
-    def Parity(self) -> Parity:
+    def Parity(self) -> Union[Parity, None]:
         """Property. Get the parity setting."""
         return self.parity()
 
     @Parity.setter
-    def Parity(self, value: Parity) -> None:
+    def Parity(self, value: Union[Parity, None]) -> None:
         """Property. Set the parity setting."""
         return self.setParity(value)
 
-    def stopBits(self) -> StopBits:
+    def stopBits(self) -> Union[StopBits, None]:
         """Get the number of stop bits."""
         return self._stopBits
 
-    def setStopBits(self, value: StopBits):
+    def setStopBits(self, value: Union[StopBits, None]):
         """Set the number of stop bits."""
         if self._stopBits != value:
             self._stopBits = value
             self._changed = True
 
     @property
-    def StopBits(self) -> StopBits:
+    def StopBits(self) -> Union[StopBits, None]:
         """Property. Get the number of stop bits."""
         return self.stopBits()
 
     @StopBits.setter
-    def StopBits(self, value: StopBits) -> None:
+    def StopBits(self, value: Union[StopBits, None]) -> None:
         """Property. Set the number of stop bits."""
         return self.setStopBits(value)
 

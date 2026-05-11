@@ -478,7 +478,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         else:
             return None
         
-    def _readHoldingRegisters(self, client:ModbusObject, unit: int, offset: int, count: int) -> bytes:
+    def _readHoldingRegisters(self, client:ModbusObject, unit: int, offset: int, count: int) -> Union[bytes, None]:
         """Read holding registers from Modbus device.
         
         Args:
@@ -488,7 +488,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             count: Number of holding registers to read.
 
         Returns:
-            Bytes containing the holding register values.
+            Bytes containing the holding register values, or None.
         """
         
         status = self.getRequestStatus(client)        
@@ -514,21 +514,25 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "No data was received")
             fcBytes = buff[0]  # count of bytes received
             if fcBytes != len(buff) - 1:
-                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
-            fcRegs = fcBytes // 2
-            if fcRegs != self._count:
-                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' is not match received one")
-            # Extract holding register values from response
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' does not match the size of the received register data buffer")
+            regSize, remainder = divmod(fcBytes, self._count)  # calculate the register size in bytes
+            if remainder != 0:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, f"Received byte count ({fcBytes}) is not a multiple of the requested register count ({self._count})")
             values = bytearray(fcBytes)
-            for i in range(fcRegs):
-                values[i*2  ] = buff[2+i*2]
-                values[i*2+1] = buff[1+i*2]
+            if regSize == 2:
+                # Extract holding register values from response
+                for i in range(self._count):
+                    values[i*2    ] = buff[i*2 + 2]
+                    values[i*2 + 1] = buff[i*2 + 1]
+            else:
+                # Perform a byte-for-byte copy for non-standard register sizes (e.g. 4 bytes per register).
+                values[0: fcBytes] = buff[1: fcBytes + 1]
             self._setStatus(StatusCode.Status_Good)
             return bytes(values)
         else:
             return None
         
-    def _readInputRegisters(self, client:ModbusObject, unit: int, offset: int, count: int) -> bytes:
+    def _readInputRegisters(self, client:ModbusObject, unit: int, offset: int, count: int) -> Union[bytes, None]:
         """Read input registers from Modbus device.
         
         Args:
@@ -538,7 +542,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             count: Number of input registers to read.
 
         Returns:
-            Bytes containing the input register values.
+            Bytes containing the input register values, or None.
         """
         
         status = self.getRequestStatus(client)        
@@ -563,16 +567,20 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             if len(buff) == 0:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "No data was received")
             fcBytes = buff[0]  # count of bytes received
-            if fcBytes != len(buff) - 1:
-                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Incorrect received data size")
-            fcRegs = fcBytes // 2
-            if fcRegs != self._count:
-                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' is not match received one")
-            # Extract input register values from response
+            if fcBytes != (len(buff) - 1):
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, "'ByteCount' does not match the size of the received register data buffer")
+            regSize, remainder = divmod(fcBytes, self._count)  # calculate the register size in bytes
+            if remainder != 0:
+                self._raiseError(StatusCode.Status_BadNotCorrectResponse, f"Received byte count ({fcBytes}) is not a multiple of the requested register count ({self._count})")
             values = bytearray(fcBytes)
-            for i in range(fcRegs):
-                values[i*2  ] = buff[2+i*2]
-                values[i*2+1] = buff[1+i*2]
+            if regSize == 2:
+                # Extract input register values from response
+                for i in range(self._count):
+                    values[i*2    ] = buff[i*2 + 2]
+                    values[i*2 + 1] = buff[i*2 + 1]
+            else:
+                # Perform a byte-for-byte copy for non-standard register sizes (e.g. 4 bytes per register).
+                values[0: fcBytes] = buff[1: fcBytes + 1]
             self._setStatus(StatusCode.Status_Good)
             return bytes(values)
         else:
@@ -1019,7 +1027,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             if buff is None:
                 return None
             if self._isBroadcast():
-                return StatusCode.Status_Good
+                return bytes()
             if len(buff) == 0:
                 self._raiseError(StatusCode.Status_BadNotCorrectResponse, "No data was received")
             fcBytes = buff[0]  # count of bytes received
@@ -1083,7 +1091,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         else:
             return None
 
-    def _request(self, unit: int, func: int, buff: bytes) -> StatusCode:
+    def _request(self, unit: int, func: int, buff: bytes) -> Union[bytes, None]:
         """The function builds the packet that the write() function puts into the buffer.
         
         Args:
@@ -1092,7 +1100,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             buff: Buffer containing the data to write.
             
         Returns:
-            Status code of the operation.
+            Response payload as bytes, or None.
         """
         fRepeatAgain = True
         while fRepeatAgain:

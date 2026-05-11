@@ -460,5 +460,9 @@ class ModbusAsyncTcpServer(ModbusTcpServer):
     All methods that can be blocking in ModbusServerResource are
     overridden here to return `AwaitableMethod` objects.
     """
-    def process(self):
-        return AwaitableMethod(super().process)
+    def __init__(self, device: ModbusInterface):
+        super().__init__(device)
+        self._process = super().process
+
+    def process(self) -> AwaitableMethod:
+        return AwaitableMethod(self._process)
