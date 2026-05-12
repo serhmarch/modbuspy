@@ -8,10 +8,10 @@
 
 from .mbglobal import ProtocolType
 from .mbinterface import ModbusInterface
-from .port import ModbusPort
-from .tcpport import ModbusTcpPort
-from .rtuport import ModbusRtuPort
-from .ascport import ModbusAscPort
+from .port import (ModbusPort,
+                   ModbusTcpPort,
+                   ModbusRtuPort,
+                   ModbusAscPort)
 from .clientport import ModbusClientPort, ModbusAsyncClientPort
 from .serverport import ModbusServerPort
 from .serverresource import ModbusServerResource, ModbusAsyncServerResource

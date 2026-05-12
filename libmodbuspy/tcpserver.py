@@ -12,7 +12,7 @@ from typing import List, Optional, Callable, Tuple
 from .mbglobal import ProtocolType, StatusCode, Constants, timer, AwaitableMethod
 from .mbinterface import ModbusInterface
 from . import exceptions
-from .tcpport import ModbusTcpPort
+from .port import ModbusTcpPort
 from .mbobject import ModbusObject
 from .serverport import ModbusServerPort
 from .serverresource import ModbusServerResource

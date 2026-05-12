@@ -30,10 +30,10 @@ from .clientport import ModbusClientPort, ModbusAsyncClientPort
 from .serverport import ModbusServerPort
 from .serverresource import ModbusServerResource, ModbusAsyncServerResource
 from .tcpserver import ModbusTcpServer, ModbusAsyncTcpServer
-from .tcpport import ModbusTcpPort
-from .serialport import ModbusSerialPort
-from .rtuport import ModbusRtuPort
-from .ascport import ModbusAscPort
+from .port import (ModbusTcpPort, 
+                   ModbusSerialPort,
+                   ModbusRtuPort,
+                   ModbusAscPort)
 
 __version__ = MBPY_VERSION_STR
 __author__ = "serhmarch"

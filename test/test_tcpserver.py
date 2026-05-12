@@ -107,7 +107,7 @@ class TestModbusTcpServer(unittest.TestCase):
         
         settings = self.server.settings()
         self.assertIsInstance(settings, dict)
-        # Verify settings() returns a dict (may have reference to tcpport strings which is fine)
+        # Verify settings() returns a dict (may have reference to port strings which is fine)
         self.assertTrue(len(settings) > 0)
 
     def test_setSettings_applies_all_settings(self):

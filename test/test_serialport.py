@@ -7,8 +7,8 @@ import os
 # Add the parent directory to the path to import libmodbuspy
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from libmodbuspy.serialport import ModbusSerialPort
-from libmodbuspy.rtuport import ModbusRtuPort
+from libmodbuspy.port import ModbusSerialPort
+from libmodbuspy.port import ModbusRtuPort
 from libmodbuspy.statuscode import StatusCode
 from libmodbuspy.port import ModbusPort
 from libmodbuspy.mbglobal import ProtocolType, Parity, StopBits, FlowControl, timer
@@ -23,7 +23,7 @@ class TestModbusSerialPort(unittest.TestCase):
         self.orig_serial = serial
         
         # Patch the serial module
-        self.patcher_serial = patch('libmodbuspy.serialport.serial')
+        self.patcher_serial = patch('libmodbuspy.port.serial')
         self.mock_serial_module = self.patcher_serial.start()
         
         # Set up mock constants to match real serial module
@@ -596,7 +596,7 @@ class TestModbusSerialPort(unittest.TestCase):
 
     def test_nonblocking_read_timeout_first_byte(self):
         """Test non-blocking read timeout waiting for first byte"""
-        with patch('libmodbuspy.serialport.timer') as mock_timer:
+        with patch('libmodbuspy.port.timer') as mock_timer:
             self.port = ModbusRtuPort(blocking=False)
             self.mock_serial_obj.is_open = True
             

@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from libmodbuspy import port
-from libmodbuspy.tcpport import ModbusTcpPort
+from libmodbuspy.port import ModbusTcpPort
 from libmodbuspy.statuscode import StatusCode
 from libmodbuspy.port import ModbusPort
 from libmodbuspy.mbglobal import ProtocolType, Constants, timer
@@ -35,7 +35,7 @@ class TestModbusTcpPort(unittest.TestCase):
         self.orig_socket = socket
         self.orig_select = select
 
-        self.patcher_socket = patch('libmodbuspy.tcpport.socket')
+        self.patcher_socket = patch('libmodbuspy.port.socket')
         self.mock_socket_module = self.patcher_socket.start()
         self.mock_socket_module.EWOULDBLOCK = socket.EWOULDBLOCK
         self.mock_socket_module.SHUT_RDWR = socket.SHUT_RDWR
@@ -45,7 +45,7 @@ class TestModbusTcpPort(unittest.TestCase):
 
         self.addCleanup(self.patcher_socket.stop)
 
-        self.patcher_select = patch('libmodbuspy.tcpport.select')
+        self.patcher_select = patch('libmodbuspy.port.select')
         self.mock_select_module = self.patcher_select.start()
         self.addCleanup(self.patcher_select.stop)
 
@@ -285,7 +285,7 @@ class TestModbusTcpPort(unittest.TestCase):
         
     def test_open_non_blocking_timeout(self):
         """Test non-blocking connection timeout"""
-        with patch('libmodbuspy.tcpport.timer') as mock_timer:
+        with patch('libmodbuspy.port.timer') as mock_timer:
             self.port = ModbusTcpPort(blocking=False)
             self.mock_socket_module.socket.return_value = self.mock_sock
             self.mock_sock.connect_ex.return_value = self.orig_socket.EWOULDBLOCK
@@ -641,7 +641,7 @@ class TestModbusTcpPort(unittest.TestCase):
         """Test read timeout in blocking mode"""
         for blocking in (True, False):
             with self.subTest(blocking=blocking):
-                with patch('libmodbuspy.tcpport.timer') as mock_timer:
+                with patch('libmodbuspy.port.timer') as mock_timer:
                     self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
                     self.port = ModbusTcpPort(blocking=blocking, sock=self.mock_sock)
                     self.port.setServerMode(True)
@@ -654,7 +654,7 @@ class TestModbusTcpPort(unittest.TestCase):
 
     def test_read_would_block_within_timeout(self):
         """Test read EWOULDBLOCK within timeout period"""
-        with patch('libmodbuspy.tcpport.timer') as mock_timer:
+        with patch('libmodbuspy.port.timer') as mock_timer:
             self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
             self.port = ModbusTcpPort(blocking=False, sock=self.mock_sock)
             # Create socket error with EWOULDBLOCK
@@ -668,7 +668,7 @@ class TestModbusTcpPort(unittest.TestCase):
 
     def test_read_would_block_timeout_exceeded(self):
         """Test read EWOULDBLOCK when timeout exceeded"""
-        with patch('libmodbuspy.tcpport.timer') as mock_timer:
+        with patch('libmodbuspy.port.timer') as mock_timer:
             self.mock_select_module.select.return_value = ([self.mock_sock], [self.mock_sock], [])
             self.port = ModbusTcpPort(blocking=False, sock=self.mock_sock)
             # Create socket error with EWOULDBLOCK

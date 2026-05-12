@@ -299,13 +299,9 @@ libmodbuspy/
 ├── statuscode.py            # Status codes and utilities
 ├── exceptions.py            # Exception classes
 ├── mbinterface.py           # ModbusInterface base class
-├── port.py                  # ModbusPort abstract base
+├── port.py                  # ModbusPort base and derived classes (TCP, RTU, ASC)
 ├── clientport.py            # ModbusClientPort implementation
 ├── client.py                # ModbusClient wrapper
-├── tcpport.py               # TCP protocol implementation
-├── serialport.py            # Serial port base class
-├── rtuport.py               # RTU protocol implementation
-├── ascport.py               # ASCII protocol implementation
 ├── serverport.py            # ModbusServerPort base
 ├── serverresource.py        # Server resource for RTU/ASCII
 ├── tcpserver.py             # TCP server implementation

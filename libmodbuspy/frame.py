@@ -10,6 +10,7 @@ from typing import Tuple
 from .statuscode import StatusCode
 from .mbglobal import  crc16, lrc, bytesToAscii, asciiToBytes
 from . import exceptions
+from .exceptions import ModbusException, getException
 
 class ModbusFrame(ABC):
     """
@@ -21,6 +22,8 @@ class ModbusFrame(ABC):
         self._errorStatus = StatusCode.Status_Good
         self._errorText = ""
         self._buff = bytearray()
+        self._unit = 0
+        self._func = 0
 
     @abstractmethod
     def writeBuffer(self, unit: int, func: int, data: bytes, szInBuff: int) -> StatusCode:
@@ -50,6 +53,41 @@ class ModbusFrame(ABC):
             - buff: Buffer containing the extracted data
         """
         pass
+
+    def _setError(self, exc, text: str = ""):
+        """Sets the error parameters of the last operation performed.
+        
+        Args:
+            exc: Type of the ModbusException to raise.
+            text: Text description of the error (optional).
+        """
+        if isinstance(exc, ModbusException):
+            self._errorStatus = exc.code
+            self._errorText = exc.message
+        elif isinstance(exc, type) and issubclass(exc, ModbusException):
+            self._errorStatus = exc.code
+            self._errorText = text
+        else: # `exc` must be integer or instance of StatusCode
+            self._errorStatus = exc
+            self._errorText = text
+        
+    def _raiseError(self, exc, text: str = ""):
+        """Sets the error parameters of the last operation performed and raises the exception.
+        
+        Args:
+            exc: Type of the ModbusException to raise.
+            text: Text description of the error (optional).
+        """
+        self._setError(exc, text)
+        rexc = None
+        if isinstance(exc, ModbusException):
+            rexc = exc
+        elif isinstance(exc, type) and issubclass(exc, ModbusException):
+            rexc = exc(text)
+        else: # `exc` must be integer or instance of StatusCode
+            rexc = getException(exc, text)
+        raise rexc
+
 
 class ModbusAscFrame(ModbusFrame):
     """
@@ -105,10 +143,10 @@ class ModbusAscFrame(ModbusFrame):
             self._raiseError(exceptions.LrcError, "ASCII. Error LRC")
 
         # Prepare output data
-        unit = ibuff[0]
-        func = ibuff[1]
-        return unit, func, ibuff[2:-1] # without unit, func and LRC
-
+        self._unit = ibuff[0]
+        self._func = ibuff[1]
+        return self._unit, self._func, ibuff[2:-1] # without unit, func and LRC
+    
 
 class ModbusRtuFrame(ModbusFrame):
     """
@@ -142,9 +180,9 @@ class ModbusRtuFrame(ModbusFrame):
         if crc16(buff[:sz-2]) != crc:
             return self._raiseError(exceptions.NotCorrectResponseError, "RTU. Wrong CRC")
         # Prepare output data
-        unit = buff[0]
-        func = buff[1]
-        return unit, func, buff[2:sz-2]
+        self._unit = buff[0]
+        self._func = buff[1]
+        return self._unit, self._func, buff[2:sz-2]
 
 
 class ModbusNetFrame(ModbusFrame):
@@ -198,7 +236,7 @@ class ModbusNetFrame(ModbusFrame):
             if self._transaction != transaction:
                 self._raiseError(exceptions.NotCorrectResponseError, "TCP. Not correct response. Requested transaction id is not equal to responded")
 
-        unit = buff[6]
-        func = buff[7]
-        return unit, func, buff[8:]
+        self._unit = buff[6]
+        self._func = buff[7]
+        return self._unit, self._func, buff[8:]
 

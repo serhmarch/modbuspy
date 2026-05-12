@@ -7,10 +7,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from libmodbuspy.utils import createPort, createClientPort, createServerPort
 from libmodbuspy.mbglobal import ProtocolType
-from libmodbuspy.port import ModbusPort
-from libmodbuspy.tcpport import ModbusTcpPort
-from libmodbuspy.rtuport import ModbusRtuPort
-from libmodbuspy.ascport import ModbusAscPort
+from libmodbuspy.port import (ModbusPort,
+                              ModbusTcpPort,
+                              ModbusRtuPort,
+                              ModbusAscPort)
 from libmodbuspy.clientport import ModbusClientPort
 from libmodbuspy.serverport import ModbusServerPort
 from libmodbuspy.mbinterface import ModbusInterface
