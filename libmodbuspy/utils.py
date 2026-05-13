@@ -10,6 +10,7 @@ from .mbglobal import ProtocolType
 from .mbinterface import ModbusInterface
 from .port import (ModbusPort,
                    ModbusTcpPort,
+                   ModbusUdpPort,
                    ModbusRtuPort,
                    ModbusAscPort)
 from .clientport import ModbusClientPort, ModbusAsyncClientPort
@@ -30,18 +31,17 @@ def createPort(protocolType: ProtocolType, blocking: bool, **settings) -> Modbus
     """
     if protocolType == ProtocolType.TCP:
         p = ModbusTcpPort(blocking=blocking)
-        p.setSettings(settings)
-        return p
+    elif protocolType == ProtocolType.UDP:
+        p = ModbusUdpPort(blocking=blocking)
     elif protocolType == ProtocolType.RTU:
         p = ModbusRtuPort(blocking=blocking)
-        p.setSettings(settings)
-        return p
     elif protocolType == ProtocolType.ASC:
         p = ModbusAscPort(blocking=blocking)
-        p.setSettings(settings)
-        return p
     else:
         raise ValueError(f"Unsupported protocol type: {protocolType}")
+    p.setSettings(settings)
+    return p
+
     
 def createClientPort(protocolType: ProtocolType, blocking: bool, **settings) -> ModbusClientPort:
     """Factory function to create ModbusClientPort instance based on specified protocol type and settings.

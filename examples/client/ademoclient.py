@@ -29,7 +29,10 @@ from libmodbuspy.mbglobal import (ProtocolType, Constants,
                                MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
                                MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
 from libmodbuspy import ModbusClient
-from libmodbuspy import ModbusTcpPort
+from libmodbuspy import (ModbusTcpPort,
+                         ModbusUdpPort,
+                         ModbusRtuPort,
+                         ModbusAscPort)
 from libmodbuspy import ModbusRtuPort
 from libmodbuspy import ModbusAscPort
 from libmodbuspy import ModbusAsyncClientPort
@@ -149,6 +152,8 @@ Examples:
     # Set protocol type
     if args.type == 'TCP':
         options.type = ProtocolType.TCP
+    elif args.type == 'UDP':
+        options.type = ProtocolType.UDP
     elif args.type == 'RTU':
         options.type = ProtocolType.RTU
     elif args.type == 'ASC':
@@ -196,6 +201,13 @@ async def async_main():
         tcp_port.setTimeout(options.timeout)
         client_port = ModbusAsyncClientPort(tcp_port)
         client_port.setObjectName("AsyncTCP")
+    elif options.type == ProtocolType.UDP:
+        udp_port = ModbusUdpPort(blocking)
+        udp_port.setHost(options.host)
+        udp_port.setPort(options.port)
+        udp_port.setTimeout(options.timeout)
+        client_port = ModbusAsyncClientPort(udp_port)
+        client_port.setObjectName("AsyncUDP")
     elif options.type == ProtocolType.RTU:
         rtu_port = ModbusRtuPort(blocking)
         rtu_port.setPortName(options.serial_port)

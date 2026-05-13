@@ -74,7 +74,13 @@ class StatusCode(IntEnum):
     Status_BadTcpDisconnect = Status_Bad | 0x508 # Error. Bad disconnection result
     # ---_ Modbus TCP specified errors end ---
 
-
+    #--_ Modbus UDP specified errors begin --            
+    Status_BadUdpCreate     = Status_Bad | 0x601 # Error. Unable to create a UDP socket
+    Status_BadUdpWrite      = Status_Bad | 0x602 # Error. Unable to send a UDP packet
+    Status_BadUdpRead       = Status_Bad | 0x603 # Error. Unable to receive a UDP packet
+    Status_BadUdpBind       = Status_Bad | 0x604 # Error. Unable to bind a UDP socket (server side)
+    Status_BadUdpReadTimeout= Status_Bad | 0x605 # Error. UDP socket read timeout
+    Status_BadUdpDisconnect = Status_Bad | 0x606 # Error. UDP socket disconnect
 # Status Code Utility Functions
 
 def StatusIsProcessing(status: StatusCode) -> bool:

@@ -176,7 +176,7 @@ class TcpError(ModbusException):
 
 class TcpCreateError(TcpError):
     """Socket creation Modbus exception"""
-    code = StatusCode.Status_BadTcpConnect
+    code = StatusCode.Status_BadTcpCreate
 
 class TcpConnectError(TcpError):
     """Socket connection Modbus exception"""
@@ -205,6 +205,41 @@ class TcpAcceptError(TcpError):
 class TcpDisconnectError(TcpError):
     """Socket disconnect Modbus exception"""
     code = StatusCode.Status_BadTcpDisconnect
+
+# ===========================
+# Modbus UDP Error Classes
+# ===========================
+
+class UdpError(ModbusException):
+    """Base class for UDP Modbus exception"""
+
+class UdpCreateError(UdpError):
+    """Socket creation Modbus exception"""
+    code = StatusCode.Status_BadUdpCreate
+
+class UdpWriteError(UdpError):
+    """Socket write Modbus exception"""
+    code = StatusCode.Status_BadUdpWrite
+
+class UdpReadError(UdpError):
+    """Socket read Modbus exception"""
+    code = StatusCode.Status_BadUdpRead
+
+class UdpBindError(UdpError):
+    """Socket bind Modbus exception"""
+    code = StatusCode.Status_BadUdpBind
+
+class UdpReadTimeoutError(UdpError):
+    """Socket read timeout Modbus exception"""
+    code = StatusCode.Status_BadUdpReadTimeout
+
+class UdpDisconnectError(UdpError):
+    """Socket disconnect Modbus exception"""
+    code = StatusCode.Status_BadUdpDisconnect
+
+# ===========================
+# Utility Functions
+# ===========================
 
 def getException(status: StatusCode, text: str) -> ModbusException:
     """Returns appropriate ModbusException instance for the given StatusCode.

@@ -31,7 +31,7 @@ from .serverport import ModbusServerPort
 from .serverresource import ModbusServerResource, ModbusAsyncServerResource
 from .tcpserver import ModbusTcpServer, ModbusAsyncTcpServer
 from .port import (ModbusTcpPort, 
-                   ModbusSerialPort,
+                   ModbusUdpPort,
                    ModbusRtuPort,
                    ModbusAscPort)
 

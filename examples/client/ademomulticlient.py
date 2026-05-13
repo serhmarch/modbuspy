@@ -28,12 +28,15 @@ from libmodbuspy.mbglobal import (ProtocolType, Constants,
                                MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
                                MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
                                MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
-from libmodbuspy import ModbusClient
-from libmodbuspy import ModbusTcpPort
-from libmodbuspy import ModbusRtuPort
-from libmodbuspy import ModbusAscPort
-from libmodbuspy import ModbusAsyncClientPort
-from libmodbuspy import ModbusException
+from libmodbuspy import (StatusCode,
+                         StatusIsGood,
+                         ModbusClient,
+                         ModbusTcpPort,
+                         ModbusUdpPort,
+                         ModbusRtuPort,
+                         ModbusAscPort,
+                         ModbusAsyncClientPort,
+                         ModbusException)
 
 def print_regs(count: int, buff: bytes) -> None:
     """Print register values from buffer."""
@@ -114,7 +117,7 @@ Examples:
     
     parser.add_argument('-u', '--unit', type=int, default=1,
                        help='Modbus device remote address/unit (default: 1)')
-    parser.add_argument('-t', '--type', choices=['TCP', 'RTU', 'ASC'], default='TCP',
+    parser.add_argument('-t', '--type', choices=['TCP', 'UDP', 'RTU', 'ASC'], default='TCP',
                        help='Protocol type (default: TCP)')
     parser.add_argument('-r', '--host', '--remote', default='localhost',
                        help='DNS name or IP address for TCP (default: localhost)')
@@ -149,6 +152,8 @@ Examples:
     # Set protocol type
     if args.type == 'TCP':
         options.type = ProtocolType.TCP
+    elif args.type == 'UDP':
+        options.type = ProtocolType.UDP
     elif args.type == 'RTU':
         options.type = ProtocolType.RTU
     elif args.type == 'ASC':
@@ -190,33 +195,40 @@ async def async_main():
     client_port = None
     
     if options.type == ProtocolType.TCP:
-        tcp_port = ModbusTcpPort(blocking)
-        tcp_port.setHost(options.host)
-        tcp_port.setPort(options.port)
-        tcp_port.setTimeout(options.timeout)
-        client_port = ModbusAsyncClientPort(tcp_port)
+        port = ModbusTcpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusAsyncClientPort(port)
         client_port.setObjectName("AsyncTCP")
+    elif options.type == ProtocolType.UDP:
+        port = ModbusUdpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusAsyncClientPort(port)
+        client_port.setObjectName("AsyncUDP")
     elif options.type == ProtocolType.RTU:
-        rtu_port = ModbusRtuPort(blocking)
-        rtu_port.setPortName(options.serial_port)
-        rtu_port.setBaudRate(options.baud_rate)
-        rtu_port.setDataBits(options.data_bits)
-        rtu_port.setParity(options.parity)
-        rtu_port.setStopBits(options.stop_bits)
-        rtu_port.setTimeoutFirstByte(options.timeout_first_byte)
-        rtu_port.setTimeoutInterByte(options.timeout_inter_byte)
-        client_port = ModbusAsyncClientPort(rtu_port)
+        port = ModbusRtuPort(blocking)
+        port.setPortName(options.serial_port)
+        port.setBaudRate(options.baud_rate)
+        port.setDataBits(options.data_bits)
+        port.setParity(options.parity)
+        port.setStopBits(options.stop_bits)
+        port.setTimeoutFirstByte(options.timeout_first_byte)
+        port.setTimeoutInterByte(options.timeout_inter_byte)
+        client_port = ModbusAsyncClientPort(port)
         client_port.setObjectName("AsyncRTU")
     elif options.type == ProtocolType.ASC:
-        asc_port = ModbusAscPort(blocking)
-        asc_port.setPortName(options.serial_port)
-        asc_port.setBaudRate(options.baud_rate)
-        asc_port.setDataBits(options.data_bits)
-        asc_port.setParity(options.parity)
-        asc_port.setStopBits(options.stop_bits)
-        asc_port.setTimeoutFirstByte(options.timeout_first_byte)
-        asc_port.setTimeoutInterByte(options.timeout_inter_byte)
-        client_port = ModbusAsyncClientPort(asc_port)
+        port = ModbusAscPort(blocking)
+        port.setPortName(options.serial_port)
+        port.setBaudRate(options.baud)
+        port.setDataBits(options.data_bits)
+        port.setParity(options.parity)
+        port.setStopBits(options.stop_bits)
+        port.setTimeoutFirstByte(options.timeout_first_byte)
+        port.setTimeoutInterByte(options.timeout_inter_byte)
+        client_port = ModbusAsyncClientPort(port)
         client_port.setObjectName("AsyncASC")
     else:
         print(f"Unsupported protocol type: {options.type}")

@@ -1220,4 +1220,211 @@ class ModbusTcpPort(ModbusTcpPortBase):
             The current transaction identifier.
         """
         return self._frame._transaction
+
+
+class ModbusUdpPortBase(ModbusNetPort):
+    """Base class for Modbus UDP port implementation."""
+
+    def __init__(self, frame: ModbusFrame, blocking: bool = True, sock = None):
+        super().__init__(frame, blocking, sock)
+        self._addr = None  # Remote address for UDP communication
+
+    def open(self) -> StatusCode:
+        fRepeatAgain = True        
+        while fRepeatAgain:
+            fRepeatAgain = False
+            
+            if self._state in (ModbusPort.State.STATE_UNKNOWN, 
+                               ModbusPort.State.STATE_CLOSED,
+                               ModbusPort.State.STATE_WAIT_FOR_OPEN):
+                if self.isOpen():
+                    if self.isChanged():
+                        self.close()
+                    else:
+                        self._state = ModbusPort.State.STATE_OPENED
+                        return StatusCode.Status_Good                
+                # Clear changed flag
+                self._changed = False
+                
+                # Create socket if needed
+                try:
+                    self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)                        
+                except Exception as e:
+                    self._raiseError(exceptions.UdpCreateError, f"UDP. Error while creating socket for '{self._host}:{self._port}'. Error: {str(e)}")
+                    
+                # Set timeout for blocking mode
+                if self.isBlocking():
+                    self._sock.setblocking(True)
+                    self._sock.settimeout(self.timeout() / 1000.0)
+                else:
+                    self._sock.setblocking(False)
+
+                if self.isServerMode():
+                    # Bind to any available interface on the given port
+                    try:
+                        self._sock.bind((self._host, self._port))
+                    except socket.error as e:
+                        self.close()
+                        self._state = ModbusPort.State.STATE_CLOSED
+                        self._raiseError(exceptions.UdpBindError, f"UDP. Bind error for port '{self._port}'. Error: {str(e)}")
+                else:
+                    # Resolve host address and connect socket to set default remote endpoint
+                    try:
+                        addr_info = socket.getaddrinfo(self._host, self._port, socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+                        if not addr_info:
+                            self._raiseError(exceptions.UdpCreateError, f"UDP. Error while getting address info for '{self._host}:{self._port}'")
+                        self._addr = addr_info[0][4]  # Get the first resolved address
+                    except socket.gaierror as e:
+                        self._raiseError(exceptions.UdpCreateError, f"UDP. Error while getting address info for '{self._host}:{self._port}'. Error: {str(e)}")
+                self._state = ModbusPort.State.STATE_OPENED
+                return StatusCode.Status_Good               
+            else:  # Default case
+                if self.isOpen() and not self.isChanged():
+                    self._state = ModbusPort.State.STATE_OPENED
+                    return StatusCode.Status_Good
+                else:
+                    self._state = ModbusPort.State.STATE_CLOSED
+                    fRepeatAgain = True
+                    continue
+        return None
+
+    def write(self) -> StatusCode:
+        fRepeatAgain = True
+        while fRepeatAgain:
+            fRepeatAgain = False
+
+            if self._state in  (ModbusPort.State.STATE_OPENED,
+                                ModbusPort.State.STATE_PREPARE_TO_WRITE,
+                                ModbusPort.State.STATE_WAIT_FOR_WRITE,
+                                ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL):
+                try:
+                    c = self._sock.sendto(self._buff, self._addr)
+                    if c >= 0:
+                        self._state = ModbusPort.State.STATE_OPENED
+                        return StatusCode.Status_Good
+                    self.close()
+                    self._raiseError(exceptions.UdpWriteError, f"UDP. Error while writing to '{self._host}:{self._port}'. 'socket.sendto' returned negative value.")
+                except socket.error as e:
+                    self._raiseError(exceptions.UdpWriteError, f"UDP. Error while writing to '{self._host}:{self._port}'. {str(e)}")
+            else:
+                if self.isOpen():
+                    self._state = ModbusPort.State.STATE_OPENED
+                    fRepeatAgain = True
+                    continue
+                else:
+                    self._raiseError(exceptions.UdpWriteError, "Internal state error")
+        return None
+    
+    def read(self) -> StatusCode:
+        fRepeatAgain = True
+        while fRepeatAgain:
+            fRepeatAgain = False
+            if self._state in (ModbusPort.State.STATE_OPENED,
+                               ModbusPort.State.STATE_PREPARE_TO_READ):
+                self._timestamp = timer()
+                self._state = ModbusPort.State.STATE_WAIT_FOR_READ
+                fRepeatAgain = True
+                continue
+            elif self._state in (ModbusPort.State.STATE_WAIT_FOR_READ,
+                                 ModbusPort.State.STATE_WAIT_FOR_READ_ALL):
+                try:
+                    # Attempt to receive data from socket
+                    data, _ = self._sock.recvfrom(1024)  # Read up to 1KB buffer size
+                    c = len(data)
+                    if c > 0:
+                        # Data received successfully
+                        self._buff = bytearray(data)
+                        self._state = ModbusPort.State.STATE_OPENED
+                        return StatusCode.Status_Good
+                        
+                    else:
+                        # Connection closed by remote end (recv returned 0 bytes)
+                        self.close()
+                        # Note: When connection is remotely closed is not error for server side
+                        if self._modeServer:
+                            return StatusCode.Status_Uncertain
+                        else:
+                            self._raiseError(exceptions.UdpReadError, f"UDP. Error while reading from '{self._host}:{self._port}'. Remote connection closed")
+                            
+                except socket.timeout:
+                    # Socket timeout occurred
+                    if self.isNonBlocking() and (timer() - self._timestamp < self.timeout()):
+                        return None
+                    self.close()
+                    self._raiseError(exceptions.UdpReadError, f"UDP. Error while reading from '{self._host}:{self._port}'. Timeout")
+                    
+                except socket.error as e:
+                    # Socket error occurred
+                    if e.errno == socket.EWOULDBLOCK:
+                        # Non-blocking socket would block - check timeout
+                        if self.isNonBlocking():
+                            if (timer() - self._timestamp >= self.timeout()):
+                                self.close()
+                                self._raiseError(exceptions.UdpReadError, f"UDP. Error while reading from '{self._host}:{self._port}'. Timeout")
+                            # Return None to continue processing later
+                            return None
+                    # Other socket error
+                    self.close()
+                    self._raiseError(exceptions.UdpReadError, f"UDP. Error while reading from '{self._host}:{self._port}'. Error: {str(e)}")
+                        
+                except Exception as e:
+                    # Unexpected error
+                    self.close()
+                    if isinstance(e, ModbusException):
+                        raise e
+                    self._raiseError(exceptions.UdpReadError, f"UDP. Error while reading from '{self._host}:{self._port}'. Error: {str(e)}")
+            else:
+                if self.isOpen():
+                    self._state = ModbusPort.State.STATE_OPENED
+                    fRepeatAgain = True
+                    continue
+                else:
+                    self._raiseError(exceptions.UdpWriteError, "Internal state error")
+                    
+            return None
+                    
+class ModbusUdpPort(ModbusUdpPortBase):
+    """
+    Implements UDP version of the Modbus communication protocol.
+    
+    ModbusUdpPort derives from ModbusUdpPortBase and implements writeBuffer and readBuffer
+    for UDP version of Modbus communication protocol.
+    
+    UDP format:
+    - Uses UDP/IP for communication
+    - Similar to TCP format but without connection-oriented features
+    - More suitable for simple, low-latency communication where reliability is not critical
+    """
+    
+    def __init__(self, blocking: bool = True, sock = None):
+        """Initialize ModbusPort with default values."""
+        super().__init__(ModbusNetFrame(), blocking, sock)
+
+    def type(self) -> ProtocolType:
+        """Returns the Modbus protocol type. For ModbusUdpPort returns UDP."""
+        return ProtocolType.UDP
+    
+    def setNextRequestRepeated(self, v: bool) -> None:
+        """Repeat next request parameters (for Modbus UDP transaction Id).
+        
+        Args:
+            v: True to repeat next request ID, False otherwise.
+        """
+        self._frame._autoIncrement = v
+
+    def autoIncrement(self) -> bool:
+        """Returns True if the identifier of each subsequent parcel is automatically incremented by 1.
+        
+        Returns:
+            True if auto-increment is enabled, False otherwise.
+        """
+        return self._frame._autoIncrement
+    
+    def transactionId(self) -> int:
+        """Returns the current transaction identifier.
+        
+        Returns:
+            The current transaction identifier.
+        """
+        return self._frame._transaction
     

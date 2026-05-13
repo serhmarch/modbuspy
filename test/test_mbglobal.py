@@ -426,6 +426,7 @@ class TestStringConversionFunctions(unittest.TestCase):
     def test_sprotocolType(self):
         """Test sprotocolType function"""
         self.assertEqual(sprotocolType(ProtocolType.TCP), 'TCP')
+        self.assertEqual(sprotocolType(ProtocolType.UDP), 'UDP')
         self.assertEqual(sprotocolType(ProtocolType.RTU), 'RTU')
         self.assertEqual(sprotocolType(ProtocolType.ASC), 'ASC')
         self.assertEqual(sprotocolType(999), 'Unknown')  # Invalid
@@ -433,9 +434,11 @@ class TestStringConversionFunctions(unittest.TestCase):
     def test_toprotocolType(self):
         """Test toprotocolType function"""
         self.assertEqual(toprotocolType('TCP'), ProtocolType.TCP)
+        self.assertEqual(toprotocolType('UDP'), ProtocolType.UDP)
         self.assertEqual(toprotocolType('RTU'), ProtocolType.RTU)
         self.assertEqual(toprotocolType('ASC'), ProtocolType.ASC)
         self.assertEqual(toprotocolType('tcp'), ProtocolType.TCP)  # Case insensitive
+        self.assertEqual(toprotocolType('udp'), ProtocolType.UDP)  # Case insensitive
         self.assertEqual(toprotocolType('rtu'), ProtocolType.RTU)  # Case insensitive
         self.assertEqual(toprotocolType('asc'), ProtocolType.ASC)  # Case insensitive
         self.assertIsNone(toprotocolType('INVALID'))

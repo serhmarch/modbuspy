@@ -314,6 +314,7 @@ class ProtocolType(IntEnum):
     ASC = 0  # ASCII version of Modbus communication protocol.
     RTU = 1  # RTU version of Modbus communication protocol.
     TCP = 2  # TCP version of Modbus communication protocol.
+    UDP = 3  # UDP version of Modbus communication protocol.
 
 class Parity(IntEnum):
     """Defines Parity for serial port."""
