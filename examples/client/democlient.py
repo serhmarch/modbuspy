@@ -12,7 +12,7 @@ import argparse
 import time
 from typing import List, Optional
 
-from libmodbuspy.port import ModbusAscPort, ModbusRtuPort
+from libmodbuspy.port import ModbusAscPort, ModbusRtuPort, ModbusTcpPort
 
 # Add the libmodbuspy library path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -26,13 +26,19 @@ from libmodbuspy.mbglobal import (ProtocolType, Constants,
                                MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
                                MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
                                MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
-from libmodbuspy import ModbusClient
-from libmodbuspy import (ModbusTcpPort,
+from libmodbuspy import (
+                         ModbusClient,
+                         ModbusClientPort,
+                         ModbusException,
+                         ModbusTcpPort,
                          ModbusUdpPort,
                          ModbusRtuPort,
-                         ModbusAscPort)
-from libmodbuspy import ModbusClientPort
-from libmodbuspy import ModbusException
+                         ModbusAscPort,
+                         ModbusRtuOverTcpPort,
+                         ModbusAscOverTcpPort,
+                         ModbusRtuOverUdpPort,
+                         ModbusAscOverUdpPort
+                        )
 
 def print_regs(count: int, buff: bytes) -> None:
     """Print register values from buffer."""
@@ -115,7 +121,7 @@ Examples:
                        help='Use blocking mode (1) or non-blocking (0) (default: 1)')
     parser.add_argument('-u', '--unit', type=int, default=1,
                        help='Modbus device remote address/unit (default: 1)')
-    parser.add_argument('-t', '--type', choices=['TCP', 'RTU', 'ASC'], default='TCP',
+    parser.add_argument('-t', '--type', choices=['TCP', 'UDP', 'RTU', 'ASC', 'RTUvTCP', 'ASCvTCP', 'RTUvUDP', 'ASCvUDP'], default='TCP',
                        help='Protocol type (default: TCP)')
     parser.add_argument('-r', '--host', '--remote', default='localhost',
                        help='DNS name or IP address for TCP (default: localhost)')
@@ -156,6 +162,14 @@ Examples:
         options.type = ProtocolType.RTU
     elif args.type == 'ASC':
         options.type = ProtocolType.ASC
+    elif args.type == 'RTUvTCP':
+        options.type = ProtocolType.RTUvTCP
+    elif args.type == 'ASCvTCP':
+        options.type = ProtocolType.ASCvTCP
+    elif args.type == 'RTUvUDP':
+        options.type = ProtocolType.RTUvUDP
+    elif args.type == 'ASCvUDP':
+        options.type = ProtocolType.ASCvUDP
     else:
         options.type = ProtocolType.TCP  # Fallback to TCP
     
@@ -232,6 +246,34 @@ def main():
         port.setTimeoutInterByte(options.timeout_inter_byte)
         client_port = ModbusClientPort(port)
         client_port.setObjectName("ASC")
+    elif options.type == ProtocolType.RTUvTCP:
+        port = ModbusRtuOverTcpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusClientPort(port)
+        client_port.setObjectName("RTUvTCP")
+    elif options.type == ProtocolType.ASCvTCP:
+        port = ModbusAscOverTcpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusClientPort(port)
+        client_port.setObjectName("ASCvTCP")
+    elif options.type == ProtocolType.RTUvUDP:
+        port = ModbusRtuOverUdpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusClientPort(port)
+        client_port.setObjectName("RTUvUDP")
+    elif options.type == ProtocolType.ASCvUDP:
+        port = ModbusAscOverUdpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusClientPort(port)
+        client_port.setObjectName("ASCvUDP")
     else:
         print(f"Unsupported protocol type: {options.type}")
         sys.exit(1)

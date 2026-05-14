@@ -33,7 +33,11 @@ from .tcpserver import ModbusTcpServer, ModbusAsyncTcpServer
 from .port import (ModbusTcpPort, 
                    ModbusUdpPort,
                    ModbusRtuPort,
-                   ModbusAscPort)
+                   ModbusAscPort,
+                   ModbusRtuOverTcpPort,
+                   ModbusAscOverTcpPort,
+                   ModbusRtuOverUdpPort,
+                   ModbusAscOverUdpPort)
 
 __version__ = MBPY_VERSION_STR
 __author__ = "serhmarch"

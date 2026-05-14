@@ -1222,6 +1222,52 @@ class ModbusTcpPort(ModbusTcpPortBase):
         return self._frame._transaction
 
 
+class ModbusRtuOverTcpPort(ModbusTcpPortBase):
+    """
+    Implements RTU over TCP version of the Modbus communication protocol.
+    
+    ModbusRtuOverTcpPort derives from ModbusTcpPortBase and implements writeBuffer and readBuffer
+    for RTU over TCP version of Modbus communication protocol.
+    
+    RTU over TCP format:
+    - Combines RTU framing with TCP transport
+    - Uses TCP/IP for communication but frames data as RTU (binary with CRC)
+    - No transaction identifier or protocol identifier (unlike standard Modbus TCP)
+    - Suitable for environments where RTU devices are connected via TCP/IP networks
+    """
+    
+    def __init__(self, blocking: bool = True, sock = None):
+        """Initialize ModbusPort with default values."""
+        super().__init__(ModbusRtuFrame(), blocking, sock)
+
+    def type(self) -> ProtocolType:
+        """Returns the Modbus protocol type. For ModbusRtuOverTcpPort returns RTU over TCP."""
+        return ProtocolType.RTUvTCP
+
+
+class ModbusAscOverTcpPort(ModbusTcpPortBase):
+    """
+    Implements ASCII over TCP version of the Modbus communication protocol.
+    
+    ModbusAscOverTcpPort derives from ModbusTcpPortBase and implements writeBuffer and readBuffer
+    for ASCII over TCP version of Modbus communication protocol.
+    
+    ASCII over TCP format:
+    - Combines ASCII framing with TCP transport
+    - Uses TCP/IP for communication but frames data as ASCII (hexadecimal with start/stop delimiters)
+    - No transaction identifier or protocol identifier (unlike standard Modbus TCP)
+    - Suitable for environments where ASCII devices are connected via TCP/IP networks
+    """
+    
+    def __init__(self, blocking: bool = True, sock = None):
+        """Initialize ModbusPort with default values."""
+        super().__init__(ModbusAscFrame(), blocking, sock)
+
+    def type(self) -> ProtocolType:
+        """Returns the Modbus protocol type. For ModbusAscOverTcpPort returns ASCII over TCP."""
+        return ProtocolType.ASCvTCP
+
+
 class ModbusUdpPortBase(ModbusNetPort):
     """Base class for Modbus UDP port implementation."""
 
@@ -1428,3 +1474,48 @@ class ModbusUdpPort(ModbusUdpPortBase):
         """
         return self._frame._transaction
     
+
+class ModbusRtuOverUdpPort(ModbusUdpPortBase):
+    """
+    Implements RTU over UDP version of the Modbus communication protocol.
+    
+    ModbusRtuOverUdpPort derives from ModbusUdpPortBase and implements writeBuffer and readBuffer
+    for RTU over UDP version of Modbus communication protocol.
+    
+    RTU over UDP format:
+    - Combines RTU framing with UDP transport
+    - Uses UDP/IP for communication but frames data as RTU (binary with CRC)
+    - No transaction identifier or protocol identifier (unlike standard Modbus TCP)
+    - Suitable for environments where RTU devices are connected via UDP/IP networks
+    """
+    
+    def __init__(self, blocking: bool = True, sock = None):
+        """Initialize ModbusPort with default values."""
+        super().__init__(ModbusRtuFrame(), blocking, sock)
+
+    def type(self) -> ProtocolType:
+        """Returns the Modbus protocol type. For ModbusRtuOverUdpPort returns RTU over UDP."""
+        return ProtocolType.RTUvUDP
+    
+
+class ModbusAscOverUdpPort(ModbusUdpPortBase):
+    """
+    Implements ASCII over UDP version of the Modbus communication protocol.
+    
+    ModbusAscOverUdpPort derives from ModbusUdpPortBase and implements writeBuffer and readBuffer
+    for ASCII over UDP version of Modbus communication protocol.
+    
+    ASCII over UDP format:
+    - Combines ASCII framing with UDP transport
+    - Uses UDP/IP for communication but frames data as ASCII (hexadecimal with start/stop delimiters)
+    - No transaction identifier or protocol identifier (unlike standard Modbus TCP)
+    - Suitable for environments where ASCII devices are connected via UDP/IP networks
+    """
+    
+    def __init__(self, blocking: bool = True, sock = None):
+        """Initialize ModbusPort with default values."""
+        super().__init__(ModbusAscFrame(), blocking, sock)
+
+    def type(self) -> ProtocolType:
+        """Returns the Modbus protocol type. For ModbusAscOverUdpPort returns ASCII over UDP."""
+        return ProtocolType.ASCvUDP

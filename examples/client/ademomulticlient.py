@@ -28,15 +28,21 @@ from libmodbuspy.mbglobal import (ProtocolType, Constants,
                                MBF_READ_EXCEPTION_STATUS, MBF_WRITE_MULTIPLE_COILS,
                                MBF_WRITE_MULTIPLE_REGISTERS, MBF_REPORT_SERVER_ID, MBF_MASK_WRITE_REGISTER,
                                MBF_READ_WRITE_MULTIPLE_REGISTERS, MBF_READ_FIFO_QUEUE)
-from libmodbuspy import (StatusCode,
+from libmodbuspy import (
+                         StatusCode,
                          StatusIsGood,
                          ModbusClient,
+                         ModbusAsyncClientPort,
+                         ModbusException,
                          ModbusTcpPort,
                          ModbusUdpPort,
                          ModbusRtuPort,
                          ModbusAscPort,
-                         ModbusAsyncClientPort,
-                         ModbusException)
+                         ModbusRtuOverTcpPort,
+                         ModbusAscOverTcpPort,
+                         ModbusRtuOverUdpPort,
+                         ModbusAscOverUdpPort
+                        )
 
 def print_regs(count: int, buff: bytes) -> None:
     """Print register values from buffer."""
@@ -117,7 +123,7 @@ Examples:
     
     parser.add_argument('-u', '--unit', type=int, default=1,
                        help='Modbus device remote address/unit (default: 1)')
-    parser.add_argument('-t', '--type', choices=['TCP', 'UDP', 'RTU', 'ASC'], default='TCP',
+    parser.add_argument('-t', '--type', choices=['TCP', 'UDP', 'RTU', 'ASC', 'RTUvTCP', 'ASCvTCP', 'RTUvUDP', 'ASCvUDP'], default='TCP',
                        help='Protocol type (default: TCP)')
     parser.add_argument('-r', '--host', '--remote', default='localhost',
                        help='DNS name or IP address for TCP (default: localhost)')
@@ -158,6 +164,14 @@ Examples:
         options.type = ProtocolType.RTU
     elif args.type == 'ASC':
         options.type = ProtocolType.ASC
+    elif args.type == 'RTUvTCP':
+        options.type = ProtocolType.RTUvTCP
+    elif args.type == 'ASCvTCP':
+        options.type = ProtocolType.ASCvTCP
+    elif args.type == 'RTUvUDP':
+        options.type = ProtocolType.RTUvUDP
+    elif args.type == 'ASCvUDP':
+        options.type = ProtocolType.ASCvUDP
     else:
         options.type = ProtocolType.TCP  # Fallback to TCP
     
@@ -230,6 +244,34 @@ async def async_main():
         port.setTimeoutInterByte(options.timeout_inter_byte)
         client_port = ModbusAsyncClientPort(port)
         client_port.setObjectName("AsyncASC")
+    elif options.type == ProtocolType.RTUvTCP:
+        port = ModbusRtuOverTcpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusAsyncClientPort(port)
+        client_port.setObjectName("AsyncRTUvTCP")
+    elif options.type == ProtocolType.ASCvTCP:
+        port = ModbusAscOverTcpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusAsyncClientPort(port)
+        client_port.setObjectName("AsyncASCvTCP")
+    elif options.type == ProtocolType.RTUvUDP:
+        port = ModbusRtuOverUdpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusAsyncClientPort(port)
+        client_port.setObjectName("AsyncRTUvUDP")
+    elif options.type == ProtocolType.ASCvUDP:
+        port = ModbusAscOverUdpPort(blocking)
+        port.setHost(options.host)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        client_port = ModbusAsyncClientPort(port)
+        client_port.setObjectName("AsyncASCvUDP")
     else:
         print(f"Unsupported protocol type: {options.type}")
         sys.exit(1)

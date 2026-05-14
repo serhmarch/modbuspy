@@ -24,19 +24,25 @@ import asyncio
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import libmodbuspy modules
+from libmodbuspy.clientport import ModbusAsyncClientPort
 from libmodbuspy.statuscode import StatusCode
-from libmodbuspy import (ProtocolType,
-                      ModbusInterface,
-                      Constants,
-                      timer,
-                      MB_REGE_SZ_BITES)
-
-from libmodbuspy import ModbusAsyncTcpServer
-from libmodbuspy import ModbusAsyncServerResource
-from libmodbuspy import (ModbusTcpPort,
+from libmodbuspy import (
+                         ProtocolType,
+                         ModbusInterface,
+                         Constants,
+                         timer,
+                         MB_REGE_SZ_BITES,
+                         ModbusAsyncTcpServer,
+                         ModbusAsyncServerResource,
+                         ModbusTcpPort,
                          ModbusUdpPort,
                          ModbusRtuPort,
-                         ModbusAscPort)
+                         ModbusAscPort,
+                         ModbusRtuOverTcpPort,
+                         ModbusAscOverTcpPort,
+                         ModbusRtuOverUdpPort,
+                         ModbusAscOverUdpPort
+                        )
 from libmodbuspy.exceptions import (ModbusException,
                                  IllegalDataAddressError,
                                  GatewayPathUnavailableError)
@@ -303,7 +309,7 @@ Examples:
     )
     parser.add_argument('-u', '--unit', type=int, default=1,
                        help='Modbus device unit address (default: 1)')
-    parser.add_argument('-t', '--type', choices=['TCP', 'UDP', 'RTU', 'ASC'], default='TCP',
+    parser.add_argument('-t', '--type', choices=['TCP', 'UDP', 'RTU', 'ASC', 'RTUvTCP', 'ASCvTCP', 'RTUvUDP', 'ASCvUDP'], default='TCP',
                        help='Protocol type (default: TCP)')
     parser.add_argument('-p', '--port', type=int, default=Constants.STANDARD_TCP_PORT,
                        help=f'TCP port to listen on (default: {Constants.STANDARD_TCP_PORT})')
@@ -339,6 +345,14 @@ Examples:
         options.type = ProtocolType.RTU
     elif args.type == 'ASC':
         options.type = ProtocolType.ASC
+    elif args.type == 'RTUvTCP':
+        options.type = ProtocolType.RTUvTCP
+    elif args.type == 'ASCvTCP':
+        options.type = ProtocolType.ASCvTCP
+    elif args.type == 'RTUvUDP':
+        options.type = ProtocolType.RTUvUDP
+    elif args.type == 'ASCvUDP':
+        options.type = ProtocolType.ASCvUDP
     # Tcp settings
     options.port = args.port
     options.timeout = args.tm
@@ -397,15 +411,17 @@ async def main():
     options = parse_arguments()
     
     print("Modbus Async Demo Server - Python version")
-    print(f"Protocol: {['ASC', 'RTU', 'TCP', 'UDP'][options.type]}")
+    print(f"Protocol: {['ASC', 'RTU', 'TCP', 'UDP', 'RTUvTCP', 'ASCvTCP', 'RTUvUDP', 'ASCvUDP'][options.type]}")
     print(f"Unit: {options.unit}, Memory size: {options.count} registers")
     
     # Create device with simulated memory
     device = Device(options.unit, options.count)
     server = None
     
-    if options.type == ProtocolType.TCP:
-        server = ModbusAsyncTcpServer(device)
+    if options.type in (ProtocolType.TCP,
+                        ProtocolType.RTUvTCP,
+                        ProtocolType.ASCvTCP):
+        server = ModbusAsyncTcpServer(options.type, device)
         server.setPort(options.port)
         server.setTimeout(options.timeout)
         server.setMaxConnections(options.max_connections)
@@ -436,6 +452,16 @@ async def main():
         port.setStopBits(options.stop_bits)
         port.setTimeoutFirstByte(options.timeout_first_byte)
         port.setTimeoutInterByte(options.timeout_inter_byte)
+        server = ModbusAsyncServerResource(port, device)
+    elif options.type == ProtocolType.RTUvUDP:
+        port = ModbusRtuOverUdpPort(blocking=False)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
+        server = ModbusAsyncServerResource(port, device)
+    elif options.type == ProtocolType.ASCvUDP:
+        port = ModbusAscOverUdpPort(blocking=False)
+        port.setPort(options.port)
+        port.setTimeout(options.timeout)
         server = ModbusAsyncServerResource(port, device)
     else:
         print(f"Unsupported protocol type: {options.type}")

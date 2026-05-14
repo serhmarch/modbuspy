@@ -12,13 +12,14 @@ from typing import List, Optional, Callable, Tuple
 from .mbglobal import ProtocolType, StatusCode, Constants, timer, AwaitableMethod
 from .mbinterface import ModbusInterface
 from . import exceptions
-from .port import ModbusTcpPort
+from .port import ModbusTcpPort, ModbusRtuOverTcpPort, ModbusAscOverTcpPort
 from .mbobject import ModbusObject
 from .serverport import ModbusServerPort
 from .serverresource import ModbusServerResource
 
 class ModbusTcpServer(ModbusServerPort):
-    """The ModbusTcpServer class implements TCP server part of the Modbus protocol.
+    """
+    The ModbusTcpServer class implements TCP server part of the Modbus protocol.
     
     ModbusTcpServer manages multiple simultaneous TCP connections and processes
     Modbus requests from multiple clients concurrently.
@@ -44,7 +45,8 @@ class ModbusTcpServer(ModbusServerPort):
         maxconn: int = 10                          # Default setting for the maximum number of simultaneous connections
         
     def getHostService(sock: socket.socket) -> Tuple[str, int]:
-        """Returns host and service (port) of the given socket.
+        """
+        Returns host and service (port) of the given socket.
         
         Args:
             sock: The socket to query.
@@ -56,12 +58,34 @@ class ModbusTcpServer(ModbusServerPort):
         except socket.error:
             return "", 0
 
-    def __init__(self, device: ModbusInterface):
-        """Constructor of the class.
+    def __init__(self, *args):
+        """
+        Constructor of the class.
+        Constructs TCP server with the given device and protocol type (TCP, RTUvTCP or ASCvTCP).
+        Can be one of the following:
+        - ModbusTcpServer(device: ModbusInterface) - constructs TCP server with TCP protocol type
+        - ModbusTcpServer(type: ProtocolType, device: ModbusInterface) - constructs TCP server
+        with the given protocol type (TCP, RTUvTCP or ASCvTCP)
         
         Args:
             device: Object which processes incoming requests for read/write memory.
         """
+        if len(args) == 1: 
+            if not isinstance(args[0], ModbusInterface):
+                raise ValueError("Invalid argument for ModbusTcpServer constructor. Expected ModbusInterface.")
+            self._type = ProtocolType.TCP
+            device = args[0]
+        elif len(args) == 2:
+            if not isinstance(args[0], ProtocolType):
+                raise ValueError("Invalid first argument for ModbusTcpServer constructor. Expected ProtocolType.")
+            if not isinstance(args[1], ModbusInterface):
+                raise ValueError("Invalid second argument for ModbusTcpServer constructor. Expected ModbusInterface.")
+            type : ProtocolType = args[0]
+            if type not in (ProtocolType.TCP, ProtocolType.RTUvTCP, ProtocolType.ASCvTCP):
+                raise ValueError("Invalid ProtocolType for ModbusTcpServer constructor. Expected TCP, RTUvTCP or ASCvTCP.")
+            self._type = type
+            device = args[1]
+        device: ModbusInterface = None
         super().__init__(device)
         d = self.Defaults
         # TCP server settings
@@ -83,15 +107,17 @@ class ModbusTcpServer(ModbusServerPort):
         self.close()
 
     def type(self) -> ProtocolType:
-        """Returns the Modbus protocol type. In this case it is TCP.
+        """
+        Returns the Modbus protocol type.
         
         Returns:
-            ProtocolType.TCP
+            ProtocolType.TCP or ProtocolType.RTUvTCP or ProtocolType.ASCvTCP depending on the constructor used.
         """
-        return ProtocolType.TCP
+        return self._type
 
     def isTcpServer(self) -> bool:
-        """Returns True (this is a TCP server).
+        """
+        Returns True (this is a TCP server).
         
         Returns:
             Always True for TCP server.
@@ -101,7 +127,8 @@ class ModbusTcpServer(ModbusServerPort):
     # Property getters and setters
 
     def host(self) -> str:
-        """Returns the setting for the TCP host name (DNS or IP address) of the server.
+        """
+        Returns the setting for the TCP host name (DNS or IP address) of the server.
         
         Returns:
             TCP host name (DNS or IP address) for the listening server.
@@ -109,7 +136,8 @@ class ModbusTcpServer(ModbusServerPort):
         return self._host
 
     def setHost(self, host: str) -> None:
-        """Sets the settings for the TCP host name (DNS or IP address) of the server.
+        """
+        Sets the settings for the TCP host name (DNS or IP address) of the server.
         
         Args:
             host: TCP host name (DNS or IP address) for the listening server.
@@ -119,7 +147,8 @@ class ModbusTcpServer(ModbusServerPort):
         return self._tcpPort
 
     def port(self) -> int:
-        """Returns the setting for the TCP port number of the server.
+        """
+        Returns the setting for the TCP port number of the server.
         
         Returns:
             TCP port number for the listening server.
@@ -127,7 +156,8 @@ class ModbusTcpServer(ModbusServerPort):
         return self._tcpPort
 
     def setPort(self, port: int) -> None:
-        """Sets the settings for the TCP port number of the server.
+        """
+        Sets the settings for the TCP port number of the server.
         
         Args:
             port: TCP port number for the listening server.
@@ -135,7 +165,8 @@ class ModbusTcpServer(ModbusServerPort):
         self._tcpPort = port
 
     def timeout(self) -> int:
-        """Returns the setting for the read timeout of every single connection.
+        """
+        Returns the setting for the read timeout of every single connection.
         
         Returns:
             Timeout value in milliseconds.
@@ -143,7 +174,8 @@ class ModbusTcpServer(ModbusServerPort):
         return self._timeout
 
     def setTimeout(self, timeout: int) -> None:
-        """Sets the setting for the read timeout of every single connection.
+        """
+        Sets the setting for the read timeout of every single connection.
         
         Args:
             timeout: Timeout value in milliseconds.
@@ -153,7 +185,8 @@ class ModbusTcpServer(ModbusServerPort):
             c.setTimeout(timeout)
 
     def maxConnections(self) -> int:
-        """Returns setting for the maximum number of simultaneous connections to the server.
+        """
+        Returns setting for the maximum number of simultaneous connections to the server.
         
         Returns:
             Maximum number of simultaneous connections.
@@ -161,7 +194,8 @@ class ModbusTcpServer(ModbusServerPort):
         return self._maxconn 
 
     def setMaxConnections(self, maxconn: int) -> None:
-        """Sets the setting for the maximum number of simultaneous connections to the server.
+        """
+        Sets the setting for the maximum number of simultaneous connections to the server.
         
         Args:
             maxconn: Maximum number of simultaneous connections.
@@ -199,7 +233,8 @@ class ModbusTcpServer(ModbusServerPort):
     # Server port interface implementations
 
     def setBroadcastEnabled(self, enable: bool) -> None:
-        """Enables broadcast mode for '0' unit address. It is enabled by default.
+        """
+        Enables broadcast mode for '0' unit address. It is enabled by default.
         
         Args:
             enable: True to enable broadcast mode, False to disable.
@@ -209,7 +244,8 @@ class ModbusTcpServer(ModbusServerPort):
             c.setBroadcastEnabled(enable)
 
     def setUnitMap(self, unitmap: Optional[bytes]) -> None:
-        """Set units map of current server. Server makes a copy of units map data.
+        """
+        Set units map of current server. Server makes a copy of units map data.
         
         Args:
             unitmap: Units map byte array or None.
@@ -219,11 +255,12 @@ class ModbusTcpServer(ModbusServerPort):
             c.setUnitMap(unitmap)
 
     def open(self) -> bool:
-        """Try to listen for incoming connections on TCP port that was previously set.
+        """
+        Try to listen for incoming connections on TCP port that was previously set.
         
         Returns:
             - True on success
-            - False when operation is not complete
+            - None when operation is not complete
             - Status_BadTcpCreate when can't create TCP socket
             - Status_BadTcpBind when can't bind TCP socket
             - Status_BadTcpListen when can't listen TCP socket
@@ -263,7 +300,8 @@ class ModbusTcpServer(ModbusServerPort):
         return None
     
     def close(self) -> StatusCode:
-        """Stop listening for incoming connections and close all previously opened connections.
+        """
+        Stop listening for incoming connections and close all previously opened connections.
         
         Returns:
             - Status_Good on success
@@ -285,7 +323,8 @@ class ModbusTcpServer(ModbusServerPort):
         return True
 
     def isOpen(self) -> bool:
-        """Returns True if the server is currently listening for incoming connections.
+        """
+        Returns True if the server is currently listening for incoming connections.
         
         Returns:
             True if server is listening, False otherwise.
@@ -293,7 +332,8 @@ class ModbusTcpServer(ModbusServerPort):
         return self._socket is not None
 
     def process(self) -> StatusCode:
-        """Main function of TCP server. Must be called in cycle to perform all incoming TCP connections.
+        """
+        Main function of TCP server. Must be called in cycle to perform all incoming TCP connections.
         
         Returns:
             StatusCode indicating the processing result.
@@ -357,7 +397,7 @@ class ModbusTcpServer(ModbusServerPort):
                 # check up new connection
                 s = self._nextPendingConnection()
                 if s:
-                    c = self._createTcpPort(s)
+                    c = self._createModbusPort(s)
                     # Connect signals of the new connection to the server signals
                     c.signalTx   .connect(self.signalTx   .emit)
                     c.signalRx   .connect(self.signalRx   .emit)
@@ -394,7 +434,8 @@ class ModbusTcpServer(ModbusServerPort):
     # Protected methods
 
     def _nextPendingConnection(self) -> socket.socket:
-        """Checks for incoming connections and returns socket if new connection established.
+        """
+        Checks for incoming connections and returns socket if new connection established.
         
         Returns:
             New socket for incoming connection or None if no pending connections.
@@ -424,8 +465,10 @@ class ModbusTcpServer(ModbusServerPort):
 
     # Virtual methods for customization
 
-    def _createTcpPort(self, sock: socket.socket) -> ModbusServerPort:
-        """Creates ModbusServerPort for new incoming connection defined by socket.
+    def _createModbusPort(self, sock: socket.socket) -> ModbusServerPort:
+        """
+        Creates ModbusPort for new incoming connection defined by socket
+        depending on the protocol type of the server.,
         
         May be reimplemented in subclasses.
         
@@ -433,18 +476,25 @@ class ModbusTcpServer(ModbusServerPort):
             sock: TCP socket for the new connection.
 
         Returns:
-            New ModbusServerPort instance
+            New ModbusPort instance
         """
-        tcp = ModbusTcpPort(blocking=False, sock=sock)
-        tcp.setTimeout(self.timeout())
+        port = None
+        if self._type == ProtocolType.RTUvTCP:
+            port = ModbusRtuOverTcpPort(blocking=False, sock=sock)
+        elif self._type == ProtocolType.ASCvTCP:
+            port = ModbusAscOverTcpPort(blocking=False, sock=sock)
+        else:
+            port = ModbusTcpPort(blocking=False, sock=sock)
+        port.setTimeout(self.timeout())
         host, port = ModbusTcpServer.getHostService(sock)
         name = f"{host}:{port}"
-        c = ModbusServerResource(tcp, self.device())
+        c = ModbusServerResource(port, self.device())
         c.setObjectName(name)
         return c
 
     def _deleteTcpPort(self, port: ModbusServerPort) -> None:
-        """Deletes ModbusServerPort by default.
+        """
+        Deletes ModbusServerPort by default.
         
         May be reimplemented in subclasses.
         
@@ -455,7 +505,8 @@ class ModbusTcpServer(ModbusServerPort):
         
 
 class ModbusAsyncTcpServer(ModbusTcpServer):
-    """Asynchronous version of ModbusServerResource.
+    """
+    Asynchronous version of ModbusServerResource.
     
     All methods that can be blocking in ModbusServerResource are
     overridden here to return `AwaitableMethod` objects.

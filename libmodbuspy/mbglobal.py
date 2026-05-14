@@ -311,28 +311,32 @@ class MemoryType(IntEnum):
 
 class ProtocolType(IntEnum):
     """Defines type of Modbus protocol."""
-    ASC = 0  # ASCII version of Modbus communication protocol.
-    RTU = 1  # RTU version of Modbus communication protocol.
-    TCP = 2  # TCP version of Modbus communication protocol.
-    UDP = 3  # UDP version of Modbus communication protocol.
+    ASC     = 0 # ASCII version of Modbus communication protocol.
+    RTU     = 1 # RTU version of Modbus communication protocol.
+    TCP     = 2 # TCP version of Modbus communication protocol.
+    UDP     = 3 # UDP version of Modbus communication protocol.
+    RTUvTCP = 4 # Modbus RTU over TCP communication protocol.
+    ASCvTCP = 5 # Modbus ASCII over TCP communication protocol. 
+    RTUvUDP = 6 # Modbus RTU over UDP communication protocol.
+    ASCvUDP = 7 # Modbus ASCII over UDP communication protocol.
 
 class Parity(IntEnum):
     """Defines Parity for serial port."""
-    NoParity = 0     # No parity bit it sent. This is the most common parity setting.
-    EvenParity = 1   # The number of 1 bits in each character, including the parity bit, is always even.
-    OddParity = 2    # The number of 1 bits in each character, including the parity bit, is always odd. It ensures that at least one state transition occurs in each character.
-    SpaceParity = 3  # Space parity. The parity bit is sent in the space signal condition. It does not provide error detection information.
-    MarkParity = 4   # Mark parity. The parity bit is always set to the mark signal condition (logical 1). It does not provide error detection information.
+    NoParity    = 0 # No parity bit it sent. This is the most common parity setting.
+    EvenParity  = 1 # The number of 1 bits in each character, including the parity bit, is always even.
+    OddParity   = 2 # The number of 1 bits in each character, including the parity bit, is always odd. It ensures that at least one state transition occurs in each character.
+    SpaceParity = 3 # Space parity. The parity bit is sent in the space signal condition. It does not provide error detection information.
+    MarkParity  = 4 # Mark parity. The parity bit is always set to the mark signal condition (logical 1). It does not provide error detection information.
 
 class StopBits(IntEnum):
     """Defines Stop Bits for serial port."""
-    OneStop = 0        # 1 stop bit.
+    OneStop        = 0 # 1 stop bit.
     OneAndHalfStop = 1 # 1.5 stop bit.
-    TwoStop = 2        # 2 stop bits.
+    TwoStop        = 2 # 2 stop bits.
 
 class FlowControl(IntEnum):
     """FlowControl for serial port."""
-    NoFlowControl = 0   # No flow control.
+    NoFlowControl   = 0 # No flow control.
     HardwareControl = 1 # Hardware flow control (RTS/CTS).
     SoftwareControl = 2 # Software flow control (XON/XOFF).
 

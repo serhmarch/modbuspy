@@ -23,23 +23,25 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import libmodbuspy modules
 from libmodbuspy.statuscode import StatusCode
-from libmodbuspy import (ProtocolType,
-                      ModbusInterface,
-                      timer,
-                      Constants,
-                      MB_REGE_SZ_BITES)
-
-from libmodbuspy import ModbusTcpServer
-from libmodbuspy import ModbusServerResource
-from libmodbuspy import (ModbusTcpPort,
+from libmodbuspy import (
+                         ProtocolType,
+                         ModbusInterface,
+                         timer,
+                         Constants,
+                         MB_REGE_SZ_BITES,
+                         ModbusTcpServer,
+                         ModbusServerResource,
+                         ModbusTcpPort,
                          ModbusUdpPort,
                          ModbusRtuPort,
-                         ModbusAscPort)
+                         ModbusAscPort
+                         )
                             
-from libmodbuspy import ModbusAscPort
-from libmodbuspy.exceptions import (ModbusException,
-                                 IllegalDataAddressError,
-                                 GatewayPathUnavailableError)
+from libmodbuspy.exceptions import (
+                                    ModbusException,
+                                    IllegalDataAddressError,
+                                    GatewayPathUnavailableError
+                                    )
 
 def print_tx(source: str, buff: bytes) -> None:
     """Print transmitted data."""

@@ -8,18 +8,25 @@
 
 from .mbglobal import ProtocolType
 from .mbinterface import ModbusInterface
-from .port import (ModbusPort,
+from .port import (
+                   ModbusPort,
                    ModbusTcpPort,
                    ModbusUdpPort,
                    ModbusRtuPort,
-                   ModbusAscPort)
+                   ModbusAscPort,
+                   ModbusRtuOverTcpPort,
+                   ModbusAscOverTcpPort,
+                   ModbusRtuOverUdpPort,
+                   ModbusAscOverUdpPort
+                  )
 from .clientport import ModbusClientPort, ModbusAsyncClientPort
 from .serverport import ModbusServerPort
 from .serverresource import ModbusServerResource, ModbusAsyncServerResource
 from .tcpserver import ModbusTcpServer, ModbusAsyncTcpServer
 
 def createPort(protocolType: ProtocolType, blocking: bool, **settings) -> ModbusPort:
-    """Factory function to create ModbusPort instance based on specified protocol type and settings.
+    """
+    Factory function to create ModbusPort instance based on specified protocol type and settings.
     
     Args:
         protocolType: Protocol type (ProtocolType enum).
@@ -37,6 +44,14 @@ def createPort(protocolType: ProtocolType, blocking: bool, **settings) -> Modbus
         p = ModbusRtuPort(blocking=blocking)
     elif protocolType == ProtocolType.ASC:
         p = ModbusAscPort(blocking=blocking)
+    elif protocolType == ProtocolType.RTUvTCP:
+        p = ModbusRtuOverTcpPort(blocking=blocking)
+    elif protocolType == ProtocolType.ASCvTCP:
+        p = ModbusAscOverTcpPort(blocking=blocking)
+    elif protocolType == ProtocolType.RTUvUDP:
+        p = ModbusRtuOverUdpPort(blocking=blocking)
+    elif protocolType == ProtocolType.ASCvUDP:
+        p = ModbusAscOverUdpPort(blocking=blocking)
     else:
         raise ValueError(f"Unsupported protocol type: {protocolType}")
     p.setSettings(settings)
@@ -44,7 +59,8 @@ def createPort(protocolType: ProtocolType, blocking: bool, **settings) -> Modbus
 
     
 def createClientPort(protocolType: ProtocolType, blocking: bool, **settings) -> ModbusClientPort:
-    """Factory function to create ModbusClientPort instance based on specified protocol type and settings.
+    """
+    Factory function to create ModbusClientPort instance based on specified protocol type and settings.
 
     Args:
         protocolType: Protocol type (ProtocolType enum).
@@ -58,7 +74,8 @@ def createClientPort(protocolType: ProtocolType, blocking: bool, **settings) -> 
     return ModbusClientPort(port)
 
 def createAsyncClientPort(protocolType: ProtocolType, **settings) -> ModbusAsyncClientPort:
-    """Factory function to create ModbusAsyncClientPort instance based on specified protocol type and settings.
+    """
+    Factory function to create ModbusAsyncClientPort instance based on specified protocol type and settings.
 
     Args:
         protocolType: Protocol type (ProtocolType enum).
@@ -70,7 +87,8 @@ def createAsyncClientPort(protocolType: ProtocolType, **settings) -> ModbusAsync
     return ModbusAsyncClientPort(port)
 
 def createServerPort(device: ModbusInterface, protocolType: ProtocolType, blocking: bool, **settings) -> ModbusServerPort:
-    """Factory function to create ModbusServerPort instance based on specified protocol type and settings.
+    """
+    Factory function to create ModbusServerPort instance based on specified protocol type and settings.
     
     Args:
         device: ModbusInterface device instance.
@@ -82,8 +100,8 @@ def createServerPort(device: ModbusInterface, protocolType: ProtocolType, blocki
         An instance of ModbusServerPort.
     """
     serv = None
-    if protocolType == ProtocolType.TCP:
-        tcp = ModbusTcpServer(device)
+    if protocolType in (ProtocolType.TCP, ProtocolType.RTUvTCP, ProtocolType.ASCvTCP):
+        tcp = ModbusTcpServer(protocolType, device)
         tcp.setSettings(settings)
         serv = tcp
     else:
@@ -92,7 +110,8 @@ def createServerPort(device: ModbusInterface, protocolType: ProtocolType, blocki
     return serv
 
 def createAsyncServerPort(device: ModbusInterface, protocolType: ProtocolType, **settings) -> ModbusAsyncServerResource:
-    """Factory function to create ModbusAsyncServerPort instance based on specified protocol type and settings.
+    """
+    Factory function to create ModbusAsyncServerPort instance based on specified protocol type and settings.
     
     Args:
         device: ModbusInterface device instance.
@@ -103,8 +122,8 @@ def createAsyncServerPort(device: ModbusInterface, protocolType: ProtocolType, *
         An instance of ModbusAsyncServerPort.
     """
     serv = None
-    if protocolType == ProtocolType.TCP:
-        tcp = ModbusAsyncTcpServer(device)
+    if protocolType in (ProtocolType.TCP, ProtocolType.RTUvTCP, ProtocolType.ASCvTCP):
+        tcp = ModbusAsyncTcpServer(protocolType, device)
         tcp.setSettings(settings)
         serv = tcp
     else:
