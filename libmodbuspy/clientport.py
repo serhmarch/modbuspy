@@ -1940,7 +1940,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         else:
             return None
         
-    def _request(self, unit: int, func: int, buff: bytes) -> StatusCode:
+    def _request(self, unit: int, func: int, buff: bytes) -> bytes:
         """The function builds the packet that the write() function puts into the buffer.
         
         Args:
@@ -1949,11 +1949,9 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
             buff: Buffer containing the data to write.
             
         Returns:
-            Status code of the operation.
+            Response buffer from the operation or None if operation is in process.
         """
-        fRepeatAgain = True
-        while fRepeatAgain:
-            fRepeatAgain = False
+        while True:
             if not self._isWriteBufferBlocked():
                 self._unit = unit
                 self._func = func
@@ -1972,7 +1970,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     self._port.setNextRequestRepeated(True)
                     if self._port.isNonBlocking():
                         return None
-                    fRepeatAgain = True
                     continue
                 self._setCompleted()
                 raise e
@@ -1996,26 +1993,23 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     self._raiseError(StatusCode.Status_BadNotCorrectResponse, "Not correct response. Requested function is not equal to responsed")
                 return buff
             self._setStatus(StatusCode.Status_Good)
+            break
         return bytes()
 
     def _process(self) -> StatusCode:
         """The function processes the packet that the read() function puts into the buffer.
         """
-        fRepeatAgain = True
-        while fRepeatAgain:
-            fRepeatAgain = False
+        while True:
             if self._state == ModbusClientPort.State.STATE_UNKNOWN:
                 if self._port.isOpen():
                     self._state = ModbusClientPort.State.STATE_OPENED
                 else:
                     self._state = ModbusClientPort.State.STATE_CLOSED
-                fRepeatAgain = True
                 continue
             elif self._state in (ModbusClientPort.State.STATE_CLOSED,
                                  ModbusClientPort.State.STATE_BEGIN_OPEN):
                 self._timestampRefresh()
                 self._state = ModbusClientPort.State.STATE_WAIT_FOR_OPEN
-                fRepeatAgain = True
                 continue
             elif self._state == ModbusClientPort.State.STATE_WAIT_FOR_OPEN:
                 try:
@@ -2028,7 +2022,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     self._raisePortError(e)
                 self.signalOpened.emit(self.objectName())
                 self._state = ModbusClientPort.State.STATE_OPENED
-                fRepeatAgain = True
                 continue
             elif self._state == ModbusClientPort.State.STATE_WAIT_FOR_CLOSE:
                 try:
@@ -2046,7 +2039,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     self._state = ModbusClientPort.State.STATE_WAIT_FOR_CLOSE
                 else:
                     self._state = ModbusClientPort.State.STATE_BEGIN_WRITE
-                fRepeatAgain = True
                 continue
             elif self._state == ModbusClientPort.State.STATE_BEGIN_WRITE:
                 self._timestampRefresh()
@@ -2054,7 +2046,6 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     self._state = ModbusClientPort.State.STATE_CLOSED
                 else:
                     self._state = ModbusClientPort.State.STATE_WRITE
-                fRepeatAgain = True
                 continue
             elif self._state == ModbusClientPort.State.STATE_WRITE:
                 try:
@@ -2073,12 +2064,10 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     self._state = ModbusClientPort.State.STATE_OPENED
                     return StatusCode.Status_Good
                 self._state = ModbusClientPort.State.STATE_BEGIN_READ
-                fRepeatAgain = True
                 continue
             elif self._state == ModbusClientPort.State.STATE_BEGIN_READ:
                 self._timestampRefresh()
                 self._state = ModbusClientPort.State.STATE_READ
-                fRepeatAgain = True
                 continue
             elif self._state == ModbusClientPort.State.STATE_READ:
                 try:
@@ -2104,16 +2093,16 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
                     else:
                         return None
                 self._state = ModbusClientPort.State.STATE_UNKNOWN
-                fRepeatAgain = True
                 continue
             else:
                 if self._port.isOpen():
                     self._state = ModbusClientPort.State.STATE_OPENED
                 else:
                     self._state = ModbusClientPort.State.STATE_CLOSED
-                fRepeatAgain = True
                 continue
+            break
         return None
+    
     def _timestampRefresh(self):
         """Refreshes the internal timestamp to the current time."""
         self._timestamp = timer()  # Timestamp in milliseconds
