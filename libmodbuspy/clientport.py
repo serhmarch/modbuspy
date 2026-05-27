@@ -1151,7 +1151,7 @@ class ModbusClientPort(ModbusObject, ModbusInterface):
         return bytes()
 
     def _process(self) -> StatusCode:
-        """The function processes the packet that the read() function puts into the buffer.
+        """Cycle through the state machine to send the request and then read the response.
         """
         fRepeatAgain = True
         while fRepeatAgain:
