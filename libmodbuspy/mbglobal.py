@@ -105,10 +105,10 @@ MBF_EXCEPTION                        = 128
 # 8 = count bits in byte (byte size in bits)
 MB_BYTE_SZ_BITES = 8
 
-# 16 = count bits in 16 bit register (register size in bits) 
+# 16 = count bits in 16 bit register (register size in bits)
 MB_REGE_SZ_BITES = 16
 
-# 2 = count bytes in 16 bit register (register size in bytes) 
+# 2 = count bytes in 16 bit register (register size in bytes)
 MB_REGE_SZ_BYTES = 2
 
 # 255 - count_of_bytes in function readHoldingRegisters, readCoils etc
@@ -241,11 +241,71 @@ class Parity(IntEnum):
     SpaceParity = 3  # Space parity. The parity bit is sent in the space signal condition. It does not provide error detection information.
     MarkParity = 4   # Mark parity. The parity bit is always set to the mark signal condition (logical 1). It does not provide error detection information.
 
+    @classmethod
+    def from_char(cls, char: str) -> Union[Parity, None]:
+        """Finds an enum member by its character value."""
+        match char.upper():
+            case "N":
+                return cls.NoParity
+            case "E":
+                return cls.EvenParity
+            case "O":
+                return cls.OddParity
+            case "S":
+                return cls.SpaceParity
+            case "M":
+                return cls.MarkParity
+            case _:
+                return None
+
+    @classmethod
+    def to_char(cls, parity: Union[Parity, None]) -> str:
+        """Converts an enum member to its character representation."""
+        match parity:
+            case cls.NoParity:
+                return "N"
+            case cls.EvenParity:
+                return "E"
+            case cls.OddParity:
+                return "O"
+            case cls.SpaceParity:
+                return "S"
+            case cls.MarkParity:
+                return "M"
+            case _:
+                return None
+
 class StopBits(IntEnum):
     """Defines Stop Bits for serial port."""
     OneStop = 0        # 1 stop bit.
     OneAndHalfStop = 1 # 1.5 stop bit.
     TwoStop = 2        # 2 stop bits.
+
+    @classmethod
+    def from_float(cls, value: float) -> Union[StopBits, None]:
+        """Finds an enum member by its float value."""
+        match value:
+            case 1.0:
+                return cls.OneStop
+            case 1.5:
+                return cls.OneAndHalfStop
+            case 2.0:
+                return cls.TwoStop
+            case _:
+                return None
+
+    @classmethod
+    def to_float(cls, stop_bits: Union[StopBits, None]) -> float:
+        """Converts an enum member to its float representation."""
+        match stop_bits:
+            case cls.OneStop:
+                return 1.0
+            case cls.OneAndHalfStop:
+                return 1.5
+            case cls.TwoStop:
+                return 2.0
+            case _:
+                return None
 
 class FlowControl(IntEnum):
     """FlowControl for serial port."""
@@ -278,13 +338,13 @@ def lrc(byte_arr: Union[bytes, bytearray]) -> int:
 
 def readMemBits(bitoffset: int, bitcount: int, memBuff: bytearray) -> bytearray:
     """Function for copy (read) values from memory input `mem_buff` and return it as output buffer for discretes (bits).
-    
+
     Args:
         offset: Memory offset to read from `memBuff` in bit size.
         count: Count of bits to read from memory `memBuff`.
         memBuff: Memory buffer which holds data.
         memBitCount: Size of memory buffer `memBuff` in bits.
-    
+
     Returns:
         bytearray with read bits packed into bytes.
     """
@@ -299,7 +359,7 @@ def readMemBits(bitoffset: int, bitcount: int, memBuff: bytearray) -> bytearray:
         c = len(byarray)-1
         for i in range(c):
             b1 = byarray[i]
-            b2 = byarray[i+1]   
+            b2 = byarray[i+1]
             b = ((b2 << (8-shift)) | (b1 >> shift)) & 0xFF
             byarray[i] = b
     if rem:
@@ -314,14 +374,14 @@ def readMemBits(bitoffset: int, bitcount: int, memBuff: bytearray) -> bytearray:
 
 def writeMemBits(bitoffset: int, bitcount: int, value: Union[bytes, bytearray], memBuff: bytearray):
     """Function for copy (write) values from input buffer `values` to memory `mem_buff` for discretes (bits).
-    
+
     Args:
         bitoffset: Memory offset to write to `memBuff` in bit size.
         bitcount: Count of bits to write into memory `memBuff`.
         value: Input buffer that holds data to write.
         memBuff: Memory buffer.
         memBitCount: Size of memory buffer `memBuff` in bits.
-    
+
     Returns:
         None
     """
@@ -369,7 +429,7 @@ def bytesToAscii(bytes_buff: Union[bytes, bytearray]) -> bytes:
     Every byte of bytes_buff are repr as two bytes in output,
     where most signified tetrabits represented as leading byte in hex digit in ASCII encoding (upper) and
     less signified tetrabits represented as tailing byte in hex digit in ASCII encoding (upper).
-    
+
     Returns: bytes array that is twice the size of input
     """
     return bytes_buff.hex().upper().encode('ascii')
@@ -379,7 +439,7 @@ def asciiToBytes(ascii_buff: Union[bytes, bytearray]) -> bytes:
     Every byte of output are repr as two bytes in `ascii_buff`,
     where most signified tetrabits represented as leading byte in hex digit in ASCII encoding (upper) and
     less signified tetrabits represented as tailing byte in hex digit in ASCII encoding (upper).
-    
+
     Returns: bytes array that is half the size of input
     """
     if isinstance(ascii_buff, (bytes, bytearray)):
@@ -460,7 +520,7 @@ def toflowControl(s: str) -> FlowControl:
 
 def timer() -> int:
     """Get timer value in milliseconds."""
-    return int(time.time() * 1000)
+    return int(time.perf_counter() * 1000)
 
 def currentTimestamp() -> int:
     """Get current timestamp in UNIX format in milliseconds."""
@@ -491,7 +551,7 @@ class Address:
 
 
     ## @brief Python set that contains supported Modbus Address types
-    MemoryTypeSet = { MemoryType.Memory_0x, 
+    MemoryTypeSet = { MemoryType.Memory_0x,
                       MemoryType.Memory_1x,
                       MemoryType.Memory_3x,
                       MemoryType.Memory_4x }
@@ -694,7 +754,7 @@ class Address:
         @details Return self.toint() < other.toint()
         """
         return self.toint() < other.toint()
-    
+
     def __le__(self, other):
         """
         @details Return self.toint() <= other.toint()
@@ -712,7 +772,7 @@ class Address:
         @details Return self.toint() != other.toint()
         """
         return self.toint() != other.toint()
-    
+
     def __gt__(self, other):
         """
         @details Return self.toint() > other.toint()
@@ -749,14 +809,14 @@ class Address:
         """
         self.setoffset(self._offset + other)
         return self
-    
+
     def __isub__(self, other: int):
         """
         @details Decrease the offset by the given integer.
         """
         self.setoffset(self._offset - other)
         return self
-    
+
     def __repr__(self):
         """
         @details Return the string representation of the object.
@@ -776,13 +836,28 @@ class AwaitableMethod:
         self._meth = meth
         self._args = args
         self._kwargs = kwargs
+        # print(f"AwaitableMethod created for method '{meth.__name__}' with args {args} and kwargs {kwargs}")
 
     def __await__(self):
+        """Returns self, an instance of AwaitableMethod, which itself is an iterator (has a __next__ method).
+        Thus, when an AwaitableMethod instance is awaited, the asyncio event loop will call __next__() repeatedly
+        until it either yields to the loop, returns a value, or raises StopIteration.
+        """
+        # print(f"AwaitableMethod({self._meth.__name__}): __await__ called")
         return self
-    
+
     def __next__(self):
+        """Makes this class an iterator, i.e. implements the iterator protocol.
+        """
+        # print(f"AwaitableMethod({self._meth.__name__}).__next__ called")
         res = self._meth(*self._args, **self._kwargs)
         if res is None:
+            # print(f"AwaitableMethod({self._meth.__name__}).__next__ : method returned None")
+            # print(f"AwaitableMethod({self._meth.__name__}).__next__ : sleeping for 1 sec")
+            # time.sleep(1)
+            # print(f"AwaitableMethod({self._meth.__name__}).__next__ : yielding to event loop")
             return None
+
+        # print(f"AwaitableMethod({self._meth.__name__}).__next__ : method returned {res}, raising StopIteration")
         raise StopIteration(res)
-        
+

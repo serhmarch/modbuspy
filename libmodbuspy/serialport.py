@@ -6,6 +6,9 @@ Date: November 2025
 """
 
 import os
+from time import sleep
+from typing import Union
+
 import serial
 
 from .port import ModbusPort
@@ -33,6 +36,8 @@ class ModbusSerialPort(ModbusPort):
         timeoutFirstByte = "timeoutFirstByte" # String key of setting 'Serial port timeout waiting first byte of packet'
         timeoutInterByte = "timeoutInterByte" # String key of setting 'Serial port timeout waiting next byte of packet'
         timeout          = "timeout"          # String key of setting 'Serial port timeout waiting first byte of packet'
+        preTxDelay       = "preTxDelay"       # String key of setting 'Serial port delay before write'
+        postTxDelay      = "postTxDelay"      # String key of setting 'Serial port delay after write'
 
     class Defaults:
         """Default serial port settings."""
@@ -43,7 +48,9 @@ class ModbusSerialPort(ModbusPort):
         stopBits         = StopBits.OneStop                             # Default value for the serial port's stop bits
         flowControl      = FlowControl.NoFlowControl                    # Default value for the serial port's flow control
         timeoutFirstByte = 3000                                         # Default value for the serial port's timeout waiting first byte of packet
-        timeoutInterByte = 50                                           # Default value for the serial port's timeout waiting next byte of packet
+        timeoutInterByte = 5                                            # Default value for the serial port's timeout waiting next byte of packet
+        preTxDelay       = 0                                            # Default value for the serial port's delay before write (ms)
+        postTxDelay      = 0                                            # Default value for the serial port's delay after write (ms)
 
     @staticmethod
     def toSerialParity(parity:Parity) -> str:
@@ -85,6 +92,8 @@ class ModbusSerialPort(ModbusPort):
         self._flowControl      = d.flowControl     
         self._timeout          = d.timeoutFirstByte
         self._timeoutInterByte = d.timeoutInterByte
+        self._preTxDelay       = d.preTxDelay
+        self._postTxDelay      = d.postTxDelay
         # Serial object
         self._serial = serial.Serial()
         # Other internal variables
@@ -165,43 +174,43 @@ class ModbusSerialPort(ModbusPort):
         """Property. Set the number of data bits."""
         return self.setDataBits(value)
 
-    def parity(self) -> Parity:
+    def parity(self) -> Union[Parity, None]:
         """Get the parity setting."""
         return self._parity
 
-    def setParity(self, value: Parity):
+    def setParity(self, value: Union[Parity, None]):
         """Set the parity setting."""
         if self._parity != value:
             self._parity = value
             self._changed = True
 
     @property
-    def Parity(self) -> Parity:
+    def Parity(self) -> Union[Parity, None]:
         """Property. Get the parity setting."""
         return self.parity()
 
     @Parity.setter
-    def Parity(self, value: Parity) -> None:
+    def Parity(self, value: Union[Parity, None]) -> None:
         """Property. Set the parity setting."""
         return self.setParity(value)
 
-    def stopBits(self) -> StopBits:
+    def stopBits(self) -> Union[StopBits, None]:
         """Get the number of stop bits."""
         return self._stopBits
 
-    def setStopBits(self, value: StopBits):
+    def setStopBits(self, value: Union[StopBits, None]):
         """Set the number of stop bits."""
         if self._stopBits != value:
             self._stopBits = value
             self._changed = True
 
     @property
-    def StopBits(self) -> StopBits:
+    def StopBits(self) -> Union[StopBits, None]:
         """Property. Get the number of stop bits."""
         return self.stopBits()
 
     @StopBits.setter
-    def StopBits(self, value: StopBits) -> None:
+    def StopBits(self, value: Union[StopBits, None]) -> None:
         """Property. Set the number of stop bits."""
         return self.setStopBits(value)
 
@@ -263,6 +272,46 @@ class ModbusSerialPort(ModbusPort):
         """Property. Set the timeout for the inter-byte delay."""
         return self.setTimeoutInterByte(value)
 
+    def preTxDelay(self) -> int:
+        """Get the delay before transmitting data."""
+        return self._preTxDelay
+
+    def setPreTxDelay(self, value: int):
+        """Set the delay before transmitting data."""
+        if self._preTxDelay != value:
+            self._preTxDelay = value
+            self._changed = True
+
+    @property
+    def PreTxDelay(self) -> int:
+        """Property. Get the delay before transmitting data."""
+        return self.preTxDelay()
+
+    @PreTxDelay.setter
+    def PreTxDelay(self, value: int) -> None:
+        """Property. Set the delay before transmitting data."""
+        return self.setPreTxDelay(value)
+
+    def postTxDelay(self) -> int:
+        """Get the delay after transmitting data."""
+        return self._postTxDelay
+
+    def setPostTxDelay(self, value: int):
+        """Set the delay after transmitting data."""
+        if self._postTxDelay != value:
+            self._postTxDelay = value
+            self._changed = True
+
+    @property
+    def PostTxDelay(self) -> int:
+        """Property. Get the delay after transmitting data."""
+        return self.postTxDelay()
+
+    @PostTxDelay.setter
+    def PostTxDelay(self, value: int) -> None:
+        """Property. Set the delay after transmitting data."""
+        return self.setPostTxDelay(value)
+
     def settings(self) -> dict:
         s = ModbusSerialPort.Strings
         return {
@@ -274,7 +323,9 @@ class ModbusSerialPort(ModbusPort):
             s.flowControl      : self._flowControl      ,
            #s.timeoutFirstByte : self._timeoutFirstByte ,
             s.timeoutInterByte : self._timeoutInterByte ,
-            s.timeout          : self._timeout
+            s.timeout          : self._timeout          ,
+            s.preTxDelay       : self._preTxDelay       ,
+            s.postTxDelay      : self._postTxDelay      ,
         }
 
     def setSettings(self, settings: dict):
@@ -306,12 +357,18 @@ class ModbusSerialPort(ModbusPort):
         v = settings.get(s.timeout, None)
         if v is not None:
             self.setTimeout(v)
+        v = settings.get(s.preTxDelay, None)
+        if v is not None:
+            self.setPreTxDelay(v)
+        v = settings.get(s.postTxDelay, None)
+        if v is not None:
+            self.setPostTxDelay(v)
 
     def isOpen(self) -> bool:
         """Check if the serial port is open."""
         return self._serial.is_open
 
-    def open(self) -> StatusCode:
+    def open(self) -> StatusCode | None:
         fRepeatAgain = True        
         while fRepeatAgain:
             fRepeatAgain = False            
@@ -374,17 +431,23 @@ class ModbusSerialPort(ModbusPort):
         self._state = ModbusPort.State.STATE_CLOSED
         return StatusCode.Status_Good
     
-    def write(self) -> StatusCode:
+    def write(self) -> StatusCode | None:
         return self._writeMethod()
     
-    def read(self) -> StatusCode:
+    def read(self) -> StatusCode | None:
         return self._readMethod()
 
     def _blockingWrite(self) -> StatusCode:    
         self._state = ModbusPort.State.STATE_OPENED
         try:
             self._serial.reset_input_buffer()
+            if self._preTxDelay > 0:
+                # print(f"Delaying {self._preTxDelay} ms before transmitting data...")
+                sleep(self._preTxDelay / 1000.0)  # ms to seconds
             self._serial.write(self._buff)
+            if self._postTxDelay > 0:
+                # print(f"Delaying {self._postTxDelay} ms after transmitting data...")
+                sleep(self._postTxDelay / 1000.0)  # ms to seconds
         except serial.SerialException as e:
             self._raiseError(StatusCode.Status_BadSerialWrite, f"Error while writing '{self._portName}' serial port. Error: {str(e)}")
         return StatusCode.Status_Good
@@ -402,26 +465,45 @@ class ModbusSerialPort(ModbusPort):
             self._raiseError(StatusCode.Status_BadSerialRead, f"Error while reading '{self._portName}' serial port. Error: {str(e)}")
         return StatusCode.Status_Good
 
-    def _nonBlockingWrite(self) -> StatusCode:
+    def _nonBlockingWrite(self) -> StatusCode | None:
         fRepeatAgain = True
         while fRepeatAgain:
             fRepeatAgain = False
-            if self._state in (ModbusPort.State.STATE_OPENED,
-                               ModbusPort.State.STATE_PREPARE_TO_WRITE):
+            if self._state == ModbusPort.State.STATE_OPENED:
                 self._timestampRefresh()
-                self._state = ModbusPort.State.STATE_WAIT_FOR_WRITE
+                self._state = ModbusPort.State.STATE_PREPARE_TO_WRITE
+                # if self._preTxDelay > 0:
+                #     print(f"Delaying (async) {self._preTxDelay} ms before transmitting data...")
                 fRepeatAgain = True
                 continue
-            elif self._state in (ModbusPort.State.STATE_WAIT_FOR_WRITE,
-                                 ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL):
-                # Note: clean read buffer from garbage before write
+            elif self._state == ModbusPort.State.STATE_PREPARE_TO_WRITE:
+                if (self._preTxDelay <= 0) or ((timer() - self._timestamp) >= self._preTxDelay):
+                    self._state = ModbusPort.State.STATE_WAIT_FOR_WRITE
+                # Otherwise, continue cycling here until preTxDelay has elapsed.
+                fRepeatAgain = True
+                continue
+            elif self._state == ModbusPort.State.STATE_WAIT_FOR_WRITE:
                 try:
-                    self._serial.reset_input_buffer()
+                    self._serial.reset_input_buffer()  # clean read buffer from garbage before write
+                    # print("Writing data (async)...")
                     self._serial.write(self._buff)
-                    self._state = ModbusPort.State.STATE_OPENED
-                    return StatusCode.Status_Good
+                    self._state = ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL
+                    if self._postTxDelay > 0:
+                        self._timestampRefresh()
+                        # print(f"Delaying (async) {self._postTxDelay} ms after transmitting data...")
+                    fRepeatAgain = True
+                    continue
                 except serial.SerialException as e:
                     self._raiseError(exceptions.SerialWriteError, f"Error while writing '{self._portName}' serial port. Error: {str(e)}")
+            elif self._state == ModbusPort.State.STATE_WAIT_FOR_WRITE_ALL:
+                if (self._postTxDelay <= 0) or ((timer() - self._timestamp) >= self._postTxDelay):
+                    # print("Done with nonBlockingWrite...")
+                    self._state = ModbusPort.State.STATE_OPENED
+                    return StatusCode.Status_Good
+                else:
+                    # Continue cycling here until postTxDelay has elapsed.
+                    fRepeatAgain = True
+                    continue
             else:
                 if self.isOpen():
                     self._state = ModbusPort.State.STATE_OPENED
@@ -430,7 +512,7 @@ class ModbusSerialPort(ModbusPort):
                     self._raiseError(exceptions.SerialWriteError, "Internal error")
         return None
 
-    def  _nonBlockingRead(self) -> StatusCode:
+    def _nonBlockingRead(self) -> StatusCode | None:
         fRepeatAgain = True
         while fRepeatAgain:
             fRepeatAgain = False
